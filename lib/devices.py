@@ -2,82 +2,64 @@
 Module that includes the K2450 class to communicate with the Keithleys,
 as well as some functions that make voltage sequences for the Keithleys.
 """
-from dataclasses import dataclass
-import pyvisa
 import numpy as np
 
-@dataclass
-class K2450:
-    rm: pyvisa.ResourceManager = pyvisa.ResourceManager()
+from pymeasure.instruments import Instrument
+from pymeasure.instruments.validators import truncated_range, strict_discrete_set
 
-    def __init__(self, r: str):
-        self.resource = r
-        self.instrument = self.rm.open_resource(self.resource)
-        self.digital_in = None
-        self.digital_out = None
 
-    def write(self, cmd: str):
-        return self.instrument.write(cmd)
+class TENMA(Instrument):
+    """
+    This class implements the communication with the TENMA sources. It is
+    based on the pymeasure library. It is a subclass of the Instrument class
+    from pymeasure.
+    """
+    current = Instrument.control(
+        "ISET1?", "ISET1:%g", """Sets the current in Amps.""",
+        validator=truncated_range,
+        values=[0, 1]
+    ) # TODO: check if ISET1? is correct
 
-    def query(self, query: str):
-        return self.instrument.query(query)
+    voltage = Instrument.control(
+        "VSET1?", "VSET1:%g", """Sets the voltage in Volts.""",
+        validator=truncated_range,
+        values=[-60., 60.]
+    ) # TODO: check if VSET1? is correct
 
-    def reset(self):
-        self.write("*RST")
+    output = Instrument.control(
+        "OUT1?", "OUT1:%d", """Sets the output state.""",
+        validator=strict_discrete_set,
+        values={True: 1, False: 0},
+        map_values=True
+    ) # TODO: check if OUT1? is correct
 
-    def sense_curr(self):
-        self.write("SENS:FUNC \"CURR\"")
+    timeout = Instrument.control(
+        "Timeout?", "Timeout %d", """Sets the timeout in seconds."""
+    ) # TODO: check if Timeout? is correct
+    
+    def __init__(self, adapter, **kwargs):
+        super(TENMA, self).__init__(
+            adapter, "TENMA Power Supply", **kwargs
+        )
 
-    def sense_curr_range_auto(self, value: bool):
-        table = {0: 'OFF', 1: 'ON'}
-        self.write(f"SENS:CURR:RANG:AUTO {table[value]}")
 
-    def curr_limit(self, limit: float):
-        """
-        This funtion sets the current limit
-        :param limit: current limit in A
-        :return: None
-        """
-        self.write(f"SOUR:VOLT:ILIM {limit}")
+def vg_ramp(vg_start: float, vg_end: float, vg_step: float) -> np.ndarray:
+    """
+    This function makes the vg ramp for an IV measurement.
+    It goes from 0 to vg_start, then to vg_end, then to vg_start, and finally
+    back to 0.
+    """
+    Vg_up = np.arange(vg_start, vg_end + vg_step, vg_step)
+    Vg_down = np.arange(vg_end, vg_start - vg_step, -vg_step)
+    Vg_m = np.concatenate((Vg_up, Vg_down))
 
-    def source_volt(self):
-        self.write("SOUR:FUNC VOLT")
+    vg_start_pos = (vg_start > 0)
 
-    def set_volt_range(self, range_: float):
-        self.write(f"SOUR:VOLT:RANG {range_}")
+    vg_i = np.arange(0, vg_start + vg_start_pos * vg_step, vg_start_pos * vg_step)
+    vg_f = np.flip(vg_i)
+    Vg = np.concatenate((vg_i, Vg_m, vg_f))
 
-    def cre_sour_conf(self, name: str):
-        """
-        This function creates a source configuration list with the given name
-        :param name: name of the list
-        :return: None
-        """
-        self.write(f"SOUR:CONF:LIST:CRE \"{name}\"")
-
-    def sense_curr_nplc(self, nplc_value: int):
-        self.write(f"SENS:CURR:NPLC {int(nplc_value)}")
-
-    def set_in_out_digital_pin(self, in_: int, out_: int):
-        assert isinstance(in_, int) and isinstance(out_, int)
-
-        self.write(f"DIG:LINE{out_}:MODE TRIG, OUT")
-        self.write(f"DIG:LINE{in_}:MODE TRIG, IN")  # set digital line n to input
-        self.write(f"TRIG:DIG{out_}:OUT:STIM NOT{out_}")
-        self.write(f"TRIG:DIG{in_}:IN:CLE")  # clear digital in
-        self.write(f"TRIG:DIG{in_}:IN:EDGE RIS")  # set to detect edge rise
-
-    def set_volt(self, voltage: float):
-        self.write(f"SOUR:VOLT {voltage}")
-
-    def add_voltage_to_configuration_list(self, voltage: float, list_name: str):
-        self.set_volt(voltage)
-        self.write(f"SOUR:CONF:LIST:STORE \"{list_name}\"")
-
-@dataclass
-class TENMA:
-    arg = 'test'
-    def __init__(self) -> None:
-        pass
+    return Vg
 
 
 def time_to_steps(s, NPLC=0.02):
