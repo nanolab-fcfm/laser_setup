@@ -49,13 +49,13 @@ def vg_ramp(vg_start: float, vg_end: float, vg_step: float) -> np.ndarray:
     It goes from 0 to vg_start, then to vg_end, then to vg_start, and finally
     back to 0.
     """
-    Vg_up = np.arange(vg_start, vg_end + vg_step, vg_step)
+    Vg_up = np.arange(vg_start, vg_end, vg_step)
     Vg_down = np.arange(vg_end, vg_start - vg_step, -vg_step)
     Vg_m = np.concatenate((Vg_up, Vg_down))
 
-    vg_start_pos = (vg_start > 0)
+    vg_start_dir = 1 if vg_start > 0 else -1
 
-    vg_i = np.arange(0, vg_start + vg_start_pos * vg_step, vg_start_pos * vg_step)
+    vg_i = np.arange(0, vg_start, vg_start_dir * vg_step)
     vg_f = np.flip(vg_i)
     Vg = np.concatenate((vg_i, Vg_m, vg_f))
 
