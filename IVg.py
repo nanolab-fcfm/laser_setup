@@ -6,7 +6,7 @@ import logging
 import configparser
 import sys
 import time
-from lib.devices import TENMA, vg_ramp
+from lib.devices import TENMA, vg_ramp, SONGS
 
 import numpy as np
 from pymeasure.instruments.keithley import Keithley2450
@@ -31,6 +31,7 @@ class IVg(Procedure):
     #Device Parameters
     chip = Parameter('Chip', default='Unknown')
     sample = Parameter('Sample', default='Unknown')
+    comment = Parameter('Comment', default='-')
 
     # Important Parameters
     vds = FloatParameter('VDS', units='V', default=0.075)
@@ -43,7 +44,7 @@ class IVg(Procedure):
     vg_step = FloatParameter('VG step', units='V', default=0.2)
     step_time = FloatParameter('Step time', units='s', default=0.01)
 
-    INPUTS = ['chip', 'sample', 'vds', 'vg_start', 'vg_end', 'N_avg', 'Irange', 'vg_step', 'step_time']
+    INPUTS = ['chip', 'sample', 'comment', 'vds', 'vg_start', 'vg_end', 'N_avg', 'Irange', 'vg_step', 'step_time']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
     def startup(self):
@@ -88,13 +89,11 @@ class IVg(Procedure):
         for i, vg in enumerate(self.vg_ramp):
             self.emit('progress', 100 * i / len(self.vg_ramp))
 
-            if vg > 0:
+            if vg >= 0:
                 self.possource.voltage = vg
-            elif vg < 0:
+            elif vg <= 0:
                 self.negsource.voltage = -vg
-            else:   # vg == 0
-                self.possource.voltage = 0
-                self.negsource.voltage = 0
+
             time.sleep(self.step_time)
 
             # Take the average of N_avg measurements
@@ -111,7 +110,10 @@ class IVg(Procedure):
             log.info("No instruments to shutdown.")
             return
 
-        self.meter.triad(1000, 0.5)
+        for freq, t in SONGS['ready']:
+            self.meter.beep(freq, t)
+            time.sleep(t)
+
         self.meter.shutdown()
         # Assuming that their voltages are ~0
         self.negsource.voltage = 0.
