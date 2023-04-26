@@ -6,9 +6,9 @@ import logging
 import configparser
 import sys
 import time
-import numpy as np
-
 from lib.devices import TENMA, vg_ramp
+
+import numpy as np
 from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.display.Qt import QtWidgets
 from pymeasure.display.windows import ManagedWindow
@@ -19,7 +19,7 @@ from pymeasure.experiment import (
 config = configparser.ConfigParser()
 config.read('config.ini')
 
-log = logging.getLogger('')
+log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
@@ -29,8 +29,8 @@ class IVg(Procedure):
     controlled by a TENMA source.
     """
     #Device Parameters
-    chip = Parameter('Chip', default='')
-    sample = Parameter('Sample', default='')
+    chip = Parameter('Chip', default='Unknown')
+    sample = Parameter('Sample', default='Unknown')
 
     # Important Parameters
     vds = FloatParameter('VDS', units='V', default=0.075)
@@ -41,14 +41,18 @@ class IVg(Procedure):
     N_avg = IntegerParameter('N_avg', default=2)
     Irange = FloatParameter('Irange', units='A', default=0.001)
     vg_step = FloatParameter('VG step', units='V', default=0.2)
-    step_time = FloatParameter('Step time', units='s', default=0.01) # MATLAB: 0.01
-    
+    step_time = FloatParameter('Step time', units='s', default=0.01)
+
     INPUTS = ['chip', 'sample', 'vds', 'vg_start', 'vg_end', 'N_avg', 'Irange', 'vg_step', 'step_time']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
     def startup(self):
         log.info("Setting up instruments")
         self.meter = Keithley2450(config['Adapters']['Keithley2450'])
+        self.negsource = TENMA(config['Adapters']['TenmaNeg'])
+        self.possource = TENMA(config['Adapters']['TenmaPos'])            
+
+        # Keithley 2450 meter
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
@@ -60,17 +64,11 @@ class IVg(Procedure):
         self.meter.measure_current(current=self.Irange, auto_range=False)
 
         # TENMA sources
-        self.negsource = TENMA(config['Adapters']['TenmaNeg'])
-        self.negsource.timeout = 1.
-        self.negsource.current = 0.05
-        time.sleep(0.1)
-        self.negsource.voltage = 0.
-
-        self.possource = TENMA(config['Adapters']['TenmaPos'])
-        self.possource.timeout = 1.
-        self.possource.current = 0.05
-        time.sleep(0.1)
-        self.possource.voltage = 0.
+        for source in [self.negsource, self.possource]:
+            source.timeout = 1.
+            source.current = 0.05
+            time.sleep(0.1)
+            source.voltage = 0.
 
         # Turn on the outputs
         self.meter.enable_source()
@@ -107,8 +105,12 @@ class IVg(Procedure):
             data_array[i] = [vg, np.mean(avg_array)]      # TODO: check if this is correct, because averaging over only the second half of the data could be better.
 
             self.emit('results', dict(zip(self.DATA_COLUMNS, data_array[i])))
-            
+
     def shutdown(self):
+        if not hasattr(self, 'meter'):
+            log.info("No instruments to shutdown.")
+            return
+
         self.meter.triad(1000, 0.5)
         self.meter.shutdown()
         # Assuming that their voltages are ~0
