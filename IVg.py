@@ -90,8 +90,10 @@ class IVg(Procedure):
             self.emit('progress', 100 * i / len(self.vg_ramp))
 
             if vg >= 0:
+                self.negsource.voltage = 0.
                 self.possource.voltage = vg
-            elif vg <= 0:
+            elif vg < 0:
+                self.possource.voltage = 0.
                 self.negsource.voltage = -vg
 
             time.sleep(self.step_time)

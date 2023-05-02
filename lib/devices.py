@@ -18,13 +18,13 @@ class TENMA(Instrument):
     from pymeasure.
     """
     current = Instrument.control(
-        "ISET1?", "ISET1:%g", """Sets the current in Amps.""",
+        "ISET1?", "ISET1:%.2f", """Sets the current in Amps.""",
         validator=truncated_range,
         values=[0, 1]
     ) # TODO: check if ISET1? is correct
 
     voltage = Instrument.control(
-        "VSET1?", "VSET1:%g", """Sets the voltage in Volts.""",
+        "VSET1?", "VSET1:%.2f", """Sets the voltage in Volts.""",
         validator=truncated_range,
         values=[-60., 60.]
     ) # TODO: check if VSET1? is correct
