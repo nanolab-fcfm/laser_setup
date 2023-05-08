@@ -1,3 +1,7 @@
+"""
+This code is not used, as it is part of an old repo. However, some ideas
+in here could be useful for the development of this repo.
+"""
 import datetime
 import os
 import time
