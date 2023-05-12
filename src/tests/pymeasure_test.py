@@ -1,13 +1,10 @@
-import logging
-log = logging.getLogger(__name__)
-log.addHandler(logging.NullHandler())
-
 import random
 from time import sleep
 from pymeasure.log import console_log
 from pymeasure.display import Plotter
 from pymeasure.experiment import Procedure, Results, Worker, unique_filename
 from pymeasure.experiment import IntegerParameter, FloatParameter, Parameter
+from src.lib.utils import log
 
 class RandomProcedure(Procedure):
 
@@ -37,12 +34,17 @@ class RandomProcedure(Procedure):
                 break
 
 
+def test_procedure():
+    procedure = RandomProcedure()
+    procedure.iterations = 1000
+    return procedure
+
+
 if __name__ == "__main__":
     console_log(log)
 
     log.info("Constructing a RandomProcedure")
-    procedure = RandomProcedure()
-    procedure.iterations = 1000
+    procedure = test_procedure()
 
     data_filename = unique_filename(
                 './data/',
