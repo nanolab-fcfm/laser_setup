@@ -16,8 +16,7 @@ from lib.devices import BasicIVgProcedure
 
 
 class IVg(BasicIVgProcedure):
-    """
-    Measures a gate sweep with a Keithley 2450. The gate voltage is
+    """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources.
     """
     #Device Parameters

@@ -18,10 +18,14 @@ SONGS: Dict[str, List[Tuple[float, float]]] = dict(
 
 
 def gate_sweep_ramp(vg_start: float, vg_end: float, vg_step: float) -> np.ndarray:
-    """
-    This function returns an array with the voltages to be applied to the gate
-    for a gate sweep. It goes from 0 to vg_start, then to vg_end, then to
+    """This function returns an array with the voltages to be applied to the
+    gate for a gate sweep. It goes from 0 to vg_start, then to vg_end, then to
     vg_start, and finally back to 0.
+
+    :param vg_start: The starting voltage of the sweep
+    :param vg_end: The ending voltage of the sweep
+    :param vg_step: The step size of the sweep
+    :return: An array with the voltages to be applied to the gate
     """
     Vg_up = np.arange(vg_start, vg_end, vg_step)
     Vg_down = np.arange(vg_end, vg_start - vg_step, -vg_step)

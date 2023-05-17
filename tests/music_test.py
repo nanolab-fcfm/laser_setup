@@ -4,7 +4,7 @@ Plays a song on the Keithley 2450 meter.
 import time
 import sys
 from pymeasure.instruments.keithley import Keithley2450
-from src.lib.utils import config, SONGS
+from lib.utils import config, SONGS
 
 def play_song(song: str):
     if not song in SONGS:

@@ -44,7 +44,7 @@ class TENMA(Instrument):
         "Timeout?", "Timeout %d", """Sets the timeout in seconds."""
     )
     
-    def __init__(self, adapter, **kwargs):
+    def __init__(self, adapter: str, **kwargs):
         super(TENMA, self).__init__(
             adapter, "TENMA Power Supply", **kwargs
         )
@@ -63,30 +63,34 @@ class TENMA(Instrument):
         time.sleep(0.1)
         self.voltage = voltage
 
-    def voltage_to_0(self, vg_step=0.2, step_time=0.01):
-        """
-        Sets the voltage to 0 with a ramp in V/s.
+    def ramp_to_voltage(self, vg_end: float, vg_step=0.2, step_time=0.05):
+        """Sets the voltage to vg_end with a ramp in V/s.
+
+        :param vg_end: The voltage to ramp to in Volts.
+        :param vg_step: The step size in Volts.
+        :param step_time: The time between steps in seconds.
         """
         v = self.voltage
-        while abs(v) > vg_step:
-            v -= np.sign(v)*vg_step
+        while abs(vg_end - v) > vg_step:
+            v += np.sign(vg_end - v) * vg_step
             self.voltage = v
             time.sleep(step_time)
-        self.voltage = 0.
+        self.voltage = vg_end
 
     def shutdown(self):
         """
         Safely shutdowns the TENMA, setting the voltage to 0 and turning off
         the output.
         """
-        self.voltage_to_0()
+        self.ramp_to_voltage(0.)
         self.output = False
 
 
 class BasicIVgProcedure(Procedure):
     """
     Basic procedure for measuring current with a Keithley 2450 and two TENMA
-    sources. Modify self.execute() to run a specific procedure.
+    sources. Modify the `execute` method to run a specific
+    :class:`pymeasure.experiment.Procedure`.
 
     :param chip: The chip name.
     :param sample: The sample name.
@@ -119,7 +123,7 @@ class BasicIVgProcedure(Procedure):
         log.info("Setting up instruments")
         self.meter = Keithley2450(config['Adapters']['Keithley2450'])
         self.negsource = TENMA(config['Adapters']['TenmaNeg'])
-        self.possource = TENMA(config['Adapters']['TenmaPos'])            
+        self.possource = TENMA(config['Adapters']['TenmaPos'])
 
         # Keithley 2450 meter
         self.meter.reset()

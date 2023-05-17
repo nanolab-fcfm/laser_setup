@@ -4,7 +4,7 @@ from pymeasure.log import console_log
 from pymeasure.display import Plotter
 from pymeasure.experiment import Procedure, Results, Worker, unique_filename
 from pymeasure.experiment import IntegerParameter, FloatParameter, Parameter
-from src.lib.utils import log
+from lib.utils import log
 
 class RandomProcedure(Procedure):
 

@@ -1,6 +1,6 @@
 import warnings
 import pyvisa
-from src.lib.utils import config
+from lib.utils import config
 
 def test_devices():
     rm = pyvisa.ResourceManager()
