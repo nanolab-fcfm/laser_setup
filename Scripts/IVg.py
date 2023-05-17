@@ -19,24 +19,12 @@ class IVg(BasicIVgProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources.
     """
-    #Device Parameters
-    chip = Parameter('Chip', default='Unknown')
-    sample = Parameter('Sample', default='Unknown')
-    comment = Parameter('Comment', default='-')
-
-    # Important Parameters
-    vds = FloatParameter('VDS', units='V', default=0.075)
-    vg_start = FloatParameter('VG start', units='V', default=-35.)
-    vg_end = FloatParameter('VG end', units='V', default=35.)
-
     # Optional Parameters, preferably don't change
-    Irange = FloatParameter('Irange', units='A', default=0.001)
     N_avg = IntegerParameter('N_avg', default=2)
     vg_step = FloatParameter('VG step', units='V', default=0.2)
     step_time = FloatParameter('Step time', units='s', default=0.01)
 
-    INPUTS = ['chip', 'sample', 'comment', 'vds', 'vg_start', 'vg_end', 'Irange', 'N_avg', 'vg_step', 'step_time']
-    DATA_COLUMNS = ['Vg (V)', 'I (A)']
+    INPUTS = BasicIVgProcedure.INPUTS + ['N_avg', 'vg_step', 'step_time']
 
     def execute(self):
         log.info("Starting the measurement")

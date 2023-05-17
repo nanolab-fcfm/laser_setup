@@ -89,8 +89,16 @@ class TENMA(Instrument):
 class BasicIVgProcedure(Procedure):
     """
     Basic procedure for measuring current with a Keithley 2450 and two TENMA
-    sources. Modify the `execute` method to run a specific
-    :class:`pymeasure.experiment.Procedure`.
+    sources.
+    
+    Modify the `execute` method to run a specific
+    :class:`pymeasure.experiment.Procedure`. To add more parameters to the
+    Procedure, or modify the existent ones, define a new
+    `pymeasure.experiment.Parameter` as class attribute, and add it to INPUTS:
+    `INPUTS = BasicIVgProcedure.INPUTS + [parameter_name]`
+
+    To add data columns, modify DATA_COLUMNS:
+    `DATA_COLUMNS = BasicIVgProcedure.DATA_COLUMNS + [column_name]`
 
     :param chip: The chip name.
     :param sample: The sample name.
