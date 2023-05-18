@@ -1,171 +1,41 @@
-"""
-This code is not used, as it is part of an old repo. However, some ideas
-in here could be useful for the development of this repo.
-"""
-import datetime
-import os
-import time
-import glob
+import logging
+from typing import Dict, List, Tuple
+
+from pymeasure.experiment import get_config
+
 import numpy as np
 
-class Params(object):
+config = get_config('config.ini')
+
+log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
+
+# Songs for the Keithley to play when it's done with a measurement.
+SONGS: Dict[str, List[Tuple[float, float]]] = dict(
+    washing = [(1318.5102276514797, 0.284375), (1760.0, 0.284375), (1760.0, 0.015625), (1760.0, 0.284375), (2217.4610478149766, 0.015625), (2217.4610478149766, 0.284375), (2217.4610478149766, 0.015625), (2217.4610478149766, 0.284375), (1760.0, 0.015625), (1760.0, 0.569375), (1318.5102276514797, 0.030625), (1318.5102276514797, 0.284375), (1318.5102276514797, 0.015625), (1318.5102276514797, 0.284375), (1318.5102276514797, 0.015625), (1318.5102276514797, 0.426875), (1318.5102276514797, 0.023125), (1318.5102276514797, 0.141875), (1975.533205024496, 0.008125), (1975.533205024496, 0.141875), (1760.0, 0.008125), (1760.0, 0.141875), (1661.2187903197805, 0.008125), (1661.2187903197805, 0.141875), (1479.9776908465376, 0.008125), (1479.9776908465376, 0.141875), (1318.5102276514797, 0.008125), (1318.5102276514797, 0.854375), (1318.5102276514797, 0.045625), (1318.5102276514797, 0.284375), (1760.0, 0.015625), (1760.0, 0.284375), (1760.0, 0.015625), (1760.0, 0.284375), (2217.4610478149766, 0.015625), (2217.4610478149766, 0.284375), (2217.4610478149766, 0.015625), (2217.4610478149766, 0.284375), (1760.0, 0.015625), (1760.0, 0.569375), (1318.5102276514797, 0.030625), (1318.5102276514797, 0.284375), (1760.0, 0.015625), (1760.0, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.284375), (1479.9776908465376, 0.015625), (1479.9776908465376, 0.141875), (1661.2187903197805, 0.008125), (1661.2187903197805, 0.141875), (1760.0, 0.008125), (1760.0, 0.284375), (1244.5079348883237, 0.015625), (1244.5079348883237, 0.284375), (1318.5102276514797, 0.015625), (1318.5102276514797, 0.854375), (1318.5102276514797, 0.045625), (1318.5102276514797, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.284375), (1760.0, 0.015625), (1760.0, 0.141875), (1661.2187903197805, 0.008125), (1661.2187903197805, 0.141875), (1479.9776908465376, 0.008125), (1479.9776908465376, 0.141875), (1661.2187903197805, 0.008125), (1661.2187903197805, 0.141875), (1760.0, 0.008125), (1760.0, 0.569375), (1318.5102276514797, 0.030625), (1318.5102276514797, 0.284375), (1760.0, 0.015625), (1760.0, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.141875), (2349.31814333926, 0.008125), (2349.31814333926, 0.141875), (1975.533205024496, 0.008125), (1975.533205024496, 0.141875), (1661.2187903197805, 0.008125), (1661.2187903197805, 0.141875), (1760.0, 0.008125), (1760.0, 0.854375), (1760.0, 0.045625), (1760.0, 0.284375), (1479.9776908465376, 0.015625), (1479.9776908465376, 0.284375), (1479.9776908465376, 0.015625), (1479.9776908465376, 0.284375), (1479.9776908465376, 0.015625), (1479.9776908465376, 0.284375), (1760.0, 0.015625), (1760.0, 0.284375), (1760.0, 0.015625), (1760.0, 0.569375), (1318.5102276514797, 0.030625), (1318.5102276514797, 0.284375), (1318.5102276514797, 0.015625), (1318.5102276514797, 0.284375), (1318.5102276514797, 0.015625), (1318.5102276514797, 0.426875), (1318.5102276514797, 0.023125), (1318.5102276514797, 0.141875), (1975.533205024496, 0.008125), (1975.533205024496, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.284375), (1760.0, 0.015625), (1760.0, 0.854375), (1760.0, 0.045625), (1760.0, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.141875), (1479.9776908465376, 0.008125), (1479.9776908465376, 0.141875), (1479.9776908465376, 0.008125), (1479.9776908465376, 0.284375), (1479.9776908465376, 0.015625), (1479.9776908465376, 0.141875), (1760.0, 0.008125), (1760.0, 0.141875), (1661.2187903197805, 0.008125), (1661.2187903197805, 0.141875), (1975.533205024496, 0.008125), (1975.533205024496, 0.141875), (1760.0, 0.008125), (1760.0, 0.569375), (1318.5102276514797, 0.030625), (1318.5102276514797, 0.284375), (1318.5102276514797, 0.015625), (1318.5102276514797, 0.284375), (1318.5102276514797, 0.015625), (1318.5102276514797, 0.426875), (1318.5102276514797, 0.023125), (1318.5102276514797, 0.141875), (1975.533205024496, 0.008125), (1975.533205024496, 0.284375), (1661.2187903197805, 0.015625), (1661.2187903197805, 0.284375), (1760.0, 0.015625), (1760.0, 0.854375)],
+    ready = [(6/4*1000, 0.25), (5/4*1000, 0.25), (1000, 0.25)],
+    A = [(440, 0.2)]
+)
+
+
+def gate_sweep_ramp(vg_start: float, vg_end: float, vg_step: float) -> np.ndarray:
+    """This function returns an array with the voltages to be applied to the
+    gate for a gate sweep. It goes from 0 to vg_start, then to vg_end, then to
+    vg_start, and finally back to 0.
+
+    :param vg_start: The starting voltage of the sweep
+    :param vg_end: The ending voltage of the sweep
+    :param vg_step: The step size of the sweep
+    :return: An array with the voltages to be applied to the gate
     """
-    A class to store the parameters of a measurement. It can be used as a dictionary 
-    and as an object with attributes. It can be added to another Params object to 
-    create a new one with the parameters of both.
+    Vg_up = np.arange(vg_start, vg_end, vg_step)
+    Vg_down = np.arange(vg_end, vg_start - vg_step, -vg_step)
+    Vg_m = np.concatenate((Vg_up, Vg_down))
 
-    Attributes
-    ----------
-    param_dict: dict
-        A dictionary with the parameters of the measurement.
+    vg_start_dir = 1 if vg_start > 0 else -1
 
-    Methods
-    -------
-    __init__(param_dict: dict = {})
-        Initializes the object with the parameters in param_dict.
-    __str__()
-        Returns a string with the parameters.
-    __getitem__(key)
-        Returns the value of the parameter with the given key.
-    __setitem__(key, value)
-        Sets the value of the parameter with the given key.
-    __add__(other: 'Params')
-        Returns a new Params object with the parameters of self and other.
-    copy()
-        Returns a copy of the object.
-    """
-    def __init__(self, param_dict: dict = {}):
-        self.param_dict = param_dict
+    vg_i = np.arange(0, vg_start, vg_start_dir * vg_step)
+    vg_f = np.flip(vg_i)
+    Vg = np.concatenate((vg_i, Vg_m, vg_f))
 
-        for key in self.param_dict:
-            setattr(self, key, self.param_dict[key])
-
-    def __str__(self):
-        param_str = "Measurement Parameters:\n" + \
-            "".join(f"{key}: {val}\n" for key, val in self.param_dict.items())
-        return param_str
-
-    def __getitem__(self, key):
-        return getattr(self, key)
-
-    def __setitem__(self, key, value):
-        setattr(self, key, value)
-        self.param_dict[key] = value
-
-    def __add__(self, other: 'Params'):
-        return Params({**self.param_dict, **other.param_dict})
-
-    def copy(self):
-        return Params(self.param_dict.copy())
-
-
-def get_csvfile(params: Params):
-    """
-    Asks for a path to save the .csv and .png files.
-
-    Returns:
-    csvfile: str
-        The path for the .csv file
-    """
-    folder_name = params.folder_name
-    filename = params.filename
-    workspace_path = params.workspace_path
-    today_str = datetime.datetime.now().strftime("%B/%d/")
-
-    if not os.path.exists(workspace_path + today_str):
-        os.mkdir(workspace_path + today_str)
-    files = [file for file in os.listdir(workspace_path + today_str) if file.startswith(folder_name)]
-    if not files:
-        folder_name = folder_name + "1"
-        filename = filename + "1"
-    else:
-        max_test_number = max([int(file[4:]) + 1 for file in files if files is not None])
-        folder_name = folder_name + f"{max_test_number}"
-        filename = filename + f"{max_test_number}"
-
-    # A path for saving the data is suggested
-    suggested_path = workspace_path + today_str + folder_name  # A new test_i folder is created
-    csvfile = suggested_path + "/" + filename + ".csv"
-
-    yes_aliases = ["y", "Y", "yes", "1", ""]
-    ans = input(f"Do you want to save as '{csvfile}'? [Y/n] ")
-    if ans in yes_aliases:
-        path = suggested_path
-        if not os.path.exists(path):
-            os.mkdir(path)
-    else:
-        while True:
-            csvfile = input("Enter a new path, including the filename but not '.csv': ") + ".csv"
-            if os.path.isfile(csvfile):
-                ans = input(f"File {csvfile} already exists! Do you want to overwrite it? [Y/n] ")
-                if ans in yes_aliases:
-                    break
-                else:
-                    print("If you want to quit without saving, press Ctrl+C.")
-                    continue
-            break
-
-    return csvfile
-
-
-def timeit(func):
-    """Wrapper to time a function."""
-    def wrapper(*args, **kwargs):
-        start = time.perf_counter()
-        print(f'Timing {func.__name__}...', end='\r')
-        func(*args, **kwargs)
-        print('End after {:.2f} seconds!'.format(time.perf_counter() - start))
-
-    return wrapper
-
-
-def get_month_day_test(csvfile):
-    """
-    Returns the month and day of the test and the test number. The csvfile must
-    be in the format of '**\\{month}\\{day}\\test{i}\\file.extension'
-    """
-    csvfile = os.path.abspath(csvfile)
-    head1, test_str = os.path.split(os.path.split(csvfile)[0])
-    head2, day_str = os.path.split(head1)
-    _, month = os.path.split(head2)
-    return month, int(day_str), int(test_str[4:])
-
-
-def get_params_from_txt(params_file):
-    """
-    Reads and returns the parameters from a params.txt file.
-    """
-    if not os.path.isfile(params_file):
-        raise ValueError('No params.txt found')
-    
-    else:
-        with open(params_file, 'r') as f:
-            # Overwrites param_dict if params.txt exists and is a dict
-            param_dict = eval(f.read())
-
-            params = Params(param_dict)
-
-        params['month'], params['day'], params['test_n'] = get_month_day_test(params_file)
-
-    return params
-
-def filter_tests(func, is_testlaser=True, data_path="../data/nanolab/data/graphene_transistors/Kaj_samples_2g/"):
-    if not os.path.isdir(data_path):
-        raise ValueError("No data folder found")
-
-    param_files = np.array(glob.glob(data_path + "**/params.txt", recursive=True))
-    param_arr = np.array([get_params_from_txt(file) for file in param_files])
-
-    if is_testlaser:
-        newfunc = lambda p: hasattr(p, "vg_list") and func(p)
-    else:
-        newfunc = func
-
-    is_long_testlaser = np.array([newfunc(par) for par in param_arr])
-    laser_params = param_arr[is_long_testlaser]
-
-    dirname = lambda p: os.path.join(data_path, f"{p.month}/{p.day:02d}/test{p.test_n}")
-    tests = [dirname(par) for par in laser_params]
-
-    # test_dates = [f"{par.month} {par.day} test{par.test_n}" for par in laser_params]
-    return tests
+    return Vg
