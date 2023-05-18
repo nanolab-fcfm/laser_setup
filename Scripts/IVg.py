@@ -2,22 +2,24 @@
 This Script is used to measure the IV characteristics of a device.
 It uses a Keithley 2450 as meter and two TENMA Power Supplies.
 """
-import sys
 import time
 import numpy as np
 
-from pymeasure.display.Qt import QtWidgets
-from pymeasure.display.windows import ManagedWindow
-from pymeasure.experiment import (
-    Procedure, FloatParameter, IntegerParameter, unique_filename, Results, Parameter
-)
-from lib.utils import gate_sweep_ramp, log, config
+from pymeasure.experiment import FloatParameter, IntegerParameter
+
+from lib.utils import gate_sweep_ramp, log
 from lib.devices import BasicIVgProcedure
+from lib.display import display_experiment
 
 
 class IVg(BasicIVgProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources.
+
+    Extra Parameters:
+    :param N_avg: The number of measurements to average.
+    :param vg_step: The step size of the gate voltage.
+    :param step_time: The time to wait between measurements.
     """
     # Optional Parameters, preferably don't change
     N_avg = IntegerParameter('N_avg', default=2)
@@ -57,35 +59,5 @@ class IVg(BasicIVgProcedure):
             self.emit('results', dict(zip(self.DATA_COLUMNS, data_array[i])))
 
 
-class MainWindow(ManagedWindow):
-
-    def __init__(self, cls=IVg):
-        self.cls = cls
-        super().__init__(
-            procedure_class=cls,
-            inputs=cls.INPUTS,
-            displays=cls.INPUTS,
-            x_axis=cls.DATA_COLUMNS[0],
-            y_axis=cls.DATA_COLUMNS[-1],
-        )
-        self.setWindowTitle('I vs Vg Measurement')
-
-    def queue(self):
-        directory = config['Dir']['DataDir']
-        filename = unique_filename(
-            directory,
-            prefix=self.cls.__name__,
-            dated_folder=True,
-            )
-        procedure = self.make_procedure()
-        results = Results(procedure, filename)
-        experiment = self.new_experiment(results)
-
-        self.manager.queue(experiment)
-
-
 if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+    display_experiment(IVg, 'I vs Vg Measurement')

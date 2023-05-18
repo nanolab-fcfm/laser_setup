@@ -1,6 +1,7 @@
 """
-Module that includes the K2450 class to communicate with the Keithleys,
-as well as some functions that make voltage sequences for the Keithleys.
+Module that includes the classes for the instruments used in the experiments.
+It also includes some base procedures that can be used to build more complex
+procedures.
 """
 import time
 import numpy as np
@@ -10,7 +11,7 @@ from pymeasure.instruments import Instrument
 from pymeasure.instruments.validators import truncated_range, strict_discrete_set
 from pymeasure.experiment import Procedure, FloatParameter, Parameter
 
-from lib.utils import log, config, SONGS
+from .utils import log, config, SONGS
 
 
 class TENMA(Instrument):
@@ -156,6 +157,7 @@ class BasicIVgProcedure(Procedure):
         time.sleep(1.)
 
     def execute(self):
+        """Placeholder for the execution of the procedure."""
         pass
 
     def shutdown(self):
