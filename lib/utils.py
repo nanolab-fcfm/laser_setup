@@ -1,10 +1,11 @@
 import logging
-import configparser
 from typing import Dict, List, Tuple
+
+from pymeasure.experiment import get_config
+
 import numpy as np
 
-config = configparser.ConfigParser()
-config.read('config.ini')
+config = get_config('config.ini')
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
