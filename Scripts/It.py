@@ -8,8 +8,8 @@ import numpy as np
 
 from pymeasure.experiment import FloatParameter, IntegerParameter
 
-from lib.utils import gate_sweep_ramp, log
-from lib.devices import BasicIVgProcedure
+from lib.utils import gate_sweep_ramp, log, config
+from lib.devices import BasicIVgProcedure, TENMA
 from lib.display import display_experiment
 
 
@@ -26,12 +26,21 @@ class It(BasicIVgProcedure):
     INPUTS = BasicIVgProcedure.INPUTS + ['vg', 'laser_power']
     DATA_COLUMNS = ['Timestamp', 'I (A)']
 
+    def startup(self):
+        super().startup()
+
+        # Initialize the laser source
+        self.lasersource = TENMA(config['Adapters']['TenmaLaser'])
+        self.lasersource.apply_voltage(0.)
+        self.lasersource.output = True
+        time.sleep(1.)
+
     def execute(self):
         self.meter.source_voltage = self.vds
         if self.vg >= 0:
-            self.possource.voltage = self.vg
+            self.possource.ramp_to_voltage(self.vg)
         elif self.vg < 0:
-            self.negsource.voltage = -self.vg
+            self.negsource.ramp_to_voltage(-self.vg)
 
         self.lasersource.voltage = self.laser_power
 
