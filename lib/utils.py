@@ -1,14 +1,22 @@
+import os
 import logging
 from typing import Dict, List, Tuple
 
 from pymeasure.experiment import get_config
+from pymeasure.log import setup_logging
 
 import numpy as np
 
-config = get_config('config.ini')
+config = get_config('default_config.ini')
 
+# Setup logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
+
+if 'filename' in config['Logging']:
+    os.makedirs(os.path.dirname(config['Logging']['filename']), exist_ok=True)
+
+setup_logging(log, **config['Logging'])
 
 # Songs for the Keithley to play when it's done with a measurement.
 SONGS: Dict[str, List[Tuple[float, float]]] = dict(
