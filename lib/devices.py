@@ -12,7 +12,6 @@ from pymeasure.instruments.validators import truncated_range, strict_discrete_se
 from pymeasure.experiment import Procedure, FloatParameter, Parameter
 
 from .utils import log, config, SONGS
-from .display import send_telegram_alert
 
 
 class TENMA(Instrument):
@@ -173,5 +172,4 @@ class BasicIVgProcedure(Procedure):
         self.meter.shutdown()
         self.negsource.shutdown()
         self.possource.shutdown()
-        send_telegram_alert('Benja', self)
         log.info("Finished!")
