@@ -52,26 +52,22 @@ def display_experiment(cls: Type[Procedure], title: str = ''):
     window.show()
     sys.exit(app.exec())
 
-def send_telegram_alert(chat: str, procedure: Type[Procedure] = Procedure, message: str = None):
-    """Sends a message to the specified telegram chat, alerting the user
-    that the experiment has finished.
+def send_telegram_alert(message: str):
+    """Sends a message to all valid Telegram chats on config['Telegram'].
     """
-    if message is None:
-        message = f"Your experiment ({procedure.__name__}) has finished!"
-
     if 'TOKEN' not in config['Telegram']:
         log.warning("Telegram token not specified in config.")
         return
 
     TOKEN = config['Telegram']['TOKEN']
-    chats = [c for c in config['Telegram'] if c != 'TOKEN']
+    chats = [c for c in config['Telegram'] if c != 'token']
 
-    if chat.lower() not in chats:
-        log.warning(f"Chat '{chat}' not found in config.")
+    if len(chats) == 0:
+        log.warning("No chats specified in config.")
         return
-
-    chat_id = config['Telegram'][chat.lower()]
-
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
-    requests.get(url)
-    log.info(f"Sent alert to {chat}.")
+    
+    for chat in chats:
+        chat_id = config['Telegram'][chat]
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
+        requests.get(url)
+        log.info(f"Sent '{message}' to {chat}.")

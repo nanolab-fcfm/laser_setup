@@ -12,6 +12,7 @@ from pymeasure.instruments.validators import truncated_range, strict_discrete_se
 from pymeasure.experiment import Procedure, FloatParameter, Parameter
 
 from .utils import log, config, SONGS
+from .display import send_telegram_alert
 
 
 class TENMA(Instrument):
@@ -113,9 +114,9 @@ class BasicIVgProcedure(Procedure):
     :ivar possource: The positive TENMA source.
     """
     #Device Parameters
-    chip = Parameter('Chip', default='Unknown')
-    sample = Parameter('Sample', default='Unknown')
-    comment = Parameter('Comment', default='-')
+    chip = Parameter('Chip', default='None')            # There must be a default value, otherwise it can't be read from the data file
+    sample = Parameter('Sample', default='None')
+    info = Parameter('Information', default='None')
 
     # Important Parameters
     vds = FloatParameter('VDS', units='V', default=0.075)
@@ -125,14 +126,18 @@ class BasicIVgProcedure(Procedure):
     # Optional Parameters, preferably don't change
     Irange = FloatParameter('Irange', units='A', default=0.001)
 
-    INPUTS = ['chip', 'sample', 'comment', 'vds', 'vg_start', 'vg_end', 'Irange']
+    INPUTS = ['chip', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'Irange']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
     def startup(self):
         log.info("Setting up instruments")
-        self.meter = Keithley2450(config['Adapters']['Keithley2450'])
-        self.negsource = TENMA(config['Adapters']['TenmaNeg'])
-        self.possource = TENMA(config['Adapters']['TenmaPos'])
+        try:
+            self.meter = Keithley2450(config['Adapters']['Keithley2450'])
+            self.negsource = TENMA(config['Adapters']['TenmaNeg'])
+            self.possource = TENMA(config['Adapters']['TenmaPos'])
+        except ValueError:
+            log.error("Could not connect to instruments")
+            raise
 
         # Keithley 2450 meter
         self.meter.reset()
@@ -172,4 +177,6 @@ class BasicIVgProcedure(Procedure):
         self.meter.shutdown()
         self.negsource.shutdown()
         self.possource.shutdown()
-        log.info("Finished!")
+        message = f"Finished IVg measurement for Chip {self.chip}, Sample {self.sample}!"
+        log.info(message)
+        send_telegram_alert(message)
