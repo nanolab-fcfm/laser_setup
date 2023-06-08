@@ -9,7 +9,7 @@ from pymeasure.experiment import FloatParameter, IntegerParameter
 
 from lib.utils import gate_sweep_ramp, log
 from lib.devices import BasicIVgProcedure
-from lib.display import display_experiment
+from lib.display import display_experiment, send_telegram_alert
 
 
 class IVg(BasicIVgProcedure):
@@ -57,6 +57,8 @@ class IVg(BasicIVgProcedure):
             data_array[i] = [vg, np.mean(avg_array)]
 
             self.emit('results', dict(zip(self.DATA_COLUMNS, data_array[i])))
+
+        send_telegram_alert(procedure=self)
 
 
 if __name__ == "__main__":
