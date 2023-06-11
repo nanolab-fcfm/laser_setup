@@ -2,4 +2,4 @@
 **/data/
 **/.venv/
 **/log/
-/*.ini
+**/config/
