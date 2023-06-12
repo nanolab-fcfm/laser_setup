@@ -16,7 +16,7 @@ class It(ItBaseProcedure):
     is controlled by two TENMA sources. The laser is controlled by another
     TENMA source.
     """
-    SEQUENCER_INPUTS = ['vg', 'laser_v']
+    SEQUENCER_INPUTS = ['laser_v', 'vg']
 
     def execute(self):
         log.info("Starting the measurement")
@@ -44,9 +44,6 @@ class It(ItBaseProcedure):
             curr_time = time.time()
             self.emit('results', dict(zip(self.DATA_COLUMNS, [round(curr_time - start_time, 2), np.mean(avg_array)])))
             time.sleep(self.sampling_t)
-
-
-
 
 
 if __name__ == "__main__":

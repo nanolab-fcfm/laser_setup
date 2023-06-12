@@ -25,7 +25,6 @@ class IVg(IVgBaseProcedure):
 
         # Set the Vg ramp and the measuring loop
         self.vg_ramp = gate_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
-        data_array = np.zeros((len(self.vg_ramp), len(self.DATA_COLUMNS)))
         for i, vg in enumerate(self.vg_ramp):
             self.emit('progress', 100 * i / len(self.vg_ramp))
 
@@ -43,11 +42,7 @@ class IVg(IVgBaseProcedure):
             for j in range(self.N_avg):
                 avg_array[j] = self.meter.current
 
-            data_array[i] = [vg, np.mean(avg_array)]
-
-            self.emit('results', dict(zip(self.DATA_COLUMNS, data_array[i])))
-
-        send_telegram_alert(procedure=self)
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [vg, np.mean(avg_array)])))
 
 
 if __name__ == "__main__":
