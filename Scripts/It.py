@@ -31,7 +31,7 @@ class It(BasicIVgProcedure):
         super().startup()
 
         # Initialize the laser source
-        self.lasersource = TENMA(config['Adapters']['TenmaLaser'])
+        self.lasersource = TENMA(config['Adapters']['tenma_laser'])
         self.lasersource.apply_voltage(0.)
         self.lasersource.output = True
         time.sleep(1.)

@@ -59,7 +59,7 @@ def send_telegram_alert(message: str):
         log.warning("Telegram token not specified in config.")
         return
 
-    TOKEN = config['Telegram']['TOKEN']
+    TOKEN = config['Telegram']['token']
     chats = [c for c in config['Telegram'] if c != 'token']
 
     if len(chats) == 0:

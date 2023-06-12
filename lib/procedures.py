@@ -53,9 +53,9 @@ class BasicIVgProcedure(Procedure):
     def startup(self):
         log.info("Setting up instruments")
         try:
-            self.meter = Keithley2450(config['Adapters']['Keithley2450'])
-            self.negsource = TENMA(config['Adapters']['TenmaNeg'])
-            self.possource = TENMA(config['Adapters']['TenmaPos'])
+            self.meter = Keithley2450(config['Adapters']['keithley2450'])
+            self.negsource = TENMA(config['Adapters']['tenma_neg'])
+            self.possource = TENMA(config['Adapters']['tenma_pos'])
         except ValueError:
             log.error("Could not connect to instruments")
             raise
