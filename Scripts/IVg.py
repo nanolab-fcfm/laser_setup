@@ -5,29 +5,17 @@ It uses a Keithley 2450 as meter and two TENMA Power Supplies.
 import time
 import numpy as np
 
-from pymeasure.experiment import FloatParameter, IntegerParameter
-
 from lib import log
 from lib.utils import gate_sweep_ramp
-from lib.procedures import BasicIVgProcedure
+from lib.procedures import IVgBaseProcedure
 from lib.display import display_experiment, send_telegram_alert
 
 
-class IVg(BasicIVgProcedure):
+class IVg(IVgBaseProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources.
-
-    Extra Parameters:
-    :param N_avg: The number of measurements to average.
-    :param vg_step: The step size of the gate voltage.
-    :param step_time: The time to wait between measurements.
     """
-    # Optional Parameters, preferably don't change
-    N_avg = IntegerParameter('N_avg', default=2)
-    vg_step = FloatParameter('VG step', units='V', default=0.2)
-    step_time = FloatParameter('Step time', units='s', default=0.01)
-
-    INPUTS = BasicIVgProcedure.INPUTS + ['N_avg', 'vg_step', 'step_time']
+    SEQUENCER_INPUTS = ['vds']
 
     def execute(self):
         log.info("Starting the measurement")

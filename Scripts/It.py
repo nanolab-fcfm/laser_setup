@@ -4,46 +4,47 @@ It uses a Keithley 2450 as meter and two TENMA Power Supplies.
 TODO: add Laser functionality
 """
 import time
+import numpy as np
 
-from pymeasure.experiment import FloatParameter, IntegerParameter
-
-from lib import log, config
-from lib.utils import gate_sweep_ramp
-from lib.instruments import TENMA
+from lib import log
 from lib.display import display_experiment
-from lib.procedures import BasicIVgProcedure
+from lib.procedures import ItBaseProcedure
 
 
-class It(BasicIVgProcedure):
+class It(ItBaseProcedure):
     """Measures a time-dependant current with a Keithley 2450. The gate voltage
     is controlled by two TENMA sources. The laser is controlled by another
     TENMA source.
     """
-
-    # Important Parameters
-    vg = FloatParameter('Vg', units='V', default=0.)
-    laser_power = FloatParameter('Laser power', units='W', default=0.)
-
-    INPUTS = BasicIVgProcedure.INPUTS + ['vg', 'laser_power']
-    DATA_COLUMNS = ['Timestamp', 'I (A)']
-
-    def startup(self):
-        super().startup()
-
-        # Initialize the laser source
-        self.lasersource = TENMA(config['Adapters']['tenma_laser'])
-        self.lasersource.apply_voltage(0.)
-        self.lasersource.output = True
-        time.sleep(1.)
+    SEQUENCER_INPUTS = ['vg', 'laser_v']
 
     def execute(self):
+        log.info("Starting the measurement")
+        
         self.meter.source_voltage = self.vds
         if self.vg >= 0:
             self.possource.ramp_to_voltage(self.vg)
         elif self.vg < 0:
             self.negsource.ramp_to_voltage(-self.vg)
 
-        self.lasersource.voltage = self.laser_power
+        self.lasersource.ramp_to_voltage(self.laser_v)
+
+        start_time = time.time()
+        while time.time() - start_time < self.laser_T:
+            self.emit('progress', 100 * (time.time() - start_time) / self.laser_T)
+
+            # Take the average of N_avg measurements
+            avg_array = np.zeros(self.N_avg)
+            if abs(curr_time - start_time - self.laser_T/2) < self.sampling_t:
+                self.lasersource.voltage = 0.
+
+            for j in range(self.N_avg):
+                avg_array[j] = self.meter.current
+
+            curr_time = time.time()
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [round(curr_time - start_time, 2), np.mean(avg_array)])))
+            time.sleep(self.sampling_t)
+
 
 
 

@@ -25,17 +25,22 @@ class MainWindow(ManagedWindow):
             displays=cls.INPUTS,
             x_axis=cls.DATA_COLUMNS[0],
             y_axis=cls.DATA_COLUMNS[1],
+            sequencer=True,
+            sequencer_inputs=cls.SEQUENCER_INPUTS,
+            # sequence_file=f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt',
         )
         self.setWindowTitle(title)
 
-    def queue(self):
+    def queue(self, procedure: Type[Procedure] = None):
+        if procedure is None:
+            procedure = self.make_procedure()
+
         directory = config['Filename']['directory']
         filename = unique_filename(
             directory,
             prefix=self.cls.__name__,
             dated_folder=True,
             )
-        procedure = self.make_procedure()
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)
 
