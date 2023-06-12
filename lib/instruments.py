@@ -45,20 +45,6 @@ class TENMA(Instrument):
             adapter, "TENMA Power Supply", **kwargs
         )
 
-    def apply_voltage(self, voltage, current=0.05, timeout=1.):
-        """
-        Configures the TENMA to apply a source voltage, after setting the
-        compliance current and timeout.
-
-        :param voltage: The voltage to apply in Volts.
-        :param current: The compliance current in Amps.
-        :param timeout: The timeout in seconds.
-        """
-        self.timeout = timeout
-        self.current = current
-        time.sleep(0.1)
-        self.voltage = voltage
-
     def ramp_to_voltage(self, vg_end: float, vg_step=0.2, step_time=0.05):
         """Sets the voltage to vg_end with a ramp in V/s.
 
@@ -72,6 +58,20 @@ class TENMA(Instrument):
             self.voltage = v
             time.sleep(step_time)
         self.voltage = vg_end
+
+    def apply_voltage(self, voltage, current=0.05, timeout=1.):
+        """
+        Configures the TENMA to apply a source voltage, after setting the
+        compliance current and timeout.
+
+        :param voltage: The voltage to apply in Volts.
+        :param current: The compliance current in Amps.
+        :param timeout: The timeout in seconds.
+        """
+        self.timeout = timeout
+        self.current = current
+        time.sleep(0.1)
+        self.ramp_to_voltage(voltage)
 
     def shutdown(self):
         """
