@@ -9,7 +9,7 @@ from pymeasure.display.Qt import QtWidgets
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import unique_filename, Results, Procedure
 
-from .utils import config, log
+from lib import config, log
 
 class MainWindow(ManagedWindow):
     """The main window for the GUI. It is used to display a

@@ -4,13 +4,14 @@ It uses a Keithley 2450 as meter and two TENMA Power Supplies.
 TODO: add Laser functionality
 """
 import time
-import numpy as np
 
 from pymeasure.experiment import FloatParameter, IntegerParameter
 
-from lib.utils import gate_sweep_ramp, log, config
-from lib.devices import BasicIVgProcedure, TENMA
+from lib import log, config
+from lib.utils import gate_sweep_ramp
+from lib.instruments import TENMA
 from lib.display import display_experiment
+from lib.procedures import BasicIVgProcedure
 
 
 class It(BasicIVgProcedure):

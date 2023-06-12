@@ -7,8 +7,9 @@ import numpy as np
 
 from pymeasure.experiment import FloatParameter, IntegerParameter
 
-from lib.utils import gate_sweep_ramp, log
-from lib.devices import BasicIVgProcedure
+from lib import log
+from lib.utils import gate_sweep_ramp
+from lib.procedures import BasicIVgProcedure
 from lib.display import display_experiment, send_telegram_alert
 
 
