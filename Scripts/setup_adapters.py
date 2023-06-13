@@ -14,7 +14,7 @@ def keithley_exists(adapter):
         log.info(f"Keithley 2450 found at {adapter}")
         K.beep(3*440, 0.5)
         return True
-    except ValueError:
+    except:
         log.warning(f"Keithley 2450 not found at {adapter}")
         return False
     
