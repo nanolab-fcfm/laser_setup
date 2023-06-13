@@ -27,16 +27,29 @@ class It(ItBaseProcedure):
         elif self.vg < 0:
             self.negsource.ramp_to_voltage(-self.vg)
 
-        self.lasersource.ramp_to_voltage(self.laser_v)
+        self.lasersource.voltage = self.laser_v
 
         start_time = time.time()
+        while time.time() - start_time < self.laser_T / 2:
+            self.emit('progress', 100 * (time.time() - start_time) / self.laser_T)
+
+            # Take the average of N_avg measurements
+            avg_array = np.zeros(self.N_avg)
+
+            for j in range(self.N_avg):
+                avg_array[j] = self.meter.current
+
+            curr_time = time.time()
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [round(curr_time - start_time, 2), np.mean(avg_array)])))
+            time.sleep(self.sampling_t)
+
+        self.lasersource.voltage = 0.
+
         while time.time() - start_time < self.laser_T:
             self.emit('progress', 100 * (time.time() - start_time) / self.laser_T)
 
             # Take the average of N_avg measurements
             avg_array = np.zeros(self.N_avg)
-            if abs(curr_time - start_time - self.laser_T/2) < self.sampling_t:
-                self.lasersource.voltage = 0.
 
             for j in range(self.N_avg):
                 avg_array[j] = self.meter.current

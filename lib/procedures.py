@@ -274,7 +274,7 @@ class ItBaseProcedure(Procedure):
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
         self.meter.apply_voltage(
-            voltage_range=self.vg,
+            voltage_range=1e-1,
             compliance_current=self.Irange
             )
         self.meter.measure_current(current=self.Irange, auto_range=False)
