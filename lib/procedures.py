@@ -5,7 +5,7 @@ from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter
 
 from lib import config, log
-from .utils import SONGS
+from .utils import SONGS, remove_empty_files
 from .display import send_telegram_alert
 from .instruments import TENMA
 
@@ -89,6 +89,7 @@ class BaseProcedure(Procedure):
         pass
 
     def shutdown(self):
+        remove_empty_files()
         if not hasattr(self, 'meter'):
             log.info("No instruments to shutdown.")
             return
@@ -192,6 +193,7 @@ class IVgBaseProcedure(Procedure):
         pass
 
     def shutdown(self):
+        remove_empty_files()
         if not hasattr(self, 'meter'):
             log.info("No instruments to shutdown.")
             return
@@ -299,6 +301,7 @@ class ItBaseProcedure(Procedure):
         pass
 
     def shutdown(self):
+        remove_empty_files()
         if not hasattr(self, 'meter'):
             log.info("No instruments to shutdown.")
             return
