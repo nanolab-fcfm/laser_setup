@@ -8,7 +8,7 @@ import numpy as np
 from lib import log
 from lib.utils import gate_sweep_ramp
 from lib.procedures import IVgBaseProcedure
-from lib.display import display_experiment, send_telegram_alert
+from lib.display import display_experiment
 
 
 class IVg(IVgBaseProcedure):

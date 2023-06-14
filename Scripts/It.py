@@ -1,7 +1,6 @@
 """
 This Script is used to measure the time-dependent current of the device.
 It uses a Keithley 2450 as meter and two TENMA Power Supplies.
-TODO: add Laser functionality
 """
 import time
 import numpy as np
