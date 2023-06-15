@@ -71,10 +71,10 @@ class IVgBaseProcedure(Procedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.apply_voltage(
-            voltage_range=max(abs(self.vg_start), abs(self.vg_end)),
-            compliance_current=self.Irange
-            )
+        # self.meter.apply_voltage(
+        #     voltage_range=max(abs(self.vg_start), abs(self.vg_end)),
+        #     compliance_current=self.Irange
+        #     )
         self.meter.measure_current(current=self.Irange, auto_range=False)
 
         # TENMA sources
@@ -85,7 +85,6 @@ class IVgBaseProcedure(Procedure):
         self.meter.enable_source()
         time.sleep(0.5)
         self.tenma_neg.output = True
-        time.sleep(1.)
         self.tenma_pos.output = True
         time.sleep(1.)
 
