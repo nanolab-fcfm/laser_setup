@@ -10,6 +10,7 @@ from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import unique_filename, Results, Procedure
 
 from lib import config, log
+from lib.utils import remove_empty_data
 
 class MainWindow(ManagedWindow):
     """The main window for the GUI. It is used to display a
@@ -19,13 +20,14 @@ class MainWindow(ManagedWindow):
     """
     def __init__(self, cls: Type[Procedure], title: str = ''):
         self.cls = cls
+        has_sequencer = hasattr(cls, 'SEQUENCER_INPUTS')
         super().__init__(
             procedure_class=cls,
             inputs=cls.INPUTS,
             displays=cls.INPUTS,
             x_axis=cls.DATA_COLUMNS[0],
             y_axis=cls.DATA_COLUMNS[1],
-            sequencer=True,
+            sequencer=has_sequencer,
             sequencer_inputs=cls.SEQUENCER_INPUTS,
             # sequence_file=f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt',
         )
@@ -55,7 +57,9 @@ def display_experiment(cls: Type[Procedure], title: str = ''):
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow(cls, title)
     window.show()
-    sys.exit(app.exec())
+    app.exec()
+    remove_empty_data()
+    sys.exit()
 
 def send_telegram_alert(message: str):
     """Sends a message to all valid Telegram chats on config['Telegram'].
