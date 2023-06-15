@@ -28,9 +28,9 @@ class It(ItBaseProcedure):
 
         self.tenma_laser.voltage = self.laser_v
 
-        start_time = time.time()
-        while time.time() - start_time < self.laser_T / 2:
-            self.emit('progress', 100 * (time.time() - start_time) / self.laser_T)
+        keithley_time = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
+        while keithley_time < self.laser_T / 2:
+            self.emit('progress', 100 * keithley_time / self.laser_T)
 
             # Take the average of N_avg measurements
             avg_array = np.zeros(self.N_avg)
@@ -38,14 +38,14 @@ class It(ItBaseProcedure):
             for j in range(self.N_avg):
                 avg_array[j] = self.meter.current
 
-            curr_time = time.time()
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [round(curr_time - start_time, 2), np.mean(avg_array)])))
+            keithley_time = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array)])))
             time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
 
-        while time.time() - start_time < self.laser_T:
-            self.emit('progress', 100 * (time.time() - start_time) / self.laser_T)
+        while keithley_time < self.laser_T:
+            self.emit('progress', 100 * keithley_time / self.laser_T)
 
             # Take the average of N_avg measurements
             avg_array = np.zeros(self.N_avg)
@@ -53,8 +53,8 @@ class It(ItBaseProcedure):
             for j in range(self.N_avg):
                 avg_array[j] = self.meter.current
 
-            curr_time = time.time()
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [round(curr_time - start_time, 2), np.mean(avg_array)])))
+            keithley_time = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array)])))
             time.sleep(self.sampling_t)
 
 
