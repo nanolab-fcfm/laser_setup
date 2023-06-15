@@ -22,11 +22,11 @@ class It(ItBaseProcedure):
         
         self.meter.source_voltage = self.vds
         if self.vg >= 0:
-            self.possource.ramp_to_voltage(self.vg)
+            self.tenma_pos.ramp_to_voltage(self.vg)
         elif self.vg < 0:
-            self.negsource.ramp_to_voltage(-self.vg)
+            self.tenma_neg.ramp_to_voltage(-self.vg)
 
-        self.lasersource.voltage = self.laser_v
+        self.tenma_laser.voltage = self.laser_v
 
         start_time = time.time()
         while time.time() - start_time < self.laser_T / 2:
@@ -42,7 +42,7 @@ class It(ItBaseProcedure):
             self.emit('results', dict(zip(self.DATA_COLUMNS, [round(curr_time - start_time, 2), np.mean(avg_array)])))
             time.sleep(self.sampling_t)
 
-        self.lasersource.voltage = 0.
+        self.tenma_laser.voltage = 0.
 
         while time.time() - start_time < self.laser_T:
             self.emit('progress', 100 * (time.time() - start_time) / self.laser_T)

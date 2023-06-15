@@ -29,11 +29,11 @@ class IVg(IVgBaseProcedure):
             self.emit('progress', 100 * i / len(self.vg_ramp))
 
             if vg >= 0:
-                self.negsource.voltage = 0.
-                self.possource.voltage = vg
+                self.tenma_neg.voltage = 0.
+                self.tenma_pos.voltage = vg
             elif vg < 0:
-                self.possource.voltage = 0.
-                self.negsource.voltage = -vg
+                self.tenma_pos.voltage = 0.
+                self.tenma_neg.voltage = -vg
 
             time.sleep(self.step_time)
 

@@ -1,7 +1,10 @@
 from typing import Dict, List, Tuple
+from glob import glob
+import os
+
 import numpy as np
 
-from lib import config
+from lib import config, log
 
 # Songs for the Keithley to play when it's done with a measurement.
 SONGS: Dict[str, List[Tuple[float, float]]] = dict(
@@ -34,7 +37,17 @@ def gate_sweep_ramp(vg_start: float, vg_end: float, vg_step: float) -> np.ndarra
     return Vg
 
 
-def remove_empty_files():
-    """This function removes all the empty files in the data folder."""
+def remove_empty_data():
+    """This function removes all the empty files in the data folder.
+    By empty files we mean files with only the header and no data.
+    """
     DataDir = config['Filename']['directory']
-    pass
+    data = glob(DataDir + '/**/*.csv', recursive=True)
+    for file in data:
+        with open(file, 'r') as f:
+            nonheader = [l for l in f.readlines() if not l.startswith('#')]
+
+        if len(nonheader) == 1:
+            os.remove(file)
+    
+    log.info('Empty files removed')
