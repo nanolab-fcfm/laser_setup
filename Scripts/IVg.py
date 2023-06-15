@@ -15,7 +15,7 @@ class IVg(IVgBaseProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources.
     """
-    SEQUENCER_INPUTS = ['vds']
+    # SEQUENCER_INPUTS = ['vds']
 
     def execute(self):
         log.info("Starting the measurement")

@@ -20,16 +20,18 @@ class MainWindow(ManagedWindow):
     """
     def __init__(self, cls: Type[Procedure], title: str = ''):
         self.cls = cls
-        has_sequencer = hasattr(cls, 'SEQUENCER_INPUTS')
+        sequencer_kwargs = dict(
+            sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
+            sequencer_inputs = cls.SEQUENCER_INPUTS if hasattr(cls, 'SEQUENCER_INPUTS') else None,
+            # sequence_file = f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt' if hasattr(cls, 'SEQUENCER_INPUTS') else None,
+        )
         super().__init__(
             procedure_class=cls,
             inputs=cls.INPUTS,
             displays=cls.INPUTS,
             x_axis=cls.DATA_COLUMNS[0],
             y_axis=cls.DATA_COLUMNS[1],
-            sequencer=has_sequencer,
-            sequencer_inputs=cls.SEQUENCER_INPUTS,
-            # sequence_file=f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt',
+            **sequencer_kwargs,
         )
         self.setWindowTitle(title)
 

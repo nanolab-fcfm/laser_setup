@@ -152,7 +152,7 @@ class ItBaseProcedure(Procedure):
     laser_v = FloatParameter('Laser voltage', units='V', default=0.)
     vds = FloatParameter('VDS', units='V', default=0.075)
     vg = FloatParameter('VG', units='V', default=0.)
-    sampling_t = FloatParameter('Sampling time', units='s', default=0.4)
+    sampling_t = FloatParameter('Sampling time', units='s', default=0.1)
 
     # Optional Parameters, preferably don't change
     N_avg = IntegerParameter('N_avg', default=2)
