@@ -39,7 +39,7 @@ class It(ItBaseProcedure):
                 avg_array[j] = self.meter.current
 
             keithley_time = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array)])))
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), self.laser_v])))
             time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
@@ -54,7 +54,7 @@ class It(ItBaseProcedure):
                 avg_array[j] = self.meter.current
 
             keithley_time = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array)])))
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), 0.])))
             time.sleep(self.sampling_t)
 
 

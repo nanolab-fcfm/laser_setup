@@ -146,19 +146,19 @@ class ItBaseProcedure(Procedure):
     info = Parameter('Information', default='None')
 
     # Important Parameters
-    laser_freq = FloatParameter('Laser frequency', units='Hz', default=0.)
+    laser_wl = FloatParameter('Laser wavelength', units='nm', default=0.)
     laser_T = FloatParameter('Laser ON+OFF period', units='s', default=360.)
     laser_v = FloatParameter('Laser voltage', units='V', default=0.)
     vds = FloatParameter('VDS', units='V', default=0.075)
     vg = FloatParameter('VG', units='V', default=0.)
-    sampling_t = FloatParameter('Sampling time', units='s', default=0.1)
 
     # Optional Parameters, preferably don't change
+    sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0.)
     N_avg = IntegerParameter('N_avg', default=2)
     Irange = FloatParameter('Irange', units='A', default=0.001)
 
     INPUTS = ['chip', 'sample', 'info', 'laser_freq', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
-    DATA_COLUMNS = ['t (s)', 'I (A)']
+    DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
 
     def startup(self):
         log.info("Setting up instruments")
