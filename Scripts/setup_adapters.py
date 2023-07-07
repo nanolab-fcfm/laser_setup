@@ -17,7 +17,7 @@ def keithley_exists(adapter):
     except:
         log.warning(f"Keithley 2450 not found at {adapter}")
         return False
-    
+
 def tenma_ping(adapter, tenmas: list):
     log.info(f'Sending signal to {adapter}')
     try:
@@ -29,7 +29,7 @@ def tenma_ping(adapter, tenmas: list):
 
     which_tenma = ''
     while which_tenma not in tenmas:
-        which_tenma = input('Which TENMA shows a voltage? ({}): '.format(
+        which_tenma = input('Which TENMA shows a voltage? ({}, or none): '.format(
             ', '.join(tenmas)))
     
     T.ramp_to_voltage(0.)
@@ -57,13 +57,20 @@ def main():
 
     tenmas = [n for n in config['Adapters'] if 'tenma' in n]
     tenmas.append('none')
+    found_tenmas = []
     for dev in devices:
         if 'ASRL' in dev:
             log.info(f"Found serial device at {dev}.")
             which_tenma = tenma_ping(dev, tenmas)
             if which_tenma and which_tenma != 'none':
                 config['Adapters'][which_tenma] = dev
+                found_tenmas.append(which_tenma)
                 log.info(f'Adapter {dev} is now configured as {which_tenma}.')
+
+    for tenma in tenmas:
+        if tenma not in found_tenmas and tenma != 'none':
+            log.warning(f'TENMA {tenma} is configured, but was not found. Setting as empty str to avoid duplicates.')
+            config['Adapters'][tenma] = ''
     
     with open(config_path, 'w') as f:
         config.write(f)
