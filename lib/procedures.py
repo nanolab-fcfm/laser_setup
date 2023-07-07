@@ -39,7 +39,7 @@ class IVgBaseProcedure(Procedure):
     :ivar tenma_pos: The positive TENMA source.
     """
     #Device Parameters
-    chip = ListParameter('Chip', choices=['Margarita', 'Miguel', 'Pepe (no ALD)'])
+    chip = ListParameter('Chip', choices=['Margarita', 'Miguel', 'Pepe (no ALD)', 'other'])
     chip_number = IntegerParameter('Chip number', default=1)
     sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
     info = Parameter('Information', default='None')
@@ -151,7 +151,7 @@ class ItBaseProcedure(Procedure):
     :ivar tenma_laser: The laser TENMA source.
     """
     #Device Parameters
-    chip = ListParameter('Chip', choices=['Margarita', 'Miguel', 'Pepe (no ALD)'])
+    chip = ListParameter('Chip', choices=['Margarita', 'Miguel', 'Pepe (no ALD)', 'other'])
     chip_number = IntegerParameter('Chip number', default=1)
     sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
     info = Parameter('Information', default='None')
