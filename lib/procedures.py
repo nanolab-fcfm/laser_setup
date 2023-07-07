@@ -157,7 +157,7 @@ class ItBaseProcedure(Procedure):
     N_avg = IntegerParameter('N_avg', default=2)
     Irange = FloatParameter('Irange', units='A', default=0.001)
 
-    INPUTS = ['chip', 'sample', 'info', 'laser_freq', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
+    INPUTS = ['chip', 'sample', 'info', 'laser_wl', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
 
     def startup(self):
