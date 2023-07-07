@@ -30,8 +30,8 @@ if 'filename' in config['Logging']:
 
 setup_logging(log, **config['Logging'])
 
-config_using = 'default_config.ini' if 'CONFIG' not in os.environ.keys() else os.environ['CONFIG']
-log.info(f"Using config file: {config_using}")
+_config_file_used = 'default_config.ini' if 'CONFIG' not in os.environ.keys() else os.environ['CONFIG']
+log.info(f"Using config file: {_config_file_used}")
 
 # Setup matplotlib.rcParams from config
 set_mpl_rcparams(config)

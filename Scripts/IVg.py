@@ -23,6 +23,12 @@ class IVg(IVgBaseProcedure):
         # Set the Vds
         self.meter.source_voltage = self.vds
 
+        # Set the laser if toggled
+        if self.laser_toggle:
+            self.tenma_laser.voltage = self.laser_v
+            log.info("Laser is ON. Sleeping for 10 seconds to let the current stabilize.")
+            time.sleep(10.)
+
         # Set the Vg ramp and the measuring loop
         self.vg_ramp = gate_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
         for i, vg in enumerate(self.vg_ramp):

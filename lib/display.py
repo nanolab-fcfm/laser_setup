@@ -32,6 +32,7 @@ class MainWindow(ManagedWindow):
             displays=cls.INPUTS,
             x_axis=cls.DATA_COLUMNS[0],
             y_axis=cls.DATA_COLUMNS[1],
+            inputs_in_scrollarea=True,
             **sequencer_kwargs,
         )
         self.setWindowTitle(title)
@@ -46,6 +47,7 @@ class MainWindow(ManagedWindow):
             prefix=self.cls.__name__,
             dated_folder=True,
             )
+        log.info(f"Saving data to {filename}.")
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)
 

@@ -1,7 +1,7 @@
 import time
 
 from pymeasure.instruments.keithley import Keithley2450
-from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter
+from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter
 
 from lib import config, log
 from .utils import SONGS
@@ -40,7 +40,7 @@ class IVgBaseProcedure(Procedure):
     """
     #Device Parameters
     chip = Parameter('Chip', default='None')            # There must be a default value, otherwise it can't be read from the data file
-    sample = Parameter('Sample', default='None')
+    sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
     info = Parameter('Information', default='None')
 
     # Important Parameters
@@ -48,13 +48,18 @@ class IVgBaseProcedure(Procedure):
     vg_start = FloatParameter('VG start', units='V', default=-35.)
     vg_end = FloatParameter('VG end', units='V', default=35.)
 
+    # Laser Parameters
+    laser_toggle = BooleanParameter('Laser toggle', default=False)
+    laser_wl = FloatParameter('Laser wavelength', units='nm', default=0., group_by='laser_toggle')
+    laser_v = FloatParameter('Laser voltage', units='V', default=0., group_by='laser_toggle')
+    
     # Optional Parameters, preferably don't change
     N_avg = IntegerParameter('N_avg', default=2)
     vg_step = FloatParameter('VG step', units='V', default=0.2)
     step_time = FloatParameter('Step time', units='s', default=0.01)
     Irange = FloatParameter('Irange', units='A', default=0.001)
 
-    INPUTS = ['chip', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time']
+    INPUTS = ['chip', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl', 'laser_v']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
     def startup(self):
@@ -63,6 +68,8 @@ class IVgBaseProcedure(Procedure):
             self.meter = Keithley2450(config['Adapters']['keithley2450'])
             self.tenma_neg = TENMA(config['Adapters']['tenma_neg'])
             self.tenma_pos = TENMA(config['Adapters']['tenma_pos'])
+            if self.laser_toggle:
+                self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
         except ValueError:
             log.error("Could not connect to instruments")
             raise
@@ -71,21 +78,21 @@ class IVgBaseProcedure(Procedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        # self.meter.apply_voltage(
-        #     voltage_range=max(abs(self.vg_start), abs(self.vg_end)),
-        #     compliance_current=self.Irange
-        #     )
         self.meter.measure_current(current=self.Irange, auto_range=False)
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
         self.tenma_pos.apply_voltage(0.)
+        if self.laser_toggle:
+            self.tenma_laser.apply_voltage(0.)
 
         # Turn on the outputs
         self.meter.enable_source()
         time.sleep(0.5)
         self.tenma_neg.output = True
         self.tenma_pos.output = True
+        if self.laser_toggle:
+            self.tenma_laser.output = True
         time.sleep(1.)
 
     def execute(self):
@@ -104,6 +111,8 @@ class IVgBaseProcedure(Procedure):
         self.meter.shutdown()
         self.tenma_neg.shutdown()
         self.tenma_pos.shutdown()
+        if self.laser_toggle:
+            self.tenma_laser.shutdown()
         log.info("Instruments shutdown.")
 
         send_telegram_alert(
