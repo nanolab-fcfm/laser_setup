@@ -13,7 +13,7 @@ This program also includes Jupyter Notebooks, which are not included in the requ
 
 ## Usage
 This project allows for the communication between the computer and the instruments used in the experimental setup, as well as the control of the instruments. So far, the following instruments are supported:
-- Keithley 2450 SourceMeter
+- Keithley 2450 SourceMeter (Requires [NI-VISA](https://www.ni.com/en-us/support/downloads/drivers/download.ni-visa.html#480875) installed)
 - TENMA Power Supply
 
 To start using the program, you should first setup the adapters needed to run a measurement. This is done by running
@@ -35,3 +35,84 @@ To run the tests, use the following command:
 ```
 python -m pytest
 ```
+
+## Procedures
+A list of all available Procedures and their parameters.
+
+### IVgBaseProcedure
+
+#### Parameters
+| Name      | Ext. Name   | Default | Units |
+|-----------|-------------|---------|-------|
+| `chip`     | Chip        | 'None'  |       |
+| `sample`    | Sample      | 'None'  |       |
+| `info`      | Information | 'None'  |       |
+| `vds`       | VDS         | 0.075   | 'V'   |
+| `vg_start`  | VG start    | -35.    | 'V'   |
+| `vg_end`    | VG end      | 35.     | 'V'   |
+| `N_avg`     | N_avg       | 2       |       |
+| `vg_step`   | VG step     | 0.2     | 'V'   |
+| `step_time` | Step time   | 0.01    | 's'   |
+| `Irange`    | Irange      | 0.001   | 'A'   |
+
+#### INPUTS
+['chip', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time']
+
+#### DATA_COLUMNS
+['Vg (V)', 'I (A)']
+
+#### Execute
+`pass`
+
+
+### ItBaseProcedure
+
+#### Parameters
+| Name       | Ext. Name           | Default | Units |
+|------------|---------------------|---------|-------|
+| `chip`       | Chip                | 'None'  |       |
+| `sample`     | Sample              | 'None'  |       |
+| `info`       | Information         | 'None'  |       |
+| `laser_freq` | Laser frequency     | 0.      | 'Hz'  |
+| `laser_T`    | Laser ON+OFF period | 360.    | 's'   |
+| `laser_v`    | Laser voltage       | 0.      | 'V'   |
+| `vds`        | VDS                 | 0.075   | 'V'   |
+| `vg`         | VG                  | 0.      | 'V'   |
+| `sampling_t` | Sampling time       | 0.1     | 's'   |
+| `N_avg`      | N_avg               | 2       |       |
+| `Irange`     | Irange              | 0.001   | 'A'   |
+
+#### INPUTS
+['chip', 'sample', 'info', 'laser_freq', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
+
+#### DATA_COLUMNS
+['t (s)', 'I (A)']
+
+#### Execute
+`pass`
+
+
+### IVg(IVgBaseProcedure)
+
+#### Instruments
+- Keithley 2450 (Control: `vds`, Measure: 'I (A)')
+- TENMA (Control: 'Vg (V)' (Positive))
+- TENMA (Control: 'Vg (V)' (Negative))
+
+#### Execute
+Perform I-V Measurement over a range of Gate Voltages
+
+
+### It(ItBaseProcedure)
+
+#### Instruments
+- Keithley 2450 (Control: `vds`, Measure: ['t (s)', 'I (A)'])
+- TENMA (Control: 'Vg (V)' (Positive))
+- TENMA (Control: 'Vg (V)' (Negative))
+- TENMA (Control: `laser_V` (Positive))
+
+#### Execute
+Perform I-t Measurement over time, turning the laser on at $t = 0$ and off at $t =$ `laser_T` $/2$.
+
+
+
