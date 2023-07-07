@@ -73,20 +73,20 @@ A list of all available Procedures and their parameters.
 | `chip`       | Chip                | 'None'  |       |
 | `sample`     | Sample              | 'None'  |       |
 | `info`       | Information         | 'None'  |       |
-| `laser_freq` | Laser frequency     | 0.      | 'Hz'  |
+| `laser_wl`   | Laser wavelength    | 0.      | 'nm'  |
 | `laser_T`    | Laser ON+OFF period | 360.    | 's'   |
 | `laser_v`    | Laser voltage       | 0.      | 'V'   |
 | `vds`        | VDS                 | 0.075   | 'V'   |
 | `vg`         | VG                  | 0.      | 'V'   |
-| `sampling_t` | Sampling time       | 0.1     | 's'   |
+| `sampling_t` | Sampling time (excluding Keithley)| 0.      | 's'   |
 | `N_avg`      | N_avg               | 2       |       |
 | `Irange`     | Irange              | 0.001   | 'A'   |
 
 #### INPUTS
-['chip', 'sample', 'info', 'laser_freq', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
+['chip', 'sample', 'info', 'laser_wl', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
 
 #### DATA_COLUMNS
-['t (s)', 'I (A)']
+['t (s)', 'I (A)', 'VL (V)']
 
 #### Execute
 `pass`
@@ -96,8 +96,8 @@ A list of all available Procedures and their parameters.
 
 #### Instruments
 - Keithley 2450 (Control: `vds`, Measure: 'I (A)')
-- TENMA (Control: 'Vg (V)' (Positive))
-- TENMA (Control: 'Vg (V)' (Negative))
+- TENMA (Control: `vg` (Positive))
+- TENMA (Control: `vg` (Negative))
 
 #### Execute
 Perform I-V Measurement over a range of Gate Voltages
@@ -113,6 +113,3 @@ Perform I-V Measurement over a range of Gate Voltages
 
 #### Execute
 Perform I-t Measurement over time, turning the laser on at $t = 0$ and off at $t =$ `laser_T` $/2$.
-
-
-
