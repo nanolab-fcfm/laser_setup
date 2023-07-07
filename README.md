@@ -51,13 +51,16 @@ A list of all available Procedures and their parameters.
 | `vds`      | VDS         | 0.075   | 'V'   |          |
 | `vg_start` | VG start    | -35.    | 'V'   |          |
 | `vg_end`   | VG end      | 35.     | 'V'   |          |
+| `laser_toggle`|Laser toggle| False |       |          |
+| `laser_wl` |Laser wavelength| 0.   | 'nm'  |          |
+| `laser_v`  |Laser voltage| 0.      | 'V'   |          |
 | `N_avg`    | N_avg       | 2       |       |          |
 | `vg_step`  | VG step     | 0.2     | 'V'   |          |
 | `step_time`| Step time   | 0.01    | 's'   |          |
 | `Irange`   | Irange      | 0.001   | 'A'   |          |
 
 #### INPUTS
-['chip', 'chip_number', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time']
+['chip', 'chip_number', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'laser_toggle', 'laser_wl', 'laser_v', 'N_avg', 'vg_step', 'step_time']
 
 #### DATA_COLUMNS
 ['Vg (V)', 'I (A)']
