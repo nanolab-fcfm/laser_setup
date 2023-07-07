@@ -39,7 +39,8 @@ class IVgBaseProcedure(Procedure):
     :ivar tenma_pos: The positive TENMA source.
     """
     #Device Parameters
-    chip = Parameter('Chip', default='None')            # There must be a default value, otherwise it can't be read from the data file
+    chip = ListParameter('Chip', choices=['Margarita', 'Miguel', 'Pepe (no ALD)'])
+    chip_number = IntegerParameter('Chip number', default=1)
     sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
     info = Parameter('Information', default='None')
 
@@ -59,7 +60,7 @@ class IVgBaseProcedure(Procedure):
     step_time = FloatParameter('Step time', units='s', default=0.01)
     Irange = FloatParameter('Irange', units='A', default=0.001)
 
-    INPUTS = ['chip', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl', 'laser_v']
+    INPUTS = ['chip', 'chip_number', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl', 'laser_v']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
     def startup(self):
@@ -149,9 +150,10 @@ class ItBaseProcedure(Procedure):
     :ivar tenma_pos: The positive TENMA source.
     :ivar tenma_laser: The laser TENMA source.
     """
-    # Device Parameters
-    chip = Parameter('Chip', default='None')
-    sample = Parameter('Sample', default='None')
+    #Device Parameters
+    chip = ListParameter('Chip', choices=['Margarita', 'Miguel', 'Pepe (no ALD)'])
+    chip_number = IntegerParameter('Chip number', default=1)
+    sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
     info = Parameter('Information', default='None')
 
     # Important Parameters
