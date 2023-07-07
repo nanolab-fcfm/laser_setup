@@ -24,11 +24,15 @@ class IVgBaseProcedure(Procedure):
     `DATA_COLUMNS = BasicIVgProcedure.DATA_COLUMNS + [column_name]`
 
     :param chip: The chip name.
+    :param chip_number: The chip number.
     :param sample: The sample name.
     :param info: A comment to add to the data file.
     :param vds: The drain-source voltage in Volts.
     :param vg_start: The starting gate voltage in Volts.
     :param vg_end: The ending gate voltage in Volts.
+    :laser_toggle: Whether to turn on the laser
+    :laser_wl: The laser wavelength in nm.
+    :laser_v: The laser voltage in Volts.
     :param N_avg: The number of measurements to average.
     :param vg_step: The step size of the gate voltage.
     :param step_time: The time to wait between measurements.
@@ -39,7 +43,7 @@ class IVgBaseProcedure(Procedure):
     :ivar tenma_pos: The positive TENMA source.
     """
     #Device Parameters
-    chip = ListParameter('Chip', choices=['Margarita', 'Miguel', 'Pepe (no ALD)', 'other'])
+    chip = ListParameter('Chip name', choices=['Margarita', 'Miguel', 'Pepe (no ALD)', 'other'])
     chip_number = IntegerParameter('Chip number', default=1)
     sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
     info = Parameter('Information', default='None')
@@ -151,7 +155,7 @@ class ItBaseProcedure(Procedure):
     :ivar tenma_laser: The laser TENMA source.
     """
     #Device Parameters
-    chip = ListParameter('Chip', choices=['Margarita', 'Miguel', 'Pepe (no ALD)', 'other'])
+    chip = ListParameter('Chip name', choices=['Margarita', 'Miguel', 'Pepe (no ALD)', 'other'])
     chip_number = IntegerParameter('Chip number', default=1)
     sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
     info = Parameter('Information', default='None')

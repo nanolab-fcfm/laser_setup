@@ -42,21 +42,22 @@ A list of all available Procedures and their parameters.
 ### IVgBaseProcedure
 
 #### Parameters
-| Name      | Ext. Name   | Default | Units |
-|-----------|-------------|---------|-------|
-| `chip`     | Chip        | 'None'  |       |
-| `sample`    | Sample      | 'None'  |       |
-| `info`      | Information | 'None'  |       |
-| `vds`       | VDS         | 0.075   | 'V'   |
-| `vg_start`  | VG start    | -35.    | 'V'   |
-| `vg_end`    | VG end      | 35.     | 'V'   |
-| `N_avg`     | N_avg       | 2       |       |
-| `vg_step`   | VG step     | 0.2     | 'V'   |
-| `step_time` | Step time   | 0.01    | 's'   |
-| `Irange`    | Irange      | 0.001   | 'A'   |
+| Name       | Ext. Name   | Default | Units | Choices |
+|------------|-------------|---------|-------|---------------|
+| `chip`     | Chip name   |         |       |['Margarita', 'Miguel', 'Pepe (no ALD)', 'other']|
+|`chip_number`| Chip number| 1       |       |['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']|
+| `sample`   | Sample      |         |       |          |
+| `info`     | Information | 'None'  |       |          |
+| `vds`      | VDS         | 0.075   | 'V'   |          |
+| `vg_start` | VG start    | -35.    | 'V'   |          |
+| `vg_end`   | VG end      | 35.     | 'V'   |          |
+| `N_avg`    | N_avg       | 2       |       |          |
+| `vg_step`  | VG step     | 0.2     | 'V'   |          |
+| `step_time`| Step time   | 0.01    | 's'   |          |
+| `Irange`   | Irange      | 0.001   | 'A'   |          |
 
 #### INPUTS
-['chip', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time']
+['chip', 'chip_number', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time']
 
 #### DATA_COLUMNS
 ['Vg (V)', 'I (A)']
@@ -68,22 +69,23 @@ A list of all available Procedures and their parameters.
 ### ItBaseProcedure
 
 #### Parameters
-| Name       | Ext. Name           | Default | Units |
-|------------|---------------------|---------|-------|
-| `chip`       | Chip                | 'None'  |       |
-| `sample`     | Sample              | 'None'  |       |
-| `info`       | Information         | 'None'  |       |
-| `laser_wl`   | Laser wavelength    | 0.      | 'nm'  |
-| `laser_T`    | Laser ON+OFF period | 360.    | 's'   |
-| `laser_v`    | Laser voltage       | 0.      | 'V'   |
-| `vds`        | VDS                 | 0.075   | 'V'   |
-| `vg`         | VG                  | 0.      | 'V'   |
-| `sampling_t` | Sampling time (excluding Keithley)| 0.      | 's'   |
-| `N_avg`      | N_avg               | 2       |       |
-| `Irange`     | Irange              | 0.001   | 'A'   |
+| Name       | Ext. Name   | Default | Units | Choices |
+|------------|-------------|---------|-------|---------------|
+| `chip`     | Chip name   |         |       |['Margarita', 'Miguel', 'Pepe (no ALD)', 'other']|
+|`chip_number`| Chip number| 1       |       |['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']|
+| `sample`   | Sample      |         |       |          |
+| `info`     | Information | 'None'  |       |          |
+| `laser_wl` | Laser wavelength    | 0.   | 'nm'  |         |
+| `laser_T`  | Laser ON+OFF period | 360. | 's'   |         |
+| `laser_v`  | Laser voltage       | 0.   | 'V'   |         |
+| `vds`      | VDS                 | 0.075| 'V'   |         |
+| `vg`       | VG                  | 0.   | 'V'   |         |
+| `sampling_t`| Sampling time (excluding Keithley)| 0.   | 's'   |          |
+| `N_avg`    | N_avg               | 2    |       |         |
+| `Irange`   | Irange              | 0.001| 'A'   |         |
 
 #### INPUTS
-['chip', 'sample', 'info', 'laser_wl', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
+['chip', 'chip_number', 'sample', 'info', 'laser_wl', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
 
 #### DATA_COLUMNS
 ['t (s)', 'I (A)', 'VL (V)']
@@ -107,8 +109,8 @@ Perform I-V Measurement over a range of Gate Voltages
 
 #### Instruments
 - Keithley 2450 (Control: `vds`, Measure: ['t (s)', 'I (A)'])
-- TENMA (Control: 'Vg (V)' (Positive))
-- TENMA (Control: 'Vg (V)' (Negative))
+- TENMA (Control: `vg` (Positive))
+- TENMA (Control: `vg` (Negative))
 - TENMA (Control: `laser_V` (Positive))
 
 #### Execute
