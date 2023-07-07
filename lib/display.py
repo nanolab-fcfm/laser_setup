@@ -8,6 +8,7 @@ from typing import Type
 from pymeasure.display.Qt import QtWidgets
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import unique_filename, Results, Procedure
+from PyQt6.QtCore import QLocale
 
 from lib import config, log
 from lib.utils import remove_empty_data
@@ -57,6 +58,7 @@ def display_experiment(cls: Type[Procedure], title: str = ''):
     It also allows for existing data to be loaded and displayed.
     """
     app = QtWidgets.QApplication(sys.argv)
+    QLocale.setDefault(QLocale(QLocale.Language.English, QLocale.Country.UnitedStates))
     window = MainWindow(cls, title)
     window.show()
     app.exec()
