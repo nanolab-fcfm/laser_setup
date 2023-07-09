@@ -9,7 +9,25 @@ from .display import send_telegram_alert
 from .instruments import TENMA
 
 
-class IVgBaseProcedure(Procedure):
+class BaseProcedure(Procedure):
+    """
+    Base procedure for all the measurements. It defines the basic parameters
+    that are common to all the measurements, such as chip parameters.
+    """
+    chip_names = list(eval(config['Chip']['names'])) + ['other']
+    chip_amounts = list(eval(config['Chip']['amounts']))
+    samples = list(eval(config['Chip']['samples']))
+
+    show_more = BooleanParameter('Show more', default=False)
+    chip = ListParameter('Chip name', choices=chip_names)
+    chip_number = IntegerParameter('Chip number', default=1, minimum=1)
+    sample = ListParameter('Sample', choices=samples)
+    info = Parameter('Information', default='None')
+
+    INPUTS = ['show_more', 'chip', 'chip_number', 'sample', 'info']
+
+
+class IVgBaseProcedure(BaseProcedure):
     """
     Basic procedure for measuring current over gate voltage with a Keithley
     2450 and two TENMA sources.
@@ -42,12 +60,6 @@ class IVgBaseProcedure(Procedure):
     :ivar tenma_neg: The negative TENMA source.
     :ivar tenma_pos: The positive TENMA source.
     """
-    #Device Parameters
-    chip = ListParameter('Chip name', choices=['Margarita', 'Miguel', 'Pepe (no ALD)', 'other'])
-    chip_number = IntegerParameter('Chip number', default=1)
-    sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
-    info = Parameter('Information', default='None')
-
     # Important Parameters
     vds = FloatParameter('VDS', units='V', default=0.075)
     vg_start = FloatParameter('VG start', units='V', default=-35.)
@@ -57,14 +69,14 @@ class IVgBaseProcedure(Procedure):
     laser_toggle = BooleanParameter('Laser toggle', default=False)
     laser_wl = FloatParameter('Laser wavelength', units='nm', default=0., group_by='laser_toggle')
     laser_v = FloatParameter('Laser voltage', units='V', default=0., group_by='laser_toggle')
-    
-    # Optional Parameters, preferably don't change
-    N_avg = IntegerParameter('N_avg', default=2)
-    vg_step = FloatParameter('VG step', units='V', default=0.2)
-    step_time = FloatParameter('Step time', units='s', default=0.01)
-    Irange = FloatParameter('Irange', units='A', default=0.001)
 
-    INPUTS = ['chip', 'chip_number', 'sample', 'info', 'vds', 'vg_start', 'vg_end', 'N_avg', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl', 'laser_v']
+    # Additional Parameters, preferably don't change
+    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
+    vg_step = FloatParameter('VG step', units='V', default=0.2, group_by='show_more')
+    step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
+    Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
+
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
     def startup(self):
@@ -83,7 +95,7 @@ class IVgBaseProcedure(Procedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.measure_current(current=self.Irange, auto_range=False)
+        self.meter.measure_current(current=self.Irange)
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
@@ -125,7 +137,7 @@ class IVgBaseProcedure(Procedure):
         )
 
 
-class ItBaseProcedure(Procedure):
+class ItBaseProcedure(BaseProcedure):
     """
     Basic procedure for measuring current over time with a Keithley 2450 and
     two TENMA sources.
@@ -154,25 +166,19 @@ class ItBaseProcedure(Procedure):
     :ivar tenma_pos: The positive TENMA source.
     :ivar tenma_laser: The laser TENMA source.
     """
-    #Device Parameters
-    chip = ListParameter('Chip name', choices=['Margarita', 'Miguel', 'Pepe (no ALD)', 'other'])
-    chip_number = IntegerParameter('Chip number', default=1)
-    sample = ListParameter('Sample', choices=['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
-    info = Parameter('Information', default='None')
-
     # Important Parameters
-    laser_wl = FloatParameter('Laser wavelength', units='nm', default=0.)
-    laser_T = FloatParameter('Laser ON+OFF period', units='s', default=360.)
-    laser_v = FloatParameter('Laser voltage', units='V', default=0.)
     vds = FloatParameter('VDS', units='V', default=0.075)
     vg = FloatParameter('VG', units='V', default=0.)
+    laser_wl = FloatParameter('Laser wavelength', units='nm', default=0.)
+    laser_v = FloatParameter('Laser voltage', units='V', default=0.)
+    laser_T = FloatParameter('Laser ON+OFF period', units='s', default=360.)
 
-    # Optional Parameters, preferably don't change
-    sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0.)
-    N_avg = IntegerParameter('N_avg', default=2)
-    Irange = FloatParameter('Irange', units='A', default=0.001)
+    # Additional Parameters, preferably don't change
+    sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
+    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
+    Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
 
-    INPUTS = ['chip', 'chip_number', 'sample', 'info', 'laser_wl', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'N_avg']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
 
     def startup(self):
@@ -190,11 +196,7 @@ class ItBaseProcedure(Procedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.apply_voltage(
-            voltage_range=1e-1,
-            compliance_current=self.Irange
-            )
-        self.meter.measure_current(current=self.Irange, auto_range=False)
+        self.meter.measure_current(current=self.Irange)
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
