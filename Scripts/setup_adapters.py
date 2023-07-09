@@ -67,10 +67,14 @@ def main():
                 found_tenmas.append(which_tenma)
                 log.info(f'Adapter {dev} is now configured as {which_tenma}.')
 
-    for tenma in tenmas:
-        if tenma not in found_tenmas and tenma != 'none':
-            log.warning(f'TENMA {tenma} is configured, but was not found. Setting as empty str to avoid duplicates.')
-            config['Adapters'][tenma] = ''
+    if found_tenmas:
+        for tenma in tenmas:
+            if tenma not in found_tenmas and tenma != 'none':
+                log.warning(f'TENMA {tenma} is configured, but was not found. Setting as empty str to avoid duplicates.')
+                config['Adapters'][tenma] = ''
+
+    else:
+        log.error("No TENMA found on any serial port. Connect the instrument(s) and try again.")
     
     with open(config_path, 'w') as f:
         config.write(f)
