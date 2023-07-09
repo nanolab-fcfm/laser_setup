@@ -14,17 +14,22 @@ class BaseProcedure(Procedure):
     Base procedure for all the measurements. It defines the basic parameters
     that are common to all the measurements, such as chip parameters.
     """
+    # Procedure version. When modified, increment
+    # <parameter name>.<parameter property>.<procedure startup/shutdown>
+    procedure_version = Parameter('Procedure version', default='1.0.0')
+
+    # Chip Parameters
     chip_names = list(eval(config['Chip']['names'])) + ['other']
     chip_amounts = list(eval(config['Chip']['amounts']))
     samples = list(eval(config['Chip']['samples']))
 
     show_more = BooleanParameter('Show more', default=False)
-    chip = ListParameter('Chip name', choices=chip_names)
+    chip_group = ListParameter('Chip group name', choices=chip_names)
     chip_number = IntegerParameter('Chip number', default=1, minimum=1)
     sample = ListParameter('Sample', choices=samples)
     info = Parameter('Information', default='None')
 
-    INPUTS = ['show_more', 'chip', 'chip_number', 'sample', 'info']
+    INPUTS = ['show_more', 'chip_group', 'chip_number', 'sample', 'info']
 
 
 class IVgBaseProcedure(BaseProcedure):
@@ -41,7 +46,7 @@ class IVgBaseProcedure(BaseProcedure):
     To add data columns, modify DATA_COLUMNS:
     `DATA_COLUMNS = BasicIVgProcedure.DATA_COLUMNS + [column_name]`
 
-    :param chip: The chip name.
+    :param chip_group: The chip group name.
     :param chip_number: The chip number.
     :param sample: The sample name.
     :param info: A comment to add to the data file.
@@ -133,7 +138,7 @@ class IVgBaseProcedure(BaseProcedure):
         log.info("Instruments shutdown.")
 
         send_telegram_alert(
-            f"Finished It measurement for Chip {self.chip}, Sample {self.sample}!"
+            f"Finished It measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
         )
 
 
@@ -151,7 +156,7 @@ class ItBaseProcedure(BaseProcedure):
     To add data columns, modify DATA_COLUMNS:
     `DATA_COLUMNS = BasicItProcedure.DATA_COLUMNS + [column_name]`
 
-    :param chip: The chip name.
+    :param chip_group: The chip group name.
     :param sample: The sample name.
     :param info: A comment to add to the data file.
     :param laser_freq: The laser frequency in Hz.
@@ -233,5 +238,5 @@ class ItBaseProcedure(BaseProcedure):
         log.info("Instruments shutdown.")
 
         send_telegram_alert(
-            f"Finished It measurement for Chip {self.chip}, Sample {self.sample}!"
+            f"Finished It measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
         )
