@@ -20,7 +20,6 @@ class BaseProcedure(Procedure):
 
     # Chip Parameters
     chip_names = list(eval(config['Chip']['names'])) + ['other']
-    chip_amounts = list(eval(config['Chip']['amounts']))
     samples = list(eval(config['Chip']['samples']))
 
     show_more = BooleanParameter('Show more', default=False)
