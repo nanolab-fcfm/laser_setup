@@ -16,7 +16,7 @@ class BaseProcedure(Procedure):
     """
     # Procedure version. When modified, increment
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
-    procedure_version = Parameter('Procedure version', default='1.0.0')
+    procedure_version = Parameter('Procedure version', default='1.1.1')
 
     # config 
     chip_names = list(eval(config['Chip']['names'])) + ['other']
