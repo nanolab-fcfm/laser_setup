@@ -31,7 +31,11 @@ class IVg(IVgBaseProcedure):
 
         # Set the Vg ramp and the measuring loop
         self.vg_ramp = gate_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
+        avg_array = np.zeros(self.N_avg)
         for i, vg in enumerate(self.vg_ramp):
+            if self.should_stop():
+                break
+
             self.emit('progress', 100 * i / len(self.vg_ramp))
 
             if vg >= 0:
@@ -44,11 +48,11 @@ class IVg(IVgBaseProcedure):
             time.sleep(self.step_time)
 
             # Take the average of N_avg measurements
-            avg_array = np.zeros(self.N_avg)
             for j in range(self.N_avg):
                 avg_array[j] = self.meter.current
 
             self.emit('results', dict(zip(self.DATA_COLUMNS, [vg, np.mean(avg_array)])))
+            avg_array[:] = 0.
 
 
 if __name__ == "__main__":
