@@ -2,10 +2,20 @@
 Experimental setup for Laser, I-V and Transfer Curve measurements.
 
 ## Installation
-This project mainly uses [PyMeasure](https://pypi.org/project/PyMeasure/), although other packages such as NumPy and PyQT6 are used.
-To install all necessary packages, use the following:
+This project mainly uses [PyMeasure](https://pypi.org/project/PyMeasure/), although other packages such as NumPy and PyQT6 are used. To install this project, first clone the repository:
 
+```bash
+git clone https://github.com/nanolab-fcfm/laser_setup
+```
+Then, create a virtual environment and activate it:
+
+```bash
+python -m venv <venv_name>
+source <venv_name>/bin/activate
+```
+Finally, upgrade pip and install all necesary packages:
 ```python
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -101,7 +111,7 @@ The base class for all procedures involving a chip.
 `pass`
 
 
-### ItBaseProcedure
+### ItBaseProcedure(BaseProcedure)
 
 #### Parameters
 | Name       | Ext. Name   | Default | Units | Choices |
