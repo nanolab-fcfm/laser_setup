@@ -18,10 +18,11 @@ class BaseProcedure(Procedure):
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
     procedure_version = Parameter('Procedure version', default='1.0.0')
 
-    # Chip Parameters
+    # config 
     chip_names = list(eval(config['Chip']['names'])) + ['other']
     samples = list(eval(config['Chip']['samples']))
 
+    # Chip Parameters
     show_more = BooleanParameter('Show more', default=False)
     chip_group = ListParameter('Chip group name', choices=chip_names)
     chip_number = IntegerParameter('Chip number', default=1, minimum=1)
@@ -64,6 +65,8 @@ class IVgBaseProcedure(BaseProcedure):
     :ivar tenma_neg: The negative TENMA source.
     :ivar tenma_pos: The positive TENMA source.
     """
+    wavelengths = list(eval(config['Laser']['wavelengths']))
+
     # Important Parameters
     vds = FloatParameter('VDS', units='V', default=0.075)
     vg_start = FloatParameter('VG start', units='V', default=-35.)
@@ -71,7 +74,7 @@ class IVgBaseProcedure(BaseProcedure):
 
     # Laser Parameters
     laser_toggle = BooleanParameter('Laser toggle', default=False)
-    laser_wl = FloatParameter('Laser wavelength', units='nm', default=0., group_by='laser_toggle')
+    laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths, group_by='laser_toggle')
     laser_v = FloatParameter('Laser voltage', units='V', default=0., group_by='laser_toggle')
 
     # Additional Parameters, preferably don't change
@@ -170,10 +173,12 @@ class ItBaseProcedure(BaseProcedure):
     :ivar tenma_pos: The positive TENMA source.
     :ivar tenma_laser: The laser TENMA source.
     """
+    wavelengths = list(eval(config['Laser']['wavelengths']))
+
     # Important Parameters
     vds = FloatParameter('VDS', units='V', default=0.075)
     vg = FloatParameter('VG', units='V', default=0.)
-    laser_wl = FloatParameter('Laser wavelength', units='nm', default=0.)
+    laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
     laser_v = FloatParameter('Laser voltage', units='V', default=0.)
     laser_T = FloatParameter('Laser ON+OFF period', units='s', default=360.)
 
