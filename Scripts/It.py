@@ -17,6 +17,9 @@ class It(ItBaseProcedure):
     """
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
+    def get_keithley_time(self):
+        return float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
+
     def execute(self):
         log.info("Starting the measurement")
         
@@ -28,34 +31,27 @@ class It(ItBaseProcedure):
 
         self.tenma_laser.voltage = self.laser_v
 
-        keithley_time = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
-        while keithley_time < self.laser_T / 2:
-            self.emit('progress', 100 * keithley_time / self.laser_T)
-
-            # Take the average of N_avg measurements
+        def measuring_loop(t_end):
             avg_array = np.zeros(self.N_avg)
+            keithley_time = self.get_keithley_time()
+            while keithley_time < t_end:
+                if self.should_stop():
+                    break
 
-            for j in range(self.N_avg):
-                avg_array[j] = self.meter.current
+                self.emit('progress', 100 * keithley_time / self.laser_T)
 
-            keithley_time = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), self.laser_v])))
-            time.sleep(self.sampling_t)
+                # Take the average of N_avg measurements
+                for j in range(self.N_avg):
+                    avg_array[j] = self.meter.current
 
+                keithley_time = self.get_keithley_time()
+                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), self.laser_v])))
+                avg_array[:] = 0.
+                time.sleep(self.sampling_t)
+
+        measuring_loop(self.laser_T / 2)
         self.tenma_laser.voltage = 0.
-
-        while keithley_time < self.laser_T:
-            self.emit('progress', 100 * keithley_time / self.laser_T)
-
-            # Take the average of N_avg measurements
-            avg_array = np.zeros(self.N_avg)
-
-            for j in range(self.N_avg):
-                avg_array[j] = self.meter.current
-
-            keithley_time = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), 0.])))
-            time.sleep(self.sampling_t)
+        measuring_loop(self.laser_T)
 
 
 if __name__ == "__main__":
