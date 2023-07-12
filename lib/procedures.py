@@ -140,7 +140,7 @@ class IVgBaseProcedure(BaseProcedure):
         log.info("Instruments shutdown.")
 
         send_telegram_alert(
-            f"Finished It measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
+            f"Finished IVg measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
         )
 
 
