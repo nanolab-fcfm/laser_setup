@@ -1,7 +1,7 @@
 import time
 
 from pymeasure.instruments.keithley import Keithley2450
-from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter
+from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter, Metadata
 
 from lib import config, log
 from .utils import SONGS
@@ -16,7 +16,7 @@ class BaseProcedure(Procedure):
     """
     # Procedure version. When modified, increment
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
-    procedure_version = Parameter('Procedure version', default='1.1.1')
+    procedure_version = Parameter('Procedure version', default='1.2.0')
 
     # config 
     chip_names = list(eval(config['Chip']['names'])) + ['other']
@@ -28,6 +28,9 @@ class BaseProcedure(Procedure):
     chip_number = IntegerParameter('Chip number', default=1, minimum=1)
     sample = ListParameter('Sample', choices=samples)
     info = Parameter('Information', default='None')
+
+    # Metadata
+    start_time = Metadata('Start time', fget=time.time)
 
     INPUTS = ['show_more', 'chip_group', 'chip_number', 'sample', 'info']
 

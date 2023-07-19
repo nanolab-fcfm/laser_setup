@@ -15,7 +15,7 @@ class LaserCalibration(Procedure):
     """
     # Procedure version. When modified, increment
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
-    procedure_version = Parameter('Procedure version', default='1.0.0')
+    procedure_version = Parameter('Procedure version', default='1.1.0')
     fibers = list(eval(config['Laser']['fibers']))
 
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=list(eval(config['Laser']['wavelengths'])))
@@ -25,6 +25,9 @@ class LaserCalibration(Procedure):
     vl_step = FloatParameter('Laser voltage step', units='V', default=0.1)
     step_time = FloatParameter('Step time', units='s', default=2.)
     N_avg = IntegerParameter('N_avg', default=2)
+
+    # Metadata
+    start_time = Metadata('Start time', fget=time.time)
     sensor = Metadata('Sensor model', fget='power_meter.sensor_name')
 
     INPUTS = ['laser_wl', 'fiber', 'vl_start', 'vl_end', 'vl_step', 'step_time', 'N_avg']
