@@ -29,16 +29,16 @@ class It(ItBaseProcedure):
         elif self.vg < 0:
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
-        self.tenma_laser.voltage = self.laser_v
 
         def measuring_loop(t_end):
             avg_array = np.zeros(self.N_avg)
             keithley_time = self.get_keithley_time()
             while keithley_time < t_end:
                 if self.should_stop():
+                    log.error('Measurement aborted')
                     break
 
-                self.emit('progress', 100 * keithley_time / self.laser_T)
+                self.emit('progress', 100 * keithley_time / (self.laser_T * 3/2))
 
                 # Take the average of N_avg measurements
                 for j in range(self.N_avg):
@@ -49,9 +49,12 @@ class It(ItBaseProcedure):
                 avg_array[:] = 0.
                 time.sleep(self.sampling_t)
 
-        measuring_loop(self.laser_T / 2)
         self.tenma_laser.voltage = 0.
+        measuring_loop(self.laser_T *  1/2)
+        self.tenma_laser.voltage = self.laser_v
         measuring_loop(self.laser_T)
+        self.tenma_laser.voltage = 0.
+        measuring_loop(self.laser_T * 3/2)
 
 
 if __name__ == "__main__":
