@@ -58,4 +58,4 @@ class It(ItBaseProcedure):
 
 
 if __name__ == "__main__":
-    display_experiment(It, 'I vs t Measurement')
+    display_experiment(It, 'I vs t Measurement (OFF -> ON -> OFF)')
