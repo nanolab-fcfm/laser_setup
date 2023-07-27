@@ -51,6 +51,9 @@ class LaserCalibration(Procedure):
 
         self.vl_ramp = np.arange(self.vl_start, self.vl_end + self.vl_step, self.vl_step)
         avg_array = np.zeros(self.N_avg)
+
+        self.power_meter.wavelength = self.laser_wl
+
         for i, vl in enumerate(self.vl_ramp):
             if self.should_stop():
                 break

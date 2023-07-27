@@ -2,7 +2,8 @@
 #### Actualizado al 26-07-2023
 ---
 
-Deltas respecto al DP: -30, -15, -2, +2 [V]
+Deltas respecto al DP: -30, -15, -2, +2 [V] 
+> -30 y -15 es solo para comparar contra muestra sin ALD
 
 0. Tener LEDs calibrados para obtener voltajes para una potencia dada.
 1. IVg apagado.
@@ -17,4 +18,6 @@ Deltas respecto al DP: -30, -15, -2, +2 [V]
 9. Esperar 30 minutos.
 10. IVg apagado.
 
-> Se mide 1 longitud de onda por día por cada chip.
+#### Observaciones:
++ Luego de correr `setup_adapters` cerciorarse con el primer IVg que las tenmas estén bien configuradas.
++ Se recomienda no prender el LED hasta después del primer IVg apagado, ajustando el foco y posición con 0.1 [V] en la tenma_laser sólo antes del paso 2. Sacar una foto de esto para calcular la potencia efectiva. 
