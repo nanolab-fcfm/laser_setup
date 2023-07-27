@@ -45,7 +45,7 @@ class TENMA(Instrument):
             adapter, "TENMA Power Supply", **kwargs
         )
 
-    def ramp_to_voltage(self, vg_end: float, vg_step=0.2, step_time=0.05):
+    def ramp_to_voltage(self, vg_end: float, vg_step=0.1, step_time=0.05):
         """Sets the voltage to vg_end with a ramp in V/s.
 
         :param vg_end: The voltage to ramp to in Volts.
