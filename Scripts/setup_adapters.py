@@ -22,7 +22,7 @@ def tenma_ping(adapter, tenmas: list):
     log.info(f'Sending signal to {adapter}')
     try:
         T = TENMA(adapter)
-        T.apply_voltage(0.1)
+        T.apply_voltage(0.01)
     except:
         log.warning(f"Adapter {adapter} not found")
         return
