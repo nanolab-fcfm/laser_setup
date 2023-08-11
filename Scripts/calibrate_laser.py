@@ -15,7 +15,7 @@ class LaserCalibration(Procedure):
     """
     # Procedure version. When modified, increment
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
-    procedure_version = Parameter('Procedure version', default='1.1.0')
+    procedure_version = Parameter('Procedure version', default='1.1.1')
     fibers = list(eval(config['Laser']['fibers']))
 
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=list(eval(config['Laser']['wavelengths'])))
@@ -46,13 +46,13 @@ class LaserCalibration(Procedure):
         self.tenma_laser.output = True
         time.sleep(1.)
 
+        self.power_meter.wavelength = self.laser_wl
+
     def execute(self):
         log.info("Starting the measurement")
 
         self.vl_ramp = np.arange(self.vl_start, self.vl_end + self.vl_step, self.vl_step)
         avg_array = np.zeros(self.N_avg)
-
-        self.power_meter.wavelength = self.laser_wl
 
         for i, vl in enumerate(self.vl_ramp):
             if self.should_stop():
@@ -76,7 +76,7 @@ class LaserCalibration(Procedure):
             log.info("No instruments to shutdown.")
             return
         
-        self.power_meter.shutdown()         # Not sure if it's necessary
+        self.power_meter.shutdown()
         self.tenma_laser.shutdown()
         log.info("Instruments shutdown.")
 
