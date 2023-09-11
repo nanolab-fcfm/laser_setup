@@ -30,7 +30,7 @@ class It(ItBaseProcedure):
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
 
-        def measuring_loop(t_end):
+        def measuring_loop(t_end: float, laser_v: float):
             avg_array = np.zeros(self.N_avg)
             keithley_time = self.get_keithley_time()
             while keithley_time < t_end:
@@ -45,16 +45,16 @@ class It(ItBaseProcedure):
                     avg_array[j] = self.meter.current
 
                 keithley_time = self.get_keithley_time()
-                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), self.laser_v])))
+                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), laser_v])))
                 avg_array[:] = 0.
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T *  1/2)
+        measuring_loop(self.laser_T *  1/2, 0.)
         self.tenma_laser.voltage = self.laser_v
-        measuring_loop(self.laser_T)
+        measuring_loop(self.laser_T, self.laser_v)
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T * 3/2)
+        measuring_loop(self.laser_T * 3/2, 0.)
 
 
 if __name__ == "__main__":

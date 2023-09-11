@@ -10,13 +10,13 @@ from .instruments import TENMA
 
 
 class BaseProcedure(Procedure):
-    """
-    Base procedure for all the measurements. It defines the basic parameters
-    that are common to all the measurements, such as chip parameters.
+    """Base procedure for all device-related measurements. It defines the basic
+    parameters that are common to all the measurements, such as chip
+    parameters.
     """
     # Procedure version. When modified, increment
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
-    procedure_version = Parameter('Procedure version', default='1.2.0')
+    procedure_version = Parameter('Procedure version', default='1.3.1')
 
     # config 
     chip_names = list(eval(config['Chip']['names'])) + ['other']
@@ -79,6 +79,7 @@ class IVgBaseProcedure(BaseProcedure):
     laser_toggle = BooleanParameter('Laser toggle', default=False)
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths, group_by='laser_toggle')
     laser_v = FloatParameter('Laser voltage', units='V', default=0., group_by='laser_toggle')
+    burn_in_t = FloatParameter('Burn-in time', units='s', default=10., group_by='laser_toggle')
 
     # Additional Parameters, preferably don't change
     N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
@@ -86,7 +87,7 @@ class IVgBaseProcedure(BaseProcedure):
     step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
     Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v']
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
     def startup(self):
