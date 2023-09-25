@@ -107,6 +107,13 @@ def get_dark_palette():
 def send_telegram_alert(message: str):
     """Sends a message to all valid Telegram chats on config['Telegram'].
     """
+    try:
+        requests.get("https://www.google.com/", timeout=1)
+
+    except:
+        log.warning("Couldn't ping Google, aborting telegram alert.")
+        return -1
+    
     if 'TOKEN' not in config['Telegram']:
         log.warning("Telegram token not specified in config.")
         return
