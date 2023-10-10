@@ -25,11 +25,4 @@ Deltas respecto al DP: -30, -15, -2, +2 [V]
 + Se recomienda no prender el LED hasta después del primer IVg apagado, ajustando el foco y posición con 0.1 [V] en la tenma_laser sólo antes del paso 2. Sacar una foto de esto para calcular la potencia efectiva. 
 
 
-LED Calibrations for Tom Setup
 
-| $\lambda$ (nM) | Voltage at $10\mu W$ (V) | Voltage at $15\mu W$ (V) | Voltage at $20\mu W$ (V) |
-|:--------------:|:------------------------:|:------------------------:|:------------------------:|
-|       625      |           2.66           |           3.90           |           n.a.           |
-|       565      |           1.65           |           2.51           |           3.41           |
-|       505      |           1.74           |           2.60           |           3.51           |
-|       455      |           1.34           |           1.96           |           2.60           |
