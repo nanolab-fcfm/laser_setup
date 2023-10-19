@@ -1,5 +1,5 @@
 """
-This Script is used to find the dirac point of a selected IVg curve.
+This Script is used to find the dirac point from the selected IVg curve.
 """
 from Scripts.utils import *
 
@@ -12,10 +12,16 @@ from tkinter.filedialog import askopenfilenames
 if __name__ == "__main__":
     current_datetime = datetime.now()
     todays_date = f"{current_datetime.year}-{current_datetime.month}-{current_datetime.day}"
-    todays_folder_path = f"{os.getcwd()}/data/{todays_date}/"
+    data_path = f"{os.getcwd()}/data/"
+    todays_folder_path = f"{data_path}{todays_date}/"
+
+    if os.path.isdir(todays_folder_path):
+        initial_path = todays_folder_path
+    else:
+        initial_path = data_path
     
     Tk().withdraw()
-    path_to_files = askopenfilenames(initialdir=todays_folder_path,
+    path_to_files = askopenfilenames(initialdir=initial_path,
                                 title="Select IVg to find DP")
 
     for path in path_to_files:
