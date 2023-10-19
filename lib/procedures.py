@@ -79,7 +79,7 @@ class IVgBaseProcedure(BaseProcedure):
     laser_toggle = BooleanParameter('Laser toggle', default=False)
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths, group_by='laser_toggle')
     laser_v = FloatParameter('Laser voltage', units='V', default=0., group_by='laser_toggle')
-    burn_in_t = FloatParameter('Burn-in time', units='s', default=10., group_by='laser_toggle')
+    burn_in_t = FloatParameter('Burn-in time', units='s', default=60., group_by='laser_toggle')
 
     # Additional Parameters, preferably don't change
     N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
@@ -184,7 +184,7 @@ class ItBaseProcedure(BaseProcedure):
     vg = FloatParameter('VG', units='V', default=0.)
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
     laser_v = FloatParameter('Laser voltage', units='V', default=0.)
-    laser_T = FloatParameter('Laser ON+OFF period', units='s', default=360.)
+    laser_T = FloatParameter('Laser ON+OFF period', units='s', default=120.)
 
     # Additional Parameters, preferably don't change
     sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
