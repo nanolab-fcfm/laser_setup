@@ -49,6 +49,20 @@ Each Script corresponds to a different procedure, and can be run independently. 
 python -m Scripts.<script_name>
 ```
 
+Additionally, there are two scripts to quickly analyze data.
+
+If you want to find the dp of an IVg file:
+
+```
+python -m Scripts.find_dp_script
+```
+
+To calculate the desired powers of a LED calibration file you can use the following commando specifying the powers in uW (separated by a space):
+
+```
+python -m Scripts.find_calibration_voltage <desired powers>
+```
+
 ## Testing
 This project uses [PyTest](https://docs.pytest.org/en/stable/) for testing.
 To run the tests, use the following command:
