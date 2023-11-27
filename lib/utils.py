@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple
 from glob import glob
 import os
 
+
 import numpy as np
 
 from lib import config, log
@@ -35,6 +36,28 @@ def gate_sweep_ramp(vg_start: float, vg_end: float, vg_step: float) -> np.ndarra
     Vg = np.concatenate((vg_i, Vg_m, vg_f))
 
     return Vg
+
+def iv_ramp(vsd_start: float, vsd_end: float, vsd_step: float) -> np.ndarray:
+    """This function returns an array with the voltages to be applied to the
+    source drain for a IV sweep. It goes from 0 to vg_start, then to vg_end, then to
+    vg_start, and finally back to 0.
+
+    :param vsd_start: The starting voltage of the sweep
+    :param vsd_end: The ending voltage of the sweep
+    :param vsd_step: The step size of the sweep
+    :return: An array with the voltages to be applied to the gate
+    """
+    Vsd_up = np.arange(vsd_start, vsd_end, vsd_step)
+    Vsd_down = np.arange(vsd_end, vsd_start - vsd_step, -vsd_step)
+    Vsd_m = np.concatenate((Vsd_up, Vsd_down))
+
+    vsd_start_dir = 1 if vsd_start > 0 else -1
+
+    vsd_i = np.arange(0, vsd_start, vsd_start_dir * vsd_step)
+    vsd_f = np.flip(vsd_i)
+    Vsd = np.concatenate((vsd_i, Vsd_m, vsd_f))
+
+    return Vsd
 
 
 def remove_empty_data():

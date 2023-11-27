@@ -180,7 +180,7 @@ class ItBaseProcedure(BaseProcedure):
     wavelengths = list(eval(config['Laser']['wavelengths']))
 
     # Important Parameters
-    vds = FloatParameter('VDS', units='V', default=0.075)
+    vds = FloatParameter('VDS', units='V', default=0.075, decimals=10)
     vg = FloatParameter('VG', units='V', default=0.)
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
     laser_v = FloatParameter('Laser voltage', units='V', default=0.)
@@ -247,4 +247,116 @@ class ItBaseProcedure(BaseProcedure):
 
         send_telegram_alert(
             f"Finished It measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
+        )
+
+class IVBaseProcedure(BaseProcedure):
+    """
+    Basic procedure for measuring current over source drain voltage with a Keithley
+    2450 and two TENMA sources.
+    
+    Modify the `execute` method to run a specific
+    :class:`pymeasure.experiment.Procedure`. To add more parameters to the
+    Procedure, or modify the existent ones, define a new
+    `pymeasure.experiment.Parameter` as class attribute, and add it to INPUTS:
+    `INPUTS = BasicIVgProcedure.INPUTS + [parameter_name]`
+
+    To add data columns, modify DATA_COLUMNS:
+    `DATA_COLUMNS = BasicIVgProcedure.DATA_COLUMNS + [column_name]`
+
+    :param chip_group: The chip group name.
+    :param chip_number: The chip number.
+    :param sample: The sample name.
+    :param info: A comment to add to the data file.
+    :param vds: The drain-source voltage in Volts.
+    :param vsd_start: The starting source drain voltage in Volts.
+    :param vsd_end: The ending source drain voltage in Volts.
+    :laser_toggle: Whether to turn on the laser
+    :laser_wl: The laser wavelength in nm.
+    :laser_v: The laser voltage in Volts.
+    :param N_avg: The number of measurements to average.
+    :param vsd_step: The step size of the source drain voltage.
+    :param step_time: The time to wait between measurements.
+    :param Irange: The current range in Ampere.
+
+    :ivar meter: The Keithley 2450 meter.
+    :ivar tenma_neg: The negative TENMA source.
+    :ivar tenma_pos: The positive TENMA source.
+    """
+    wavelengths = list(eval(config['Laser']['wavelengths']))
+
+    # Important Parameters
+    vg = FloatParameter('VG', units='V', default=0.0)
+    vsd_start = FloatParameter('VSD start', units='V', default=-1.)
+    vsd_end = FloatParameter('VSD end', units='V', default=1.)
+
+    # Laser Parameters
+    laser_toggle = BooleanParameter('Laser toggle', default=False)
+    laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths, group_by='laser_toggle')
+    laser_v = FloatParameter('Laser voltage', units='V', default=0., group_by='laser_toggle')
+    burn_in_t = FloatParameter('Burn-in time', units='s', default=60., group_by='laser_toggle')
+
+    # Additional Parameters, preferably don't change
+    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
+    vsd_step = FloatParameter('VSD step', units='V', default=0.01, group_by='show_more')
+    step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
+    Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
+
+    INPUTS = BaseProcedure.INPUTS + ['vg', 'vsd_start', 'vsd_end', 'vsd_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t']
+    DATA_COLUMNS = ['Vsd (V)', 'I (A)']
+
+    def startup(self):
+        log.info("Setting up instruments")
+        try:
+            self.meter = Keithley2450(config['Adapters']['keithley2450'])
+            self.tenma_neg = TENMA(config['Adapters']['tenma_neg'])
+            self.tenma_pos = TENMA(config['Adapters']['tenma_pos'])
+            if self.laser_toggle:
+                self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
+        except ValueError:
+            log.error("Could not connect to instruments")
+            raise
+
+        # Keithley 2450 meter
+        self.meter.reset()
+        self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
+        # self.meter.use_front_terminals()
+        self.meter.measure_current(current=self.Irange)
+
+        # TENMA sources
+        self.tenma_neg.apply_voltage(0.)
+        self.tenma_pos.apply_voltage(0.)
+        if self.laser_toggle:
+            self.tenma_laser.apply_voltage(0.)
+
+        # Turn on the outputs
+        self.meter.enable_source()
+        time.sleep(0.5)
+        self.tenma_neg.output = True
+        self.tenma_pos.output = True
+        if self.laser_toggle:
+            self.tenma_laser.output = True
+        time.sleep(1.)
+
+    def execute(self):
+        """Placeholder for the execution of the procedure."""
+        pass
+
+    def shutdown(self):
+        if not hasattr(self, 'meter'):
+            log.info("No instruments to shutdown.")
+            return
+
+        for freq, t in SONGS['triad']:
+            self.meter.beep(freq, t)
+            time.sleep(t)
+
+        self.meter.shutdown()
+        self.tenma_neg.shutdown()
+        self.tenma_pos.shutdown()
+        if self.laser_toggle:
+            self.tenma_laser.shutdown()
+        log.info("Instruments shutdown.")
+
+        send_telegram_alert(
+            f"Finished IV measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
         )
