@@ -21,7 +21,6 @@ class IV(IVBaseProcedure):
         log.info("Starting the measurement")
 
         # Set the Vg
-        self.meter.source_voltage = self.vds
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)
         elif self.vg < 0:
