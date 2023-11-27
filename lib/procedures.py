@@ -251,7 +251,7 @@ class ItBaseProcedure(BaseProcedure):
         )
 
 
-class PtBaseProcedure(BaseProcedure):
+class PtBaseProcedure(Procedure):
     """
     Basic procedure for measuring power over time with athorlabs Powermeter and
     one TENMA Power Supply.
@@ -280,59 +280,47 @@ class PtBaseProcedure(BaseProcedure):
     :ivar tenma_pos: The positive TENMA source.
     :ivar tenma_laser: The laser TENMA source.
     """
+
+    procedure_version = Parameter('Procedure version', default='0.1.1')
+    
     wavelengths = list(eval(config['Laser']['wavelengths']))
     fibers = list(eval(config['Laser']['fibers']))
 
-    # Important Parameter
-    # vds = FloatParameter('VDS', units='V', default=0.075)
-    # vg = FloatParameter('VG', units='V', default=0.)
-    laser_wl =  ListParameter('Laser wavelength', units='nm', choices=wavelengths)
-    fiber =     ListParameter('Optical fiber', choices=fibers)
-    step_time = FloatParameter('Step time', units='s', default=2.)
-    laser_v =   FloatParameter('Laser voltage', units='V', default=0.)
-    N_avg =     IntegerParameter('N_avg', default=2)
-    # laser_T = FloatParameter('Laser ON+OFF period', units='s', default=120.)
+    # config
+    show_more = BooleanParameter('Show more', default=False)
+    info = Parameter('Information', default='None')
 
     # Metadata
-    sensor = Metadata('Sensor model', fget='power_meter.sensor_name')
+    start_time = Metadata('Start time', fget=time.time)
+
+    # Important Parameter
+    laser_wl  = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
+    fiber     = ListParameter('Optical fiber', choices=fibers)
+    laser_v   = FloatParameter('Laser voltage', units='V', default=0.)
+    N_avg     = IntegerParameter('N_avg', default=2)
+    laser_T   = FloatParameter('Laser ON+OFF period', units='s', default=20.)
+
+    # Metadata
+    sensor    = Metadata('Sensor model', fget='power_meter.sensor_name')
 
     # Additional Parameters, preferably don't change
-    # sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
-    # Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
-
-    INPUTS = BaseProcedure.INPUTS + ['laser_wl', 'fiber', 'laser_wl', 'laser_v', 'N_avg']
+    sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
+    Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
+    INPUTS = ['show_more', 'info', 'laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t']
     DATA_COLUMNS = ['t (s)', 'P (W)', 'VL (V)']
 
     def startup(self):
         log.info("Setting up instruments")
         try:
-            # self.meter = Keithley2450(config['Adapters']['keithley2450'])
-            # self.tenma_neg = TENMA(config['Adapters']['tenma_neg'])
-            # self.tenma_pos = TENMA(config['Adapters']['tenma_pos'])
-            self.power_meter = ThorlabsPM100USB(config['Adapters'['power_meter']])
+            self.power_meter = ThorlabsPM100USB(config['Adapters']['power_meter'])
             self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
         except ValueError:
             log.error("Could not connect to instruments")
             raise
 
-        # Keithley 2450 meter
-        # self.meter.reset()
-        # self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
-        # self.meter.use_front_terminals()
-        # self.meter.measure_current(current=self.Irange)
-
         # TENMA sources
-        # self.tenma_neg.apply_voltage(0.)
-        # self.tenma_pos.apply_voltage(0.)
         self.tenma_laser.apply_voltage(0.)
 
-        # Turn on the outputs
-        # self.meter.enable_source()
-        # time.sleep(0.5)
-        # self.tenma_neg.output = True
-        # time.sleep(1.)
-        # self.tenma_pos.output = True
-        # time.sleep(1.)
         self.tenma_laser.output = True
         time.sleep(1.)
         self.power_meter.wavelength = self.laser_wl
@@ -346,14 +334,7 @@ class PtBaseProcedure(BaseProcedure):
         if not hasattr(self, 'power_meter'):
             log.info("No instruments to shutdown.")
             return
-
-        # for freq, t in SONGS['triad']:
-        #     self.meter.beep(freq, t)
-        #     time.sleep(t)
-
-        # self.meter.shutdown()
-        # self.tenma_neg.shutdown()
-        # self.tenma_pos.shutdown()
+        
         self.tenma_laser.shutdown()
         log.info("Instruments shutdown.")
 

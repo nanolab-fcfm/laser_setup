@@ -16,45 +16,38 @@ class Pt(PtBaseProcedure):
     """
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
-    # def get_keithley_time(self):
-    #     return float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
+    def get_keithley_time(self):
+        return float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
 
     def execute(self):
         log.info("Starting the measurement")
-        
-        self.tenma_laser.source_voltage = self.laser_v
-        # if self.vg >= 0:
-        #     self.tenma_pos.ramp_to_voltage(self.vg)
-        # elif self.vg < 0:
-        #     self.tenma_neg.ramp_to_voltage(-self.vg)
 
-
-        def measuring_loop(t_end: float, laser_v: float):
+        def measuring_loop(initial_time:float, t_end: float, laser_v: float):
             avg_array = np.zeros(self.N_avg)
-            keithley_time = self.get_keithley_time()
-            while keithley_time < t_end:
+            while (time.time() - initial_time) < t_end:
                 if self.should_stop():
                     log.error('Measurement aborted')
                     break
 
-                self.emit('progress', 100 * keithley_time / (self.laser_T * 3/2))
+                self.emit('progress', 100 * (time.time() - initial_time) / (self.laser_T * 3/2))
 
                 # Take the average of N_avg measurements
                 for j in range(self.N_avg):
-                    avg_array[j] = self.meter.current
+                    avg_array[j] = self.power_meter.power
 
-                keithley_time = self.get_keithley_time()
-                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), laser_v])))
+                current_time = time.time() - initial_time
+                self.emit('results', dict(zip(self.DATA_COLUMNS, [current_time, np.mean(avg_array), laser_v])))
                 avg_array[:] = 0.
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T *  1/2, 0.)
+        initial_time = time.time()
+        measuring_loop(initial_time, self.laser_T *  1/2, 0.)
         self.tenma_laser.voltage = self.laser_v
-        measuring_loop(self.laser_T, self.laser_v)
+        measuring_loop(initial_time, self.laser_T, self.laser_v)
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T * 3/2, 0.)
+        measuring_loop(initial_time, self.laser_T * 3/2, 0.)
 
 
 if __name__ == "__main__":
-    display_experiment(It, 'I vs t Measurement (OFF -> ON -> OFF)')
+    display_experiment(Pt, 'P vs t Measurement (OFF -> ON -> OFF)')
