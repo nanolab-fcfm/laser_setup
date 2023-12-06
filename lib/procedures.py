@@ -253,7 +253,7 @@ class ItBaseProcedure(BaseProcedure):
 
 class PtBaseProcedure(Procedure):
     """
-    Basic procedure for measuring power over time with athorlabs Powermeter and
+    Basic procedure for measuring power over time with a thorlabs Powermeter and
     one TENMA Power Supply.
     
     Modify the `execute` method to run a specific
@@ -265,19 +265,12 @@ class PtBaseProcedure(Procedure):
     To add data columns, modify DATA_COLUMNS:
     `DATA_COLUMNS = BasicPtProcedure.DATA_COLUMNS + [column_name]`
 
-    :param chip_group: The chip group name.
-    :param sample: The sample name.
     :param info: A comment to add to the data file.
-    :param laser_freq: The laser frequency in Hz.
+    :param laser_wl: The laser wavelength in nm.
     :param laser_T: The laser ON+OFF period in seconds.
     :param laser_v: The laser voltage in Volts.
-    :param vds: The drain-source voltage in Volts.
-    :param vg: The gate voltage in Volts.
     :param Irange: The current range in Ampere.
 
-    :ivar meter: The Keithley 2450 meter.
-    :ivar tenma_neg: The negative TENMA source.
-    :ivar tenma_pos: The positive TENMA source.
     :ivar tenma_laser: The laser TENMA source.
     """
 
@@ -338,9 +331,6 @@ class PtBaseProcedure(Procedure):
         self.tenma_laser.shutdown()
         log.info("Instruments shutdown.")
 
-        # send_telegram_alert(
-        #     f"Finished Pt measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
-        # )
 
 class IVBaseProcedure(BaseProcedure):
     """
