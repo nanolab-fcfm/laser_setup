@@ -131,7 +131,7 @@ The base class for all procedures involving a chip.
 | Name       | Ext. Name   | Default | Units | Choices |
 |------------|-------------|---------|-------|---------------|
 | `laser_wl` |Laser wavelength|      | 'nm'  |[0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]|
-| `laser_T`  | Laser ON+OFF period | 360. | 's'   |         |
+| `laser_T`  | Laser ON+OFF period | 120. | 's'   |         |
 | `laser_v`  | Laser voltage       | 0.   | 'V'   |         |
 | `vds`      | VDS                 | 0.075| 'V'   |         |
 | `vg`       | VG                  | 0.   | 'V'   |         |
@@ -190,3 +190,24 @@ Perform I-t Measurement over time, turning the laser on at $t = 0$ and off at $t
 | Name       | Ext. Name   | fget |
 |------------|-------------|---------|
 |  `sensor`  | Sensor model | 'power_meter.sensor_name' |
+
+### PtBaseProcedure(Procedure)
+
+#### Parameters
+| Name       | Ext. Name   | Default | Units | Choices |
+|------------|-------------|---------|-------|---------------|
+| `laser_wl` |Laser wavelength|      | 'nm'  |[0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]|
+| `laser_T`  | Laser ON+OFF period | 20. | 's'   |         |
+| `laser_v`  | Laser voltage       | 0.   | 'V'   |         |
+| `sampling_t`| Sampling time (excluding Keithley)| 0.   | 's'   |          |
+| `N_avg`    | N_avg               | 2    |       |         |
+| `Irange`   | Irange              | 0.001| 'A'   |         |
+
+#### INPUTS
+['show_more', 'info', 'laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t']
+
+#### DATA_COLUMNS
+['t (s)', 'P (W)', 'VL (V)']
+
+#### Execute
+`pass`
