@@ -15,7 +15,8 @@ class IV(IVBaseProcedure):
     """Measures a IV with a Keithley 2450. The source drain voltage is
     controlled by a Keithley 2450.
     """
-    # SEQUENCER_INPUTS = ['vds']
+
+    SEQUENCER_INPUTS = ['laser_v', 'vg', 'vds']
 
     def execute(self):
         log.info("Starting the measurement")
