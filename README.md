@@ -5,7 +5,7 @@ Experimental setup for Laser, I-V and Transfer Curve measurements.
 This project mainly uses [PyMeasure](https://pypi.org/project/PyMeasure/), although other packages such as NumPy and PyQT6 are used. To install this project, first clone the repository:
 
 ```bash
-git clone https://github.com/nanolab-fcfm/laser_setup
+git clone https://github.com/nanolab-fcfm/laser_setup.git
 ```
 Then, create a virtual environment and activate it:
 
@@ -13,6 +13,13 @@ Then, create a virtual environment and activate it:
 python -m venv <venv_name>
 source <venv_name>/bin/activate
 ```
+
+In Windows, use the following command to activate the virtual environment instead:
+
+```powershell
+<venv_name>/scripts/activate
+```
+
 Finally, upgrade pip and install all necesary packages:
 ```python
 python -m pip install --upgrade pip
@@ -26,6 +33,14 @@ This project allows for the communication between the computer and the instrumen
 - Thorlabs PM100D Power Meter ([Reference Manual](https://www.thorlabs.com/drawings/bb953791e3c90bd7-987A9A0B-9650-5B7A-6479A1E42E4265C8/PM100D-Manual.pdf))
 
 As well as all instruments available un the PyMeasure library.
+
+The main window of the program can be run by executing the following command:
+
+```python
+python .
+```
+
+The main window will display all available procedures, and will allow you to run them. 
 
 ### Scripts
 To start using the program, you should first setup the adapters needed to run a measurement. This is done by running
