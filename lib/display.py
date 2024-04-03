@@ -11,10 +11,11 @@ from pymeasure.experiment import unique_filename, Results, Procedure
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtCore import QLocale
 
-from lib import config, log
-from lib.utils import remove_empty_data
+from . import config, log
+from .utils import remove_empty_data
 
-class MainWindow(ManagedWindow):
+
+class ExperimentWindow(ManagedWindow):
     """The main window for the GUI. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
     from the GUI, by queuing it in the manager. It also allows for existing
@@ -64,7 +65,7 @@ def display_experiment(cls: Type[Procedure], title: str = ''):
     app.setStyle('Fusion')
     app.setPalette(get_dark_palette())
     QLocale.setDefault(QLocale(QLocale.Language.English, QLocale.Country.UnitedStates))
-    window = MainWindow(cls, title)
+    window = ExperimentWindow(cls, title)
     window.show()
     app.exec()
     remove_empty_data()
