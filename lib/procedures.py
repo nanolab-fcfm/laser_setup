@@ -55,10 +55,16 @@ class FakeProcedure(BaseProcedure):
                 break
 
             self.emit('progress', (tc - t0)/self.total_time*100)
-            data = self.fake_parameter + (tc-t0)%1 - 0.5
+            data = self.fake_parameter + hash(tc-t0) % 1000 / 1000
             self.emit('results', dict(zip(self.DATA_COLUMNS, [tc - t0, data])))
             time.sleep(0.2)
             tc = time.time()
+            
+    def get_estimates(self):
+        estimates = [
+            ('Fake Estimate', f"{self.fake_parameter + hash(time.time()) % 1000 / 1000:.2f}")
+        ]
+        return estimates
 
 
 class Wait(BaseProcedure):
