@@ -1,13 +1,16 @@
 import time
+import logging
 
 from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter, Metadata
 from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 
-from lib import config, log
+from lib import config
 from .utils import SONGS
-from .display import send_telegram_alert
+from .utils import send_telegram_alert
 from .instruments import TENMA
+
+log = logging.getLogger(__name__)
 
 
 class BaseProcedure(Procedure):
@@ -34,6 +37,51 @@ class BaseProcedure(Procedure):
     start_time = Metadata('Start time', fget=time.time)
 
     INPUTS = ['show_more', 'chip_group', 'chip_number', 'sample', 'info']
+
+
+class FakeProcedure(BaseProcedure):
+    """A fake procedure for testing purposes."""
+    fake_parameter = FloatParameter('Fake parameter', units='V', default=1.0)
+    total_time = FloatParameter('Total time', units='s', default=30.)
+    INPUTS = BaseProcedure.INPUTS + ['total_time', 'fake_parameter']
+    DATA_COLUMNS = ['t (s)', 'fake_data']
+    def execute(self):
+        log.info("Executing fake procedure.")
+        t0 = time.time()
+        tc = t0
+        while tc - t0 < self.total_time:
+            if self.should_stop():
+                log.error('Measurement aborted')
+                break
+
+            self.emit('progress', (tc - t0)/self.total_time*100)
+            data = self.fake_parameter + (tc-t0)%1 - 0.5
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [tc - t0, data])))
+            time.sleep(0.2)
+            tc = time.time()
+
+
+class Wait(BaseProcedure):
+    """Literally just waits for a specified amount of time."""
+    wait_time = FloatParameter('Wait time', units='s', default=1.)
+    INPUTS = BaseProcedure.INPUTS + ['wait_time']
+    def execute(self):
+        log.info(f"Waiting for {self.wait_time} seconds.")
+        t0 = time.time()
+        tc = t0
+        while tc - t0 < self.wait_time:
+            self.emit('progress', (tc - t0)*100)
+            tc = time.time()
+
+
+class MetaProcedure(BaseProcedure):
+    """Manages a multiple procedures to be executed in sequence. It is used to
+    run a sequence of procedures, such as a burn-in followed by an IVg and
+    It measurements. Performs a unique startup, executes the procedures in
+    sequence, and performs a unique shutdown.
+    """
+    procedures: list[Procedure] = []
+    parameter_list: list[dict[str, Parameter]] = []    
 
 
 class IVgBaseProcedure(BaseProcedure):
