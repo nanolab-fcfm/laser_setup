@@ -70,7 +70,7 @@ class Wait(BaseProcedure):
         t0 = time.time()
         tc = t0
         while tc - t0 < self.wait_time:
-            self.emit('progress', (tc - t0)*100)
+            self.emit('progress', (tc - t0)/self.wait_time*100)
             tc = time.time()
 
 
@@ -80,8 +80,7 @@ class MetaProcedure(BaseProcedure):
     It measurements. Performs a unique startup, executes the procedures in
     sequence, and performs a unique shutdown.
     """
-    procedures: list[Procedure] = []
-    parameter_list: list[dict[str, Parameter]] = []    
+    procedures: list[BaseProcedure] = []
 
 
 class IVgBaseProcedure(BaseProcedure):
