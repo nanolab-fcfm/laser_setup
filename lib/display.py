@@ -149,11 +149,12 @@ class MetaProcedureWindow(QMainWindow):
 
                 if window.manager.is_running():
                     window.manager.abort()
+                    log.error(f"Aborted {proc.__name__}. Window closed.")
                     
                 window.close()
-    
 
         self.close()
+        log.info("Sequence finished.")
         
     def abort_current(self, window: ExperimentWindow):
         def func():
@@ -162,6 +163,7 @@ class MetaProcedureWindow(QMainWindow):
             reply = QMessageBox.question(self, 'Abort', 'Do you want to abort the rest of the sequence?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
             if reply == QMessageBox.StandardButton.Yes:
                 self.close()
+                log.warning("Sequence aborted.")
                 sys.exit()
 
         return func
@@ -251,6 +253,7 @@ class MainWindow(QMainWindow):
         def func():
             self.windows[name] = MetaProcedureWindow(self.sequences[name], title=name, parent=self)
             self.windows[name].show()
+            self.suggest_reload()
         return func
 
     def open_app(self, name: str):
