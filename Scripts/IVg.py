@@ -4,6 +4,7 @@ It uses a Keithley 2450 as meter and two TENMA Power Supplies.
 """
 import time
 import numpy as np
+from scipy.signal import find_peaks
 
 from lib import log
 from lib.utils import gate_sweep_ramp
@@ -16,7 +17,6 @@ class IVg(IVgBaseProcedure):
     controlled by two TENMA sources.
     """
     # SEQUENCER_INPUTS = ['vds']
-
     def execute(self):
         log.info("Starting the measurement")
 
@@ -31,6 +31,9 @@ class IVg(IVgBaseProcedure):
 
         # Set the Vg ramp and the measuring loop
         self.vg_ramp = gate_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
+        self.data = np.zeros((len(self.vg_ramp), 2))
+        self.data[:, 0] = self.vg_ramp
+        self.data[:, 1] = np.nan
         avg_array = np.zeros(self.N_avg)
         for i, vg in enumerate(self.vg_ramp):
             if self.should_stop():
@@ -52,8 +55,29 @@ class IVg(IVgBaseProcedure):
             for j in range(self.N_avg):
                 avg_array[j] = self.meter.current
 
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [vg, np.mean(avg_array)])))
+            self.data[i, 1] = np.mean(avg_array)
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [vg, self.data[i, 1]])))
             avg_array[:] = 0.
+            
+    def get_estimates(self):
+        """Estimate the Dirac Point."""
+        # Ensure data is sorted by "Vg (V)"
+        sorted_indices = np.argsort(self.data[:, 0])
+        sorted_data = self.data[sorted_indices]
+        
+        # Invert "I (A)" to get resistance
+        R = 1 / sorted_data[:, 1]
+        
+        # Find peaks in the resistance data
+        peaks, _ = find_peaks(R)
+        
+        # Average the "Vg (V)" values at the peaks
+        Vg_peak_mean = np.mean(sorted_data[peaks, 0])
+        
+        estimates = [
+            ('Dirac Point', f"{Vg_peak_mean:.1f}"),
+        ]
+        return estimates
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilenames
 
 
-if __name__ == "__main__":
+def main():
     current_datetime = datetime.now()
     todays_date = f"{current_datetime.year}-{current_datetime.month}-{current_datetime.day}"
     data_path = f"{os.getcwd()}/data/"
@@ -28,3 +28,7 @@ if __name__ == "__main__":
         data = read_pymeasure(path)
         dp = find_dp(data)
         print(f"File: '{path.split('/')[-1]}' \t DP = {dp} [V]")
+
+
+if __name__ == "__main__":
+    main()
