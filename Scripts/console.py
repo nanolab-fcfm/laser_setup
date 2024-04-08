@@ -2,9 +2,7 @@
 This Script is used to debug a Keithley 2450.
 """
 import os
-import time
 import logging
-import numpy as np
 from IPython import embed
 from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.adapters import FakeAdapter
@@ -16,7 +14,7 @@ from lib.display import *
 log = logging.getLogger(__name__)
 
 
-def launch(workspace_path: str, header: str = '', user_ns=None):
+def launch(workspace_path: str, header: str = '', user_ns: dict = None):
     if not os.path.exists(workspace_path):
         raise FileNotFoundError(f'Directory "{workspace_path}" not found.')
 
@@ -30,7 +28,7 @@ def launch(workspace_path: str, header: str = '', user_ns=None):
         )
 
 
-def main():
+def keithley_console(parent=None):
     # workspace_path is one level above this script's directory
     header = "Debug console for Keithley 2450. Use the variable `K` to interact with the instrument."
     workspace_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -40,7 +38,15 @@ def main():
         log.error(f"Keithley 2450 not found at {config['Adapters']['keithley2450']}. Using a FakeAdapter.")
         K = Keithley2450(FakeAdapter())
 
-    launch(workspace_path, header=header, user_ns=locals())
+    if parent is not None:
+        parent.lock_window('This will lock the current Window. To keep using it, close the console (Type `exit`)')
+
+    launch(workspace_path, header=header, user_ns=globals() | locals())
+    log.info('Console closed.')
+    
+
+def main():
+    keithley_console(parent=None)
 
 
 if __name__ == "__main__":
