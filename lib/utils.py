@@ -1,11 +1,14 @@
 from typing import Dict, List, Tuple
 from glob import glob
+import logging
 import os
 
-
 import numpy as np
+import requests
 
-from lib import config, log
+from lib import config
+
+log = logging.getLogger(__name__)
 
 # Songs for the Keithley to play when it's done with a measurement.
 SONGS: Dict[str, List[Tuple[float, float]]] = dict(
@@ -74,3 +77,39 @@ def remove_empty_data():
             os.remove(file)
     
     log.info('Empty files removed')
+
+
+def send_telegram_alert(message: str):
+    """Sends a message to all valid Telegram chats on config['Telegram'].
+    """
+    try:
+        requests.get("https://www.google.com/", timeout=1)
+
+    except:
+        log.error("No internet connection. Cannot send Telegram message.")
+        return
+    
+    if 'TOKEN' not in config['Telegram']:
+        log.error("Telegram token not specified in config.")
+        return
+
+    TOKEN = config['Telegram']['token']
+
+    chats = [c for c in config['Telegram'] if c != 'token']
+    if len(chats) == 0:
+        log.error("No chats specified in config.")
+        return
+    
+    message = ''.join(['\\' + c if c in "_*[]()~`>#+-=|{}.!" else c for c in message])
+    
+    for chat in chats:
+        chat_id = config['Telegram'][chat]
+        params = dict(
+            chat_id = chat_id,
+            text = message,
+            parse_mode = 'MarkdownV2'
+        )
+
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        requests.post(url, params=params)
+        log.info(f"Sent '{message}' to {chat}.")

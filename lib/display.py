@@ -1,20 +1,28 @@
 """
 This module contains the display functions for the GUI.
 """
+import os
 import sys
-import requests
+import time
+import logging
 from typing import Type
 
-from pymeasure.display.Qt import QtWidgets
-from pymeasure.display.windows import ManagedWindow
+from pymeasure.display.windows import ManagedWindow, ManagedWindowBase
 from pymeasure.experiment import unique_filename, Results, Procedure
+from pymeasure.display.widgets import InputsWidget
 from PyQt6.QtGui import QColor, QPalette
 from PyQt6.QtCore import QLocale
+from PyQt6.QtWidgets import QApplication, QStyle, QMainWindow, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QHBoxLayout
+from PyQt6 import QtWidgets, QtCore
 
-from lib import config, log
-from lib.utils import remove_empty_data
+from . import config, _config_file_used
+from .utils import remove_empty_data
+from .procedures import MetaProcedure, BaseProcedure
 
-class MainWindow(ManagedWindow):
+log = logging.getLogger(__name__)
+
+
+class ExperimentWindow(ManagedWindow):
     """The main window for the GUI. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
     from the GUI, by queuing it in the manager. It also allows for existing
@@ -55,20 +63,247 @@ class MainWindow(ManagedWindow):
         self.manager.queue(experiment)
 
 
-def display_experiment(cls: Type[Procedure], title: str = ''):
-    """Displays the experiment for the given class. Allows for the
-    experiment to be run from the GUI, by queuing it in the manager.
-    It also allows for existing data to be loaded and displayed.
+class MetaProcedureWindow(QMainWindow):
+    """Window to set up a sequence of procedures. It manages the parameters
+    for the sequence, and displays an ExperimentWindow for each procedure.
     """
-    app = QtWidgets.QApplication(sys.argv)
+    def __init__(self, cls: Type[MetaProcedure], title: str = ''):
+        super().__init__()
+        self.cls = cls
+        self.resize(200*len(cls.procedures)+1, 480)
+        self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in cls.procedures))})")
+
+        layout = QHBoxLayout()
+        layout.addWidget(QtWidgets.QLabel(cls.__name__ + '\n→'))
+        widget = InputsWidget(BaseProcedure, inputs=BaseProcedure.INPUTS[1:])
+        widget.layout().setSpacing(10)
+        widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(widget)
+        for i, proc in enumerate(cls.procedures):
+            layout.addWidget(QtWidgets.QLabel(proc.__name__ + '\n→'))
+            proc_inputs = list(proc.INPUTS)
+            if BaseProcedure in proc.__mro__:
+                for input in BaseProcedure.INPUTS:
+                    proc_inputs.remove(input)
+                
+            widget = InputsWidget(proc, inputs=proc_inputs)
+            widget.layout().setSpacing(10)
+            widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(widget)
+        
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameStyle(QtWidgets.QScrollArea.Shape.NoFrame)
+
+        inputs = QtWidgets.QWidget(self)
+        inputs.setLayout(layout)
+        inputs.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum,
+                                QtWidgets.QSizePolicy.Policy.Fixed)
+        scroll_area.setWidget(inputs)
+
+        vbox = QtWidgets.QVBoxLayout()
+        vbox.setContentsMargins(0, 0, 0, 0)
+        vbox.addWidget(scroll_area, 1)
+        
+        self.queue_button = QtWidgets.QPushButton("Queue")
+        vbox.addWidget(self.queue_button)
+        self.queue_button.clicked.connect(self.queue)
+        
+        container = QWidget()        
+        container.setLayout(vbox)
+        
+        self.setCentralWidget(container)
+
+    def queue(self):
+        log.info("Queueing the procedures.")
+        self.queue_button.setEnabled(False)
+        inputs = self.findChildren(InputsWidget)
+        base_parameters = inputs[0].get_procedure()._parameters
+        for i, proc in enumerate(self.cls.procedures):
+            # Spawn the corresponding ExperimentWindow and queue it
+            if proc.__name__ == 'Wait':
+                wait_time = inputs[i+1].get_procedure().wait_time
+                self.wait(wait_time)
+
+            else:
+                window = ExperimentWindow(proc, title=proc.__name__)
+                parameters = inputs[i+1].get_procedure()._parameters | base_parameters
+                window.set_parameters(parameters)
+
+                window.queue_button.hide()
+                window.browser_widget.clear_button.hide()
+                window.browser_widget.hide_button.hide()
+                window.browser_widget.open_button.hide()
+                window.browser_widget.show_button.hide()
+                window.abort_button.clicked.disconnect()
+                window.abort_button.clicked.connect(self.abort_current(window))
+                window.show()
+                window.queue_button.click()
+                
+                # Wait for the procedure to finish
+                while window.manager.is_running() and window.isVisible():
+                    QtWidgets.QApplication.processEvents()
+                    log.debug(f"Waiting for {proc.__name__} to finish.")
+                    time.sleep(0.1)
+
+                if window.manager.is_running():
+                    window.manager.abort()
+                    
+                window.close()
+    
+
+        self.close()
+        
+    def abort_current(self, window: ExperimentWindow):
+        def func():
+            window.manager.abort()
+            window.close()
+            reply = QMessageBox.question(self, 'Abort', 'Do you want to abort the rest of the sequence?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.Yes:
+                self.close()
+                sys.exit()
+
+        return func
+
+    def wait(self, wait_time: float, progress_bar: bool = True):
+        """Waits for a given amount of time. Creates a progress bar."""
+        log.info(f"Waiting for {wait_time} seconds.")
+        if progress_bar:
+            progress = QtWidgets.QProgressBar()
+            progress.setWindowTitle("Waiting")
+            progress.setRange(0, 1000)
+            progress.setValue(0)
+            progress.show()
+            for i in range(1000):
+                progress.setValue(i+1)
+                progress.setFormat(f"{i/1000*wait_time:.0f} s")
+                QtWidgets.QApplication.processEvents()
+                time.sleep(wait_time/1000)
+            progress.hide()
+        
+        else:
+            time.sleep(wait_time)
+
+
+class MainWindow(QMainWindow):
+    def __init__(
+            self,
+            sequences: dict[str, Type[MetaProcedure]],
+            experiments: dict[str, Type[Procedure]],
+            scripts: dict[str, callable]
+        ):
+        super().__init__()
+        self.setWindowTitle('Laser Setup')
+        self.setWindowIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon))
+        self.resize(640, 480)
+        self.setCentralWidget(QWidget())
+
+        self.sequences = sequences
+        self.experiments = experiments
+        self.scripts = scripts
+        self.gridx = max(len(experiments), len(scripts), 3)
+        self.windows = {}
+
+        # Experiment Buttons
+        self.layout = QGridLayout(self.centralWidget())
+        self.buttons = {}
+        for i, (name, cls) in enumerate(experiments.items()):
+            self.buttons[name] = QPushButton(name)
+            self.buttons[name].clicked.connect(self.open_app(name))
+            self.buttons[name].setToolTip(cls.__doc__)
+            self.layout.addWidget(self.buttons[name], 2, i)
+
+        # README Widget
+        readme = QTextEdit(readOnly=True)
+        readme.setStyleSheet("""
+            font-size: 12pt;
+        """)
+        with open('README.md') as f:
+            readme.setMarkdown(f.read())
+        self.layout.addWidget(readme, 1, 0, 1, self.gridx)
+        
+        # Settings Button
+        settings = QPushButton('Settings')
+        settings.clicked.connect(self.edit_settings)
+        self.layout.addWidget(settings, 0, 0)
+        
+        # Secuences Button
+        meta_procedure = QPushButton('Sequence')
+        meta_procedure.clicked.connect(self.open_sequence('Main Sequence'))
+        meta_procedure.setToolTip(MetaProcedure.__doc__)
+        self.layout.addWidget(meta_procedure, 0, 1)
+        
+        
+        # Reload window button
+        self.reload = QPushButton('Reload')
+        self.reload.clicked.connect(lambda: os.execl(sys.executable, sys.executable, *sys.argv))
+        self.layout.addWidget(self.reload, 0, self.gridx-1)
+        
+        for i, (name, func) in enumerate(scripts.items()):
+            button = QPushButton(name)
+            button.clicked.connect(self.run_script(name))
+            button.setToolTip(func.__doc__)
+            self.layout.addWidget(button, 3, i)
+            
+    def open_sequence(self, name: str):
+        def func():
+            self.windows[name] = MetaProcedureWindow(self.sequences[name], title=name)
+            self.windows[name].show()
+        return func
+
+    def open_app(self, name: str):
+        def func():
+            self.windows[name] = ExperimentWindow(self.experiments[name], title=name)
+            self.windows[name].show()
+        return func
+    
+    def run_script(self, name: str):
+        def func():
+            self.scripts[name]()
+            self.suggest_reload()
+        return func
+    
+    def edit_settings(self):
+        os.startfile(_config_file_used.replace('/', '\\'))
+        self.suggest_reload()
+        
+    def suggest_reload(self):
+        self.reload.setStyleSheet('background-color: red;')
+        self.reload.setText('Reload to apply changes')
+        
+    def error_dialog(self, message:str):
+        error_dialog = QMessageBox()
+        error_dialog.setWindowTitle("Error")
+        error_dialog.setText(f"An error occurred:\n{message}\nPlease reload the program.")
+        error_dialog.setIcon(QMessageBox.Icon.Critical)
+        error_dialog.exec()
+        self.reload.click()
+
+
+def display_window(Window: Type[QMainWindow], *args):
+    """Displays the window for the given class. Allows for the
+    window to be run from the GUI, by queuing it in the manager.
+    It also allows for existing data to be loaded and displayed.
+    
+    :param Window: The Qt Window subclass to display.
+    :param args: The arguments to pass to the window class.
+    """
+    app = QApplication(sys.argv)
     app.setStyle('Fusion')
     app.setPalette(get_dark_palette())
     QLocale.setDefault(QLocale(QLocale.Language.English, QLocale.Country.UnitedStates))
-    window = MainWindow(cls, title)
+    window = Window(*args)
     window.show()
     app.exec()
     remove_empty_data()
     sys.exit()
+
+
+def display_experiment(cls: Type[Procedure], title: str = ''):
+    """Wrapper around display_window for ExperimentWindow.
+    TODO: Remove this function and use display_window directly.
+    """
+    display_window(ExperimentWindow, cls, title)
 
 
 def get_dark_palette():
@@ -103,30 +338,3 @@ def get_dark_palette():
 
     return palette
 
-
-def send_telegram_alert(message: str):
-    """Sends a message to all valid Telegram chats on config['Telegram'].
-    """
-    try:
-        requests.get("https://www.google.com/", timeout=1)
-
-    except:
-        log.warning("Couldn't ping Google, aborting telegram alert.")
-        return -1
-    
-    if 'TOKEN' not in config['Telegram']:
-        log.warning("Telegram token not specified in config.")
-        return
-
-    TOKEN = config['Telegram']['token']
-    chats = [c for c in config['Telegram'] if c != 'token']
-
-    if len(chats) == 0:
-        log.warning("No chats specified in config.")
-        return
-    
-    for chat in chats:
-        chat_id = config['Telegram'][chat]
-        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={chat_id}&text={message}"
-        requests.get(url)
-        log.info(f"Sent '{message}' to {chat}.")
