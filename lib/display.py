@@ -7,7 +7,7 @@ import time
 import logging
 from typing import Type
 
-from pymeasure.display.windows import ManagedWindow, ManagedWindowBase
+from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import unique_filename, Results, Procedure
 from pymeasure.display.widgets import InputsWidget
 from PyQt6.QtGui import QColor, QPalette
@@ -28,7 +28,7 @@ class ExperimentWindow(ManagedWindow):
     from the GUI, by queuing it in the manager. It also allows for existing
     data to be loaded and displayed.
     """
-    def __init__(self, cls: Type[Procedure], title: str = ''):
+    def __init__(self, cls: Type[Procedure], title: str = '', **kwargs):
         self.cls = cls
         sequencer_kwargs = dict(
             sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
@@ -43,6 +43,7 @@ class ExperimentWindow(ManagedWindow):
             y_axis=cls.DATA_COLUMNS[1],
             inputs_in_scrollarea=True,
             **sequencer_kwargs,
+            **kwargs
         )
         self.setWindowTitle(title)
 
@@ -67,10 +68,10 @@ class MetaProcedureWindow(QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
     """
-    def __init__(self, cls: Type[MetaProcedure], title: str = ''):
-        super().__init__()
+    def __init__(self, cls: Type[MetaProcedure], title: str = '', **kwargs):
+        super().__init__(**kwargs)
         self.cls = cls
-        self.resize(200*len(cls.procedures)+1, 480)
+        self.resize(200*(len(cls.procedures)+1), 480)
         self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in cls.procedures))})")
 
         layout = QHBoxLayout()
@@ -190,9 +191,10 @@ class MainWindow(QMainWindow):
             self,
             sequences: dict[str, Type[MetaProcedure]],
             experiments: dict[str, Type[Procedure]],
-            scripts: dict[str, callable]
+            scripts: dict[str, callable],
+            **kwargs
         ):
-        super().__init__()
+        super().__init__(**kwargs)
         self.setWindowTitle('Laser Setup')
         self.setWindowIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon))
         self.resize(640, 480)
@@ -247,19 +249,22 @@ class MainWindow(QMainWindow):
             
     def open_sequence(self, name: str):
         def func():
-            self.windows[name] = MetaProcedureWindow(self.sequences[name], title=name)
+            self.windows[name] = MetaProcedureWindow(self.sequences[name], title=name, parent=self)
             self.windows[name].show()
         return func
 
     def open_app(self, name: str):
         def func():
-            self.windows[name] = ExperimentWindow(self.experiments[name], title=name)
+            self.windows[name] = ExperimentWindow(self.experiments[name], title=name, parent=self)
             self.windows[name].show()
         return func
     
     def run_script(self, name: str):
         def func():
-            self.scripts[name]()
+            try:
+                self.scripts[name](parent=self)
+            except TypeError:
+                self.scripts[name]()
             self.suggest_reload()
         return func
     
@@ -278,6 +283,18 @@ class MainWindow(QMainWindow):
         error_dialog.setIcon(QMessageBox.Icon.Critical)
         error_dialog.exec()
         self.reload.click()
+        
+    def lock_window(self, msg: str = ''):
+        self.setEnabled(False)
+        self.lock_msg = msg
+        self.locked = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, 'Locked', msg)
+        self.locked.exec()
+        
+    def select_from_list(self, title: str, items: list[str], label: str = '') -> str:
+        item, ok = QtWidgets.QInputDialog.getItem(self, title, label, items, 0, False)
+        if ok:
+            return item
+        return None
 
 
 def display_window(Window: Type[QMainWindow], *args):
