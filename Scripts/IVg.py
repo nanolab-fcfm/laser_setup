@@ -60,24 +60,21 @@ class IVg(IVgBaseProcedure):
             avg_array[:] = 0.
             
     def get_estimates(self):
-        """Estimate the Dirac Point."""
-        # Ensure data is sorted by "Vg (V)"
-        sorted_indices = np.argsort(self.data[:, 0])
-        sorted_data = self.data[sorted_indices]
+        """Estimate the Dirac Point.
+        """
+        try:
+            R = 1 / self.data[:, 1]
+
+            # Find peaks in the resistance data
+            peaks, _ = find_peaks(R)
+
+            estimates = [
+                ('Dirac Point', f"{self.data[peaks, 0].mean():.1f}"),
+            ]
+            return estimates
         
-        # Invert "I (A)" to get resistance
-        R = 1 / sorted_data[:, 1]
-        
-        # Find peaks in the resistance data
-        peaks, _ = find_peaks(R)
-        
-        # Average the "Vg (V)" values at the peaks
-        Vg_peak_mean = np.mean(sorted_data[peaks, 0])
-        
-        estimates = [
-            ('Dirac Point', f"{Vg_peak_mean:.1f}"),
-        ]
-        return estimates
+        except:
+            return [('Dirac Point', 'None')]
 
 
 if __name__ == "__main__":

@@ -1,21 +1,27 @@
 from lib.display import MainWindow, display_window
-from Scripts import *
+from Scripts.MainSequence import MainSequence
+from Scripts.It import It
+from Scripts.IV import IV
+from Scripts.IVg import IVg
+from Scripts.Pt import Pt
+from Scripts.calibrate_laser import LaserCalibration
+from Scripts import setup_adapters, console, find_dp_script
 
 Sequences = {
-    'Main Sequence': MainSequence.MainSequence,
+    'Main Sequence': MainSequence,
 }
 
 Experiments = {
-    'I vs V': IV.IV,
-    'I vs Vg': IVg.IVg,
-    'I vs t': It.It,
-    'P vs t': Pt.Pt,
-    'Calibrate Laser': calibrate_laser.LaserCalibration,
+    'I vs V': IV,
+    'I vs Vg': IVg,
+    'I vs t': It,
+    'P vs t': Pt,
+    'Calibrate Laser': LaserCalibration,
 }
 
 Scripts = {
-    'Set up Adapters': setup_adapters.main,
-    'Console': console.main,
+    'Set up Adapters': setup_adapters.setup,
+    'Console': console.keithley_console,
     'Find Dirac Point': find_dp_script.main,
 }
 
