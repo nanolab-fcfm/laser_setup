@@ -139,9 +139,9 @@ class IVgBaseProcedure(BaseProcedure):
     N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
     vg_step = FloatParameter('VG step', units='V', default=0.2, group_by='show_more')
     step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
-    Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
+    Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t']
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
     def startup(self):
@@ -160,7 +160,7 @@ class IVgBaseProcedure(BaseProcedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.measure_current(current=self.Irange)
+        self.meter.measure_current(current=self.Irange, auto_range=not bool(self.Irange))
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
@@ -243,9 +243,9 @@ class ItBaseProcedure(BaseProcedure):
     # Additional Parameters, preferably don't change
     sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
     N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
-    Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
+    Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'N_avg']
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'N_avg', 'Irange']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
 
     def startup(self):
@@ -263,7 +263,7 @@ class ItBaseProcedure(BaseProcedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.measure_current(current=self.Irange)
+        self.meter.measure_current(current=self.Irange, auto_range=not bool(self.Irange))
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
@@ -351,8 +351,8 @@ class PtBaseProcedure(Procedure):
 
     # Additional Parameters, preferably don't change
     sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
-    Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
-    INPUTS = ['show_more', 'info', 'laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t']
+    Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
+    INPUTS = ['show_more', 'info', 'laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t', 'Irange']
     DATA_COLUMNS = ['t (s)', 'P (W)', 'VL (V)']
 
     def startup(self):
@@ -435,9 +435,9 @@ class IVBaseProcedure(BaseProcedure):
     N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
     vsd_step = FloatParameter('VSD step', units='V', default=0.01, group_by='show_more')
     step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
-    Irange = FloatParameter('Irange', units='A', default=0.001, group_by='show_more')
+    Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vg', 'vsd_start', 'vsd_end', 'vsd_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t']
+    INPUTS = BaseProcedure.INPUTS + ['vg', 'vsd_start', 'vsd_end', 'vsd_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange']
     DATA_COLUMNS = ['Vsd (V)', 'I (A)']
 
     def startup(self):
@@ -456,7 +456,7 @@ class IVBaseProcedure(BaseProcedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.measure_current(current=self.Irange)
+        self.meter.measure_current(current=self.Irange, auto_range=not bool(self.Irange))
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
