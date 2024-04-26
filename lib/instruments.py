@@ -7,13 +7,15 @@ import time
 import numpy as np
 
 from pymeasure.instruments import Instrument
+from pymeasure.instruments.keithley import Keithley2450
+from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 from pymeasure.instruments.validators import truncated_range, strict_discrete_set
+
 
 class TENMA(Instrument):
     """
     This class implements the communication with the TENMA sources. It is
-    based on the pymeasure library. It is a subclass of the Instrument class
-    from pymeasure.
+    a subclass of Pymeasure's Instrument class.
 
     :param adapter: The adapter to use for the communication.
     """

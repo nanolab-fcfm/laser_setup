@@ -2,9 +2,8 @@ import time
 import numpy as np
 
 from pymeasure.experiment import Procedure, FloatParameter, ListParameter, IntegerParameter, Parameter, Metadata
-from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 
-from lib.instruments import TENMA
+from lib.instruments import TENMA, ThorlabsPM100USB
 from lib.display import display_experiment
 from lib import config, log
 

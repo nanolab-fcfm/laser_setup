@@ -1,14 +1,12 @@
 import time
 import logging
 
-from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter, Metadata
-from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 
 from lib import config
 from .utils import SONGS
 from .utils import send_telegram_alert
-from .instruments import TENMA
+from .instruments import TENMA, Keithley2450, ThorlabsPM100USB
 
 log = logging.getLogger(__name__)
 

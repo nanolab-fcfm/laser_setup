@@ -3,7 +3,7 @@ Plays a song on the Keithley 2450 meter.
 """
 import time
 import sys
-from pymeasure.instruments.keithley import Keithley2450
+from lib.instruments import Keithley2450
 from lib.utils import SONGS
 from lib import config
 

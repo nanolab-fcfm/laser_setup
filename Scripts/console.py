@@ -4,12 +4,12 @@ This Script is used to debug a Keithley 2450.
 import os
 import logging
 from IPython import embed
-from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.adapters import FakeAdapter
 from lib import config
 from lib.procedures import *
 from lib.utils import *
 from lib.display import *
+from lib.instruments import Keithley2450
 
 log = logging.getLogger(__name__)
 
