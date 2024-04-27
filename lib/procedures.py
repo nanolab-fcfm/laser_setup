@@ -4,8 +4,7 @@ import logging
 from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter, Metadata
 
 from lib import config
-from .utils import SONGS
-from .utils import send_telegram_alert
+from .utils import SONGS, send_telegram_alert, get_latest_DP
 from .instruments import TENMA, Keithley2450, ThorlabsPM100USB
 
 log = logging.getLogger(__name__)
@@ -18,7 +17,7 @@ class BaseProcedure(Procedure):
     """
     # Procedure version. When modified, increment
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
-    procedure_version = Parameter('Procedure version', default='1.3.1')
+    procedure_version = Parameter('Procedure version', default='1.4.0')
 
     # config 
     chip_names = list(eval(config['Chip']['names'])) + ['other']
@@ -35,7 +34,14 @@ class BaseProcedure(Procedure):
     start_time = Metadata('Start time', fget=time.time)
 
     INPUTS = ['show_more', 'chip_group', 'chip_number', 'sample', 'info']
-
+    
+    def update_parameters(self):
+        """Function to update the parameters after the initialization,
+        but before startup. It is useful to modify the parameters
+        based on the values of other parameters. It is called
+        only by the ExperimentWindow.
+        """
+        pass
 
 class FakeProcedure(BaseProcedure):
     """A fake procedure for testing purposes."""
@@ -233,7 +239,8 @@ class ItBaseProcedure(BaseProcedure):
 
     # Important Parameters
     vds = FloatParameter('VDS', units='V', default=0.075, decimals=10)
-    vg = FloatParameter('VG', units='V', default=0.)
+    #vg = FloatParameter('VG', units='V', default=0.)
+    vg = Parameter('VG', default='DP + 0. V')
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
     laser_v = FloatParameter('Laser voltage', units='V', default=0.)
     laser_T = FloatParameter('Laser ON+OFF period', units='s', default=120.)
@@ -245,6 +252,15 @@ class ItBaseProcedure(BaseProcedure):
 
     INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'N_avg', 'Irange']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
+    
+    def update_parameters(self):
+        vg = str(self.vg)
+        assert vg.endswith(' V'), "Gate voltage must be in Volts"
+        vg = vg[:-2].replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=3):.2f}")
+        float_vg = float(eval(vg))
+        assert -100 <= float_vg <= 100, "Gate voltage must be between -100 and 100 V"
+        self.vg = FloatParameter('VG', units='V', default=float_vg)
+        self.refresh_parameters()
 
     def startup(self):
         log.info("Setting up instruments")
