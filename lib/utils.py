@@ -5,6 +5,8 @@ import os
 
 import numpy as np
 import requests
+import pandas as pd
+from scipy.signal import find_peaks
 
 from lib import config
 
@@ -113,3 +115,58 @@ def send_telegram_alert(message: str):
         url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
         requests.post(url, params=params)
         log.info(f"Sent '{message}' to {chat}.")
+
+
+def read_pymeasure(file_path):
+    data = pd.read_csv(file_path, comment="#")
+    parameters = {}
+    with open(file_path, 'r') as file:
+        for line in file:
+            if line.startswith('#Parameters:'):
+                break
+        for line in file:
+            line = line.strip()
+            if not line or line.startswith('#Data:'):
+                break
+            if ':' in line:
+                key, value = map(str.strip, line.split(':', 1))
+                key = key.lstrip('#\t')
+                parameters[key] = value
+    return parameters, data
+
+
+def find_dp(data: Tuple[Dict, pd.DataFrame]) -> float:
+    df = data[1]
+    R = 1 / df['I (A)']
+    peaks, _ = find_peaks(R)
+    return df['Vg (V)'][peaks].mean()
+
+
+def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -> float:
+    """This function returns the latest Dirac Point found for the specified
+    chip group, chip number and sample. This is based on IVg measurements.
+
+    :param chip_group: The chip group name
+    :param chip_number: The chip number
+    :param sample: The sample name
+    :param max_files: The maximum number of files to look for, starting from the
+    latest one.
+    :return: The latest Dirac Point found
+    """
+    DataDir = config['Filename']['directory']
+    data_total = glob(DataDir + '/**/*.csv', recursive=True)
+    data_files = [d for d in data_total if 'IVg' in d][-1:-max_files-1:-1]
+    for file in data_files:
+        data = read_pymeasure(file)
+        if data[0]['Chip group name'] == chip_group and data[0]['Chip number'] == str(chip_number) and data[0]['Sample'] == sample:
+            DP =  find_dp(data)
+            log.info(f"Dirac Point found from {file.split('/')[-1]}: {DP} [V]")
+            if not isinstance(DP, float) or np.isnan(DP):
+                continue
+
+            return DP
+    
+    log.error(f"Dirac Point not found for {chip_group} {chip_number} {sample}")
+    raise ValueError("Dirac Point not found")
+    
+    
