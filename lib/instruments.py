@@ -82,3 +82,57 @@ class TENMA(Instrument):
         """
         self.ramp_to_voltage(0.)
         self.output = False
+
+
+class TLS120Xe(Instrument):
+    """Communication with the Bentham TLS120-Xe light source. 
+    """
+    wavelength = Instrument.control(
+        ":MONO:WAVE?", ":MONO:WAVE %.1f",
+        """Sets the wavelength in nm. Gets the current and target wavelengths in nm.""",
+        validator=truncated_range,
+        values=[280., 1100.]
+    )
+    
+    move = Instrument.measurement(
+        ":MONO:MOVE?", """Moves the monochromator to the specified wavelength."""
+    )
+    
+    at_target = Instrument.measurement(
+        ":OUTP:ATT?", """Checks if the monochromator is at the target wavelength."""
+    )
+    
+    output = Instrument.control(
+        ":OUTP?", ":OUTP %d", """Sets the output state.""",
+        validator=strict_discrete_set,
+        values={True: 1, False: 0},
+        map_values=True
+    )
+    
+    lamp = Instrument.control(
+        ":LAMP?", ":LAMP %d", """Sets the lamp state.""",
+        validator=strict_discrete_set,
+        values={True: 1, False: 0},
+        map_values=True
+    )
+    
+    source_current = Instrument.control(
+        ":SOUR:CURR?", ":SOUR:CURR %.2f", """Sets the source current in Amps.""",
+        validator=truncated_range,
+        values=[0., 5.]
+    )
+    
+    source_voltage = Instrument.control(
+        ":SOUR:VOLT?", ":SOUR:VOLT %.2f", """Sets the source voltage in Volts.""",
+        validator=truncated_range,
+        values=[0., 20.]
+    )
+
+    current = Instrument.measurement(
+        ":CURR?", """Reads the current in Amps.""")
+    
+    voltage = Instrument.measurement(":VOLT?", """Reads the voltage in Volts.""")
+    
+    power = Instrument.measurement(":POW?", """Reads the power in Watts.""")
+    
+    resistance = Instrument.measurement(":RES?", """Reads the resistance in Ohms.""")
