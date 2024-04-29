@@ -85,7 +85,7 @@ class TENMA(Instrument):
 
 
 class TLS120Xe(Instrument):
-    """Communication with the Bentham TLS120-Xe light source. 
+    """Communication with the Bentham TLS120Xe light source. 
     """
     wavelength = Instrument.control(
         ":MONO:WAVE?", ":MONO:WAVE %.1f",
@@ -93,6 +93,8 @@ class TLS120Xe(Instrument):
         validator=truncated_range,
         values=[280., 1100.]
     )
+    
+    bandwidth = Instrument.measurement(":BAND?", """Reads the bandwidth of the current wavelength in nm.""")
     
     move = Instrument.measurement(
         ":MONO:MOVE?", """Moves the monochromator to the specified wavelength."""
@@ -119,20 +121,26 @@ class TLS120Xe(Instrument):
     source_current = Instrument.control(
         ":SOUR:CURR?", ":SOUR:CURR %.2f", """Sets the source current in Amps.""",
         validator=truncated_range,
-        values=[0., 5.]
+        values=[0., 7.2]
     )
     
     source_voltage = Instrument.control(
         ":SOUR:VOLT?", ":SOUR:VOLT %.2f", """Sets the source voltage in Volts.""",
         validator=truncated_range,
-        values=[0., 20.]
+        values=[0., 15.]
     )
 
-    current = Instrument.measurement(
-        ":CURR?", """Reads the current in Amps.""")
+    current = Instrument.measurement(":CURR?", """Reads the current in Amps.""")
+    
+    photocurrent = Instrument.measurement(":PD?", """Reads the photocurrent in Amps.""")
     
     voltage = Instrument.measurement(":VOLT?", """Reads the voltage in Volts.""")
     
     power = Instrument.measurement(":POW?", """Reads the power in Watts.""")
     
     resistance = Instrument.measurement(":RES?", """Reads the resistance in Ohms.""")
+
+    def __init__(self, adapter: str, **kwargs):
+        super().__init__(
+            adapter, "Bentham TLS120Xe Light Source", **kwargs
+        )
