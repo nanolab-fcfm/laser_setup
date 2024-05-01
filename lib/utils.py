@@ -1,11 +1,13 @@
 from typing import Dict, List, Tuple
 from glob import glob
+import datetime
 import logging
 import os
 
 import numpy as np
 import requests
 import pandas as pd
+from scipy.stats import linregress
 from scipy.signal import find_peaks
 
 from lib import config
@@ -20,49 +22,26 @@ SONGS: Dict[str, List[Tuple[float, float]]] = dict(
 )
 
 
-def gate_sweep_ramp(vg_start: float, vg_end: float, vg_step: float) -> np.ndarray:
-    """This function returns an array with the voltages to be applied to the
-    gate for a gate sweep. It goes from 0 to vg_start, then to vg_end, then to
-    vg_start, and finally back to 0.
+def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarray:
+    """This function returns an array with the voltages to be applied
+    for a voltage sweep. It goes from 0 to v_start, then to v_end, then to
+    v_start, and finally back to 0.
 
-    :param vg_start: The starting voltage of the sweep
-    :param vg_end: The ending voltage of the sweep
-    :param vg_step: The step size of the sweep
-    :return: An array with the voltages to be applied to the gate
+    :param v_start: The starting voltage of the sweep
+    :param v_end: The ending voltage of the sweep
+    :param v_step: The step size of the sweep
+    :return: An array with the voltages to be applied
     """
-    Vg_up = np.arange(vg_start, vg_end, vg_step)
-    Vg_down = np.arange(vg_end, vg_start - vg_step, -vg_step)
-    Vg_m = np.concatenate((Vg_up, Vg_down))
+    V_up = np.arange(v_start, v_end, v_step)
+    V_down = np.arange(v_end, v_start - v_step, -v_step)
+    V_m = np.concatenate((V_up, V_down))
 
-    vg_start_dir = 1 if vg_start > 0 else -1
+    direction = 1 if v_start > 0 else -1
 
-    vg_i = np.arange(0, vg_start, vg_start_dir * vg_step)
-    vg_f = np.flip(vg_i)
-    Vg = np.concatenate((vg_i, Vg_m, vg_f))
-
-    return Vg
-
-def iv_ramp(vsd_start: float, vsd_end: float, vsd_step: float) -> np.ndarray:
-    """This function returns an array with the voltages to be applied to the
-    source drain for a IV sweep. It goes from 0 to vg_start, then to vg_end, then to
-    vg_start, and finally back to 0.
-
-    :param vsd_start: The starting voltage of the sweep
-    :param vsd_end: The ending voltage of the sweep
-    :param vsd_step: The step size of the sweep
-    :return: An array with the voltages to be applied to the gate
-    """
-    Vsd_up = np.arange(vsd_start, vsd_end, vsd_step)
-    Vsd_down = np.arange(vsd_end, vsd_start - vsd_step, -vsd_step)
-    Vsd_m = np.concatenate((Vsd_up, Vsd_down))
-
-    vsd_start_dir = 1 if vsd_start > 0 else -1
-
-    vsd_i = np.arange(0, vsd_start, vsd_start_dir * vsd_step)
-    vsd_f = np.flip(vsd_i)
-    Vsd = np.concatenate((vsd_i, Vsd_m, vsd_f))
-
-    return Vsd
+    v_i = np.arange(0, v_start, direction * v_step)
+    v_f = np.flip(v_i)
+    V = np.concatenate((v_i, V_m, v_f))
+    return V
 
 
 def remove_empty_data():
@@ -153,6 +132,11 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     latest one.
     :return: The latest Dirac Point found
     """
+    # Old method: (data = read_pymeasure(file))
+    # df = data[1]  # pandas df
+    # diff = np.abs(df.diff()["I (A)"].values)
+    # indices_smallest_four = np.argpartition(diff, 4)[:4]
+    # return round(np.mean(df["Vg (V)"].values[indices_smallest_four]), 2)
     DataDir = config['Filename']['directory']
     data_total = glob(DataDir + '/**/*.csv', recursive=True)
     data_files = [d for d in data_total if 'IVg' in d][-1:-max_files-1:-1]
@@ -168,5 +152,205 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     
     log.error(f"Dirac Point not found for {chip_group} {chip_number} {sample}")
     raise ValueError("Dirac Point not found")
+
+
+####################################################################################################
+# Old functions, to be removed
+####################################################################################################
+
+
+def get_timestamp(file):
+    return float(read_pymeasure(file)[0]['Start time'])
+
+
+def sort_by_creation_date(pattern):
+    # Get a list of file paths that match the specified pattern
+    file_paths = glob(pattern)
+
+    # exclude calibration files
+    file_paths = [path for path in file_paths if "Calibration" not in path]
+
+    # Sort the file paths based on their creation date
+    sorted_file_paths = sorted(file_paths, key=get_timestamp)
+
+    return sorted_file_paths
+
+
+def find_Miguel(day_of_data):
+    indices_out = []
+    for i, data in enumerate(day_of_data):
+        if (data[0]['Chip group name'] == "Miguel") and (data[0]['Chip number'] == "8") and (data[0]['Sample'] == "A"):
+            indices_out.append(i)
+    return indices_out
+
+
+def experiment_type(experiment):
+    if 'VG end' in experiment[0]:
+        return "Vg"
+    return "It"
+
+
+def find_NN_points(data, vg):
+    df = data.copy()
+    df["Vg (V)"] -= vg
+    df.sort_values(by='Vg (V)', inplace=True)
+    nearest_left = df[df['Vg (V)'] <= 0].iloc[-1]
+    nearest_right = df[df['Vg (V)'] >= 0].iloc[0]
+    return nearest_left['Vg (V)'], nearest_right['Vg (V)'], nearest_left['I (A)'], nearest_right['I (A)']
+
+
+def interpolate_df(data, vg):
+    df = data.copy()
+    df["Vg (V)"] -= vg
+    x_1, x_2, y_1, y_2 = find_NN_points(data, vg)
+   
+    return y_2 - x_2 * (y_2 - y_1) / (x_2 - x_1)
     
     
+def increment_numbers(input_list):
+    current_number = input_list[0]
+    counter = 1
+    output_list = []
+
+    for num in input_list:
+        if num != current_number:
+            current_number = num
+            counter += 1
+        output_list.append(counter)
+
+    return output_list
+
+
+def divide_inyective(data):
+    chunks = np.sign(data.values[1:,0] - data.values[:-1,0])
+    chunks = np.concatenate([chunks.reshape(-1), chunks[-1].reshape(-1)])
+    return increment_numbers(chunks)
+
+
+def get_mean_current_for_given_gate(data, vg):
+    # primero revisamos si existe
+    if vg in data["Vg (V)"]:
+        return data[data["Vg (V)"]==vg].mean()["I (A)"]
+
+    # primreo hay que dividir el intervalo en intervalos inyectivos
+    data.loc[:, "chunks"] = divide_inyective(data)
+
+    results = []
+    number_of_chunks = int(data.loc[len(data) - 1, "chunks"])
+    groups = data.groupby("chunks")
+    for i in range(number_of_chunks):
+        # check if desired value in chunk
+        current_df = groups.get_group(i+1)
+        if (vg > current_df["Vg (V)"].max()) and (vg < current_df["Vg (V)"].min()):
+            continue
+
+        results.append(interpolate_df(current_df, vg))
+    
+    #devolver el promedio de la lista
+    return np.mean(results)
+
+
+def summary_current_given_voltage(data):
+    if experiment_type(data) == "Vg":
+        return get_mean_current_for_given_gate(data[1], -1.3)
+    else:
+        return "None"
+
+
+def center_data(data):
+    min_x, min_y = find_dp(data)
+    data_ = data.copy()
+    data_["Vg (V)"] -= min_x
+    data_["I (A)"] -= min_y
+    return data_
+
+
+def add_zoomed_in_subplot(ax, x_data, y_data, x_data_2, y_data_2, zoom_x_range, zoom_y_range, deltaI):
+    zoomed_in_ax = ax.inset_axes([0.6, 0.3, 0.3, .5])  # Adjust the position and size as needed
+    zoomed_in_ax.plot(x_data, y_data, color='blue')
+    zoomed_in_ax.plot(x_data_2, y_data_2, color='red')
+    zoomed_in_ax.vlines(-1.3, *zoom_y_range, "k", "--")
+    zoomed_in_ax.set_title(f'$\Delta I$ = {deltaI} (A)')
+
+    zoomed_in_ax.grid()
+    zoomed_in_ax.set_xlim(zoom_x_range)
+    zoomed_in_ax.set_ylim(zoom_y_range)
+    ax.indicate_inset_zoom(zoomed_in_ax)
+
+
+def get_VG(data):
+    try:
+        return data[0]["VG"]
+    except:
+        "None"
+
+
+def make_data_summary(experiments):
+    ledV = [data[0]['Laser voltage'] for data in experiments]
+    led_wl = [data[0]['Laser wavelength'] for data in experiments]
+    exp_type = [experiment_type(data) for data in experiments]
+    Ids = [summary_current_given_voltage(data) for data in experiments]
+    vg = [get_VG(data) for data in experiments]
+    dp = []
+    timestamp = []
+    for i, data in enumerate(experiments):
+        timestamp.append(get_timestamp_from_unix(float(data[0]["Start time"])))
+        if exp_type[i] == "Vg":
+            dp.append(find_dp(data))
+        else:
+            dp.append(np.nan)
+    
+    
+    data = {'led V': ledV, 'Experiment type': exp_type, 'wl': led_wl, "vg": vg, "dp": dp, "timestamp": timestamp}
+    df = pd.DataFrame(data)
+    return df
+
+
+def get_current_from_Vg(data, vg):
+    # we first check if the value exists
+    df = data[1]
+    if vg in df["Vg (V)"]:
+        return df[df["Vg (V)"]==vg].mean()["I (A)"]
+
+    # encontrar la vecindad a fitear
+    dVg = np.abs(df["Vg (V)"][1] - df["Vg (V)"][0])
+
+    df_filtered = df[(df["Vg (V)"]>vg-2*dVg)&(df["Vg (V)"]<vg+2*dVg)]
+    reg = linregress(df_filtered["Vg (V)"].values, df_filtered["I (A)"].values)
+    #plt.plot(df["Vg (V)"], df["I (A)"], "+")
+    #plt.plot(df_filtered["Vg (V)"], df_filtered["I (A)"], "o")
+    #x = np.linspace(vg-2*dVg, vg+2*dVg, 100)
+    #y = reg.slope * x + reg.intercept
+    #plt.plot(x, y)
+    
+    return reg.slope * vg + reg.intercept
+
+
+def get_timestamp_from_unix(timestamp_unix):
+    # Convert Unix timestamp to a datetime object
+    dt_object = datetime.datetime.fromtimestamp(timestamp_unix)
+    
+    # Convert the datetime object to a pandas Timestamp
+    timestamp_pandas = pd.Timestamp(dt_object)
+    
+    return timestamp_pandas
+
+
+def get_date_time_from_timestamp_unix(timestamp_unix):
+    # Convert Unix timestamp to a datetime object
+    dt_object = datetime.datetime.fromtimestamp(timestamp_unix)
+    
+    # Extract year, month, day, hour, minute, and second from the datetime object
+    year = dt_object.year
+    month = dt_object.month
+    day = dt_object.day
+    hour = dt_object.hour
+    minute = dt_object.minute
+    second = dt_object.second
+    
+    return year, month, day, hour, minute, second
+    
+
+def load_sorted_data(path_folder):
+    data = sort_by_creation_date(os.path.join(path_folder, "*.csv"))
+    return [read_pymeasure(path) for path in data]
