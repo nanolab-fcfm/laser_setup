@@ -14,7 +14,7 @@ from pymeasure.experiment.config import get_config, set_mpl_rcparams
 from pymeasure.log import setup_logging
 
 # Load the config files
-_default_config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'default_config.ini'))
+_default_config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'default_config.ini'))
 config_path = './config/config.ini' # os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'config', 'config.ini') 
 os.makedirs(os.path.dirname(config_path), exist_ok=True) # [os.path.join('config', d) for d in os.listdir('config')]
 with open(config_path, 'a') as f: pass
