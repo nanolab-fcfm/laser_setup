@@ -3,10 +3,9 @@ This interactive script is used to configure the USB adapters that are used in
 the experiment scripts. It is based on the Pymeasure library.
 """
 import logging
-from pymeasure.instruments.keithley import Keithley2450
 import pyvisa
 
-from lib.instruments import TENMA
+from lib.instruments import TENMA, Keithley2450
 from lib import config, config_path
 
 log = logging.getLogger(__name__)

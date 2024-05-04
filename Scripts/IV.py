@@ -6,7 +6,7 @@ import time
 import numpy as np
 
 from lib import log
-from lib.utils import iv_ramp
+from lib.utils import voltage_sweep_ramp
 from lib.procedures import IVBaseProcedure
 from lib.display import display_experiment
 
@@ -35,7 +35,7 @@ class IV(IVBaseProcedure):
 
 
         # Set the Vsd ramp and the measuring loop
-        self.vsd_ramp = iv_ramp(self.vsd_start, self.vsd_end, self.vsd_step)
+        self.vsd_ramp = voltage_sweep_ramp(self.vsd_start, self.vsd_end, self.vsd_step)
         avg_array = np.zeros(self.N_avg)
         for i, vsd in enumerate(self.vsd_ramp):
             if self.should_stop():

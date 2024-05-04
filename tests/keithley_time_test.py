@@ -2,11 +2,11 @@
 import time
 import numpy as np
 
-from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.experiment import Procedure, FloatParameter
 
 from lib import log, config
 from lib.display import display_experiment
+from lib.instruments import Keithley2450
 
 np.random.seed(2)
 

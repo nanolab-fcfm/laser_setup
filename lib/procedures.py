@@ -1,14 +1,11 @@
 import time
 import logging
 
-from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter, Metadata
-from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 
 from lib import config
-from .utils import SONGS
-from .utils import send_telegram_alert
-from .instruments import TENMA
+from .utils import SONGS, send_telegram_alert, get_latest_DP
+from .instruments import TENMA, Keithley2450, ThorlabsPM100USB
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +17,7 @@ class BaseProcedure(Procedure):
     """
     # Procedure version. When modified, increment
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
-    procedure_version = Parameter('Procedure version', default='1.3.1')
+    procedure_version = Parameter('Procedure version', default='1.4.0')
 
     # config 
     chip_names = list(eval(config['Chip']['names'])) + ['other']
@@ -37,7 +34,14 @@ class BaseProcedure(Procedure):
     start_time = Metadata('Start time', fget=time.time)
 
     INPUTS = ['show_more', 'chip_group', 'chip_number', 'sample', 'info']
-
+    
+    def update_parameters(self):
+        """Function to update the parameters after the initialization,
+        but before startup. It is useful to modify the parameters
+        based on the values of other parameters. It is called
+        only by the ExperimentWindow.
+        """
+        pass
 
 class FakeProcedure(BaseProcedure):
     """A fake procedure for testing purposes."""
@@ -45,6 +49,7 @@ class FakeProcedure(BaseProcedure):
     total_time = FloatParameter('Total time', units='s', default=30.)
     INPUTS = BaseProcedure.INPUTS + ['total_time', 'fake_parameter']
     DATA_COLUMNS = ['t (s)', 'fake_data']
+    DATA = [[0], [0]]
     def execute(self):
         log.info("Executing fake procedure.")
         t0 = time.time()
@@ -56,13 +61,16 @@ class FakeProcedure(BaseProcedure):
 
             self.emit('progress', (tc - t0)/self.total_time*100)
             data = self.fake_parameter + hash(tc-t0) % 1000 / 1000
+            self.DATA[0].append(tc - t0)
+            self.DATA[1].append(data)
             self.emit('results', dict(zip(self.DATA_COLUMNS, [tc - t0, data])))
             time.sleep(0.2)
             tc = time.time()
             
     def get_estimates(self):
         estimates = [
-            ('Fake Estimate', f"{self.fake_parameter + hash(time.time()) % 1000 / 1000:.2f}")
+            ('Fake Estimate', f"{self.fake_parameter + hash(time.time()) % 1000 / 1000:.2f}"),
+            ('Data average', f"{sum(self.DATA[1])/len(self.DATA[1]):.2f}")
         ]
         return estimates
 
@@ -144,6 +152,9 @@ class IVgBaseProcedure(BaseProcedure):
     INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
+    # Fix Data not defined for get_estimates. TODO: Find a better way to handle this.
+    DATA = [[], []]
+
     def startup(self):
         log.info("Setting up instruments")
         try:
@@ -182,6 +193,7 @@ class IVgBaseProcedure(BaseProcedure):
         pass
 
     def shutdown(self):
+        IVgBaseProcedure.DATA = [[], []]
         if not hasattr(self, 'meter'):
             log.info("No instruments to shutdown.")
             return
@@ -235,7 +247,8 @@ class ItBaseProcedure(BaseProcedure):
 
     # Important Parameters
     vds = FloatParameter('VDS', units='V', default=0.075, decimals=10)
-    vg = FloatParameter('VG', units='V', default=0.)
+    #vg = FloatParameter('VG', units='V', default=0.)
+    vg = Parameter('VG', default='DP + 0. V')
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
     laser_v = FloatParameter('Laser voltage', units='V', default=0.)
     laser_T = FloatParameter('Laser ON+OFF period', units='s', default=120.)
@@ -247,6 +260,16 @@ class ItBaseProcedure(BaseProcedure):
 
     INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'N_avg', 'Irange']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
+    
+    def update_parameters(self):
+        vg = str(self.vg)
+        assert vg.endswith(' V'), "Gate voltage must be in Volts"
+        vg = vg[:-2].replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=3):.2f}")
+        float_vg = float(eval(vg))
+        assert -100 <= float_vg <= 100, "Gate voltage must be between -100 and 100 V"
+        self.vg = float_vg
+        self._parameters['vg'] = FloatParameter('VG', units='V', default=float_vg)
+        self.refresh_parameters()
 
     def startup(self):
         log.info("Setting up instruments")
