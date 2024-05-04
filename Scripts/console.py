@@ -44,6 +44,9 @@ def keithley_console(parent=None):
     launch(workspace_path, header=header, user_ns=globals() | locals())
     log.info('Console closed.')
     
+    if parent is not None:
+        parent.setEnabled(True)
+    
 
 def main():
     keithley_console(parent=None)
