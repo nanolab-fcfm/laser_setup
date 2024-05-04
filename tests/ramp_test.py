@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from lib.utils import voltage_sweep_ramp
+from laser_setup.utils import voltage_sweep_ramp
 
 def test_ramp():
     ramp = voltage_sweep_ramp(-35, 35, 0.5)

@@ -2,8 +2,8 @@ import logging
 
 from .IVg import IVg
 from .It import It
-from lib.procedures import MetaProcedure, Wait, FakeProcedure
-from lib.display import MetaProcedureWindow, display_window
+from laser_setup.procedures import MetaProcedure, Wait, FakeProcedure
+from laser_setup.display import MetaProcedureWindow, display_window
 
 log = logging.getLogger(__name__)
 

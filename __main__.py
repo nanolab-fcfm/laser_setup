@@ -1,4 +1,4 @@
-from lib.display import MainWindow, display_window
+from laser_setup.display import MainWindow, display_window
 from Scripts.MainSequence import MainSequence
 from Scripts.It import It
 from Scripts.IV import IV

@@ -3,9 +3,9 @@ import numpy as np
 
 from pymeasure.experiment import Procedure, FloatParameter, ListParameter, IntegerParameter, Parameter, Metadata
 
-from lib.instruments import TENMA, ThorlabsPM100USB
-from lib.display import display_experiment
-from lib import config, log
+from laser_setup.instruments import TENMA, ThorlabsPM100USB
+from laser_setup.display import display_experiment
+from laser_setup import config, log
 
 
 class LaserCalibration(Procedure):

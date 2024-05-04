@@ -5,9 +5,9 @@ It uses a Keithley 2450 as meter and two TENMA Power Supplies.
 import time
 import numpy as np
 
-from lib import log
-from lib.display import display_experiment
-from lib.procedures import ItBaseProcedure
+from laser_setup import log
+from laser_setup.display import display_experiment
+from laser_setup.procedures import ItBaseProcedure
 
 
 class It(ItBaseProcedure):

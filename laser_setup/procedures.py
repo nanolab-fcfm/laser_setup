@@ -3,7 +3,7 @@ import logging
 
 from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter, Metadata
 
-from lib import config
+from . import config
 from .utils import SONGS, send_telegram_alert, get_latest_DP
 from .instruments import TENMA, Keithley2450, ThorlabsPM100USB
 

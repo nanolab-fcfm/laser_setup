@@ -5,10 +5,10 @@ It uses a Keithley 2450 as meter and two TENMA Power Supplies.
 import time
 import numpy as np
 
-from lib import log
-from lib.utils import voltage_sweep_ramp
-from lib.procedures import IVBaseProcedure
-from lib.display import display_experiment
+from laser_setup import log
+from laser_setup.utils import voltage_sweep_ramp
+from laser_setup.procedures import IVBaseProcedure
+from laser_setup.display import display_experiment
 
 
 class IV(IVBaseProcedure):

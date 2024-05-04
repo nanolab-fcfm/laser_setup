@@ -5,11 +5,11 @@ import os
 import logging
 from IPython import embed
 from pymeasure.adapters import FakeAdapter
-from lib import config
-from lib.procedures import *
-from lib.utils import *
-from lib.display import *
-from lib.instruments import Keithley2450
+from laser_setup import config
+from laser_setup.procedures import *
+from laser_setup.utils import *
+from laser_setup.display import *
+from laser_setup.instruments import Keithley2450
 
 log = logging.getLogger(__name__)
 

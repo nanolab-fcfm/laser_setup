@@ -1,6 +1,6 @@
 import warnings
 import pyvisa
-from lib import config
+from laser_setup import config
 
 def test_devices():
     rm = pyvisa.ResourceManager()

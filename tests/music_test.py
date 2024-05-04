@@ -3,9 +3,9 @@ Plays a song on the Keithley 2450 meter.
 """
 import time
 import sys
-from lib.instruments import Keithley2450
-from lib.utils import SONGS
-from lib import config
+from laser_setup.instruments import Keithley2450
+from laser_setup.utils import SONGS
+from laser_setup import config
 
 def play_song(song: str):
     if not song in SONGS:

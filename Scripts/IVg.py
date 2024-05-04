@@ -6,10 +6,10 @@ import time
 import numpy as np
 from scipy.signal import find_peaks
 
-from lib import log
-from lib.utils import voltage_sweep_ramp
-from lib.procedures import IVgBaseProcedure
-from lib.display import display_experiment
+from laser_setup import log
+from laser_setup.utils import voltage_sweep_ramp
+from laser_setup.procedures import IVgBaseProcedure
+from laser_setup.display import display_experiment
 
 
 class IVg(IVgBaseProcedure):

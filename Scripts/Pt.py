@@ -5,9 +5,9 @@ It uses a thorlabs Powermeter and one TENMA Power Supplie.
 import time
 import numpy as np
 
-from lib import log
-from lib.display import display_experiment
-from lib.procedures import PtBaseProcedure
+from laser_setup import log
+from laser_setup.display import display_experiment
+from laser_setup.procedures import PtBaseProcedure
 
 
 class Pt(PtBaseProcedure):

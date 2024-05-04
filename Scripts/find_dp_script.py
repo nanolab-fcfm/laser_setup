@@ -1,7 +1,7 @@
 """
 This Script is used to find the dirac point from the selected IVg curve.
 """
-from lib.utils import read_pymeasure, find_dp
+from laser_setup.utils import read_pymeasure, find_dp
 
 import os
 from datetime import datetime

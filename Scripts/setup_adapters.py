@@ -5,8 +5,8 @@ the experiment scripts. It is based on the Pymeasure library.
 import logging
 import pyvisa
 
-from lib.instruments import TENMA, Keithley2450
-from lib import config, config_path
+from laser_setup.instruments import TENMA, Keithley2450
+from laser_setup import config, config_path
 
 log = logging.getLogger(__name__)
 
