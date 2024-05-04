@@ -49,6 +49,7 @@ class FakeProcedure(BaseProcedure):
     total_time = FloatParameter('Total time', units='s', default=30.)
     INPUTS = BaseProcedure.INPUTS + ['total_time', 'fake_parameter']
     DATA_COLUMNS = ['t (s)', 'fake_data']
+    DATA = [[0], [0]]
     def execute(self):
         log.info("Executing fake procedure.")
         t0 = time.time()
@@ -60,13 +61,16 @@ class FakeProcedure(BaseProcedure):
 
             self.emit('progress', (tc - t0)/self.total_time*100)
             data = self.fake_parameter + hash(tc-t0) % 1000 / 1000
+            self.DATA[0].append(tc - t0)
+            self.DATA[1].append(data)
             self.emit('results', dict(zip(self.DATA_COLUMNS, [tc - t0, data])))
             time.sleep(0.2)
             tc = time.time()
             
     def get_estimates(self):
         estimates = [
-            ('Fake Estimate', f"{self.fake_parameter + hash(time.time()) % 1000 / 1000:.2f}")
+            ('Fake Estimate', f"{self.fake_parameter + hash(time.time()) % 1000 / 1000:.2f}"),
+            ('Data average', f"{sum(self.DATA[1])/len(self.DATA[1]):.2f}")
         ]
         return estimates
 
@@ -148,6 +152,9 @@ class IVgBaseProcedure(BaseProcedure):
     INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
 
+    # Fix Data not defined for get_estimates. TODO: Find a better way to handle this.
+    DATA = [[], []]
+
     def startup(self):
         log.info("Setting up instruments")
         try:
@@ -186,6 +193,7 @@ class IVgBaseProcedure(BaseProcedure):
         pass
 
     def shutdown(self):
+        IVgBaseProcedure.DATA = [[], []]
         if not hasattr(self, 'meter'):
             log.info("No instruments to shutdown.")
             return
