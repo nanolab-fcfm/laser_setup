@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import logging
+from importlib.metadata import metadata
 from typing import Type
 
 from pymeasure.display.windows import ManagedWindow
@@ -15,7 +16,7 @@ from PyQt6.QtCore import QLocale
 from PyQt6.QtWidgets import QApplication, QStyle, QMainWindow, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QHBoxLayout
 from PyQt6 import QtWidgets, QtCore
 
-from . import config, _config_file_used
+from . import config, config_path, _config_file_used
 from .utils import remove_empty_data
 from .procedures import MetaProcedure, BaseProcedure
 
@@ -224,8 +225,12 @@ class MainWindow(QMainWindow):
         readme.setStyleSheet("""
             font-size: 12pt;
         """)
-        with open('README.md') as f:
-            readme.setMarkdown(f.read())
+        try:
+            with open('README.md') as f:
+                readme_text = f.read()
+        except FileNotFoundError:
+            readme_text = metadata('laser_setup').get('Description')
+        readme.setMarkdown(readme_text)
         self.layout.addWidget(readme, 1, 0, 1, self.gridx)
 
         # Settings Button
@@ -274,7 +279,19 @@ class MainWindow(QMainWindow):
         return func
 
     def edit_settings(self):
-        os.startfile(_config_file_used.replace('/', '\\'))
+        if _config_file_used != config_path:
+            choice = self.select_from_list('No config file found',
+                ['Create new config', 'Use default config'], 'Select an option:')
+
+            if choice == 'Create new config':
+                os.makedirs(os.path.dirname(config_path), exist_ok=True)
+                with open(config_path, 'w') as f:
+                    config.write(f)
+
+            elif choice == 'Use default config':
+                return
+
+        os.startfile(config_path.replace('/', '\\'))
         self.suggest_reload()
 
     def suggest_reload(self):

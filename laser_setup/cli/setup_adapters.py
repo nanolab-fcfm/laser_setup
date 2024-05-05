@@ -1,3 +1,4 @@
+import os
 import logging
 import pyvisa
 
@@ -43,6 +44,10 @@ def tenma_ping(adapter, tenmas: list, parent=None):
 
 
 def setup(parent=None):
+    if not os.path.isdir(os.path.dirname(config_path)):
+        log.warning(f"Config directory not found. Creating directory {os.path.abspath(os.path.dirname(config_path))}")
+        os.makedirs(os.path.dirname(config_path))
+
     rm = pyvisa.ResourceManager()
     devices = rm.list_resources()
 

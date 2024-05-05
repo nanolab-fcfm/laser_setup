@@ -30,7 +30,7 @@ def main():
         display_experiment(eval(sys.argv[1]), title=Experiments[eval(sys.argv[1])])
 
     elif sys.argv[1] in [func.__module__.split('.')[-1] for func in Scripts.keys()]:
-        Scripts[eval(f"Scripts.{sys.argv[1]}")]()
+        eval(sys.argv[1]).main()
 
     else:
         raise ValueError(f"Invalid argument: {sys.argv[1]}")
