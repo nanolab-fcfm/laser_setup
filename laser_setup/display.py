@@ -235,7 +235,7 @@ class MainWindow(QMainWindow):
         
         # Secuences Button
         meta_procedure = QPushButton('Sequence')
-        meta_procedure.clicked.connect(self.open_sequence('Main Sequence'))
+        meta_procedure.clicked.connect(self.open_sequence('Sequence'))
         meta_procedure.setToolTip(MetaProcedure.__doc__)
         self.layout.addWidget(meta_procedure, 0, 1)
         

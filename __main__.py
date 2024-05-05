@@ -1,14 +1,10 @@
 from laser_setup.display import MainWindow, display_window
+from laser_setup.procedures import *
 from Scripts.MainSequence import MainSequence
-from Scripts.It import It
-from Scripts.IV import IV
-from Scripts.IVg import IVg
-from Scripts.Pt import Pt
-from Scripts.calibrate_laser import LaserCalibration
 from Scripts import setup_adapters, console, find_dp_script
 
 Sequences = {
-    'Main Sequence': MainSequence,
+    'Sequence': MainSequence,
 }
 
 Experiments = {
