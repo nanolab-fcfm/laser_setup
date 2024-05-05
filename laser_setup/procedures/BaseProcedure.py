@@ -17,7 +17,7 @@ class BaseProcedure(Procedure):
     # <parameter name>.<parameter property>.<procedure startup/shutdown>
     procedure_version = Parameter('Procedure version', default='1.4.0')
 
-    # config 
+    # config
     chip_names = list(eval(config['Chip']['names'])) + ['other']
     samples = list(eval(config['Chip']['samples']))
 
@@ -32,7 +32,7 @@ class BaseProcedure(Procedure):
     start_time = Metadata('Start time', fget=time.time)
 
     INPUTS = ['show_more', 'chip_group', 'chip_number', 'sample', 'info']
-    
+
     def update_parameters(self):
         """Function to update the parameters after the initialization,
         but before startup. It is useful to modify the parameters
@@ -40,12 +40,3 @@ class BaseProcedure(Procedure):
         only by the ExperimentWindow.
         """
         pass
-
-
-class MetaProcedure(BaseProcedure):
-    """Manages a multiple procedures to be executed in sequence. It is used to
-    run a sequence of procedures, such as a burn-in followed by an IVg and
-    It measurements. Performs a unique startup, executes the procedures in
-    sequence, and performs a unique shutdown.
-    """
-    procedures: list[BaseProcedure] = []
