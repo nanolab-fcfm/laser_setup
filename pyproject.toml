@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "laser_setup"
+description = "Experimental setup for Laser, I-V and Transfer Curve measurements"
+requires-python = ">=3.9,<3.12"
+dependencies = [
+    'ipython',
+    'matplotlib',
+    'numpy<2.0',
+    'pandas',
+    'pymeasure<0.14',
+    'PyQt6>=6.1.0',
+    'pyvisa~=1.14.1',
+    'Requests',
+    'scipy',
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["version"]
+readme = "README.md"
+authors = [
+    {name = "Benjamín Briceño", email = "benjamin.briceno.bb@gmail.com"},
+    # Add the others
+]
+license = {text = "MIT License"}
+
+[project.scripts]
+laser_setup = "laser_setup.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["laser_setup*"]
+
+[tool.setuptools.package-data]
+laser_setup = ["*.ini"]
+
+[tool.setuptools.dynamic]
+version = {attr = "laser_setup.__version__"}
