@@ -7,17 +7,21 @@ This project allows for the communication between the computer and the instrumen
 - Keithley 2450 SourceMeter ([Reference Manual](https://docs.rs-online.com/6c14/A700000007066480.pdf)) (Requires [NI-VISA](https://www.ni.com/en-us/support/downloads/drivers/download.ni-visa.html) installed)
 - TENMA Power Supply
 - Thorlabs PM100D Power Meter ([Reference Manual](https://www.thorlabs.com/drawings/bb953791e3c90bd7-987A9A0B-9650-5B7A-6479A1E42E4265C8/PM100D-Manual.pdf))
+- Bentham TLS120Xe Light Source ([Reference Manual](https://www.bentham.co.uk/fileadmin/uploads/bentham/Components/Tunable%20Light%20Sources/TLS120Xe/TLS120Xe_CommunicationManual.pdf))
 
 As well as all instruments available in the [PyMeasure library](https://pymeasure.readthedocs.io/en/latest/api/instruments/index.html).
 
-The main window of the program can be run by executing the following command:
+The main window of the program can be run by executing either of the following commands:
+
+```bash
+laser_setup     # Only after installing the package
+```
 
 ```python
 python .
 ```
 
-The main window will display all available procedures, and will allow you to run them. 
-
+The main window will display all available procedures, and will allow you to run them.
 
 
 ## Installation
@@ -39,31 +43,47 @@ In Windows, use the following command to activate the virtual environment instea
 <venv_name>/scripts/activate
 ```
 
-Finally, upgrade pip and install all necesary packages:
+Finally, upgrade pip and install this package and its required:
 ```python
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+pip install .
 ```
+
+This will create an entry point for the program, which can be run by executing:
+
+```bash
+laser_setup
+```
+
+
+## Configuration
+The configuration file `default_config.ini` contains the configuration for the instruments used in the setup. This file is used to set up the instruments and their respective addresses, as well as the default parameters for the procedures. The configuration file is divided into sections, each corresponding to a different instrument. This file, however, should not be edited directly. Any changes to the configuration should be done by first running the `setup_adapters` script, which will create a new configuration file `config/config.ini`. This file will be loaded after the default configuration, and will override any parameters set before.
 
 
 ### Scripts
-To start using a specific script, you should first set up the adapters needed to run a measurement. This is done by running
+If you prefer it, you can run the scripts directly from the command line. To start using a specific script, you should first set up the adapters needed to run a measurement. This is done by running
 
-```python
-python -m Scripts.setup_adapters
+```bash
+laser_setup setup_adapters
 ```
 
-This interactive script will check all connected devices in your computer, and guide you to correctly setup every device in the configuration file `default_config.ini`. A new config file will be created; `config/config.ini`. This will override the default configuration, and you can later edit this file to your liking. To add more instruments, simply add their name to the `Adapters` section of the new config file and run `setup_adapters.py`.
+This interactive script will check all connected devices in your computer, and guide you to correctly setup every device in your configuration. A new config file will be created; `config/config.ini`. To add more instruments, simply add their name to the `Adapters` section of the new config file and run `setup_adapters.py`.
 
 If you want to run a measurement that uses a TENMA controlled laser, you should first run the following script to calibrate the laser's power:
 
-```python
-python -m Scripts.calibrate_laser
+```bash
+laser_setup calibrate_laser
 ```
 
 Each Script corresponds to a different procedure, and can be run independently. To run a script, use the following command:
 
+```bash
+laser_setup <script_name>
 ```
+
+If you cloned the repository, you can also run the scripts directly from the `Scripts` folder:
+
+```python
 python -m Scripts.<script_name>
 ```
 
@@ -72,10 +92,10 @@ Additionally, there are two scripts to quickly analyze data.
 If you want to find the Dirac Point of an IVg file:
 
 ```
-python -m Scripts.find_dp_script
+laser_setup find_dp_script
 ```
 
-To calculate the desired powers of a LED calibration file you can use the following commando specifying the powers in uW (separated by a space):
+To calculate the desired powers of a LED calibration file you can use the following command, specifying the powers in uW (separated by a space):
 
 ```
 python -m Scripts.find_calibration_voltage <desired powers>
