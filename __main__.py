@@ -4,21 +4,21 @@ from Scripts.MainSequence import MainSequence
 from Scripts import setup_adapters, console, find_dp_script
 
 Sequences = {
-    'Sequence': MainSequence,
+    MainSequence: 'Sequence',
 }
 
 Experiments = {
-    'I vs V': IV,
-    'I vs Vg': IVg,
-    'I vs t': It,
-    'P vs t': Pt,
-    'Calibrate Laser': LaserCalibration,
+    IV: 'I vs V',
+    IVg: 'I vs Vg',
+    It: 'I vs t',
+    Pt: 'P vs t',
+    LaserCalibration: 'Calibrate Laser',
 }
 
 Scripts = {
-    'Set up Adapters': setup_adapters.setup,
-    'Console': console.keithley_console,
-    'Find Dirac Point': find_dp_script.main,
+    setup_adapters.setup: 'Set up Adapters',
+    console.keithley_console: 'Console',
+    find_dp_script.main: 'Find Dirac Point',
 }
 
 

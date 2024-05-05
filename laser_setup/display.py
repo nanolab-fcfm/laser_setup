@@ -213,11 +213,11 @@ class MainWindow(QMainWindow):
         # Experiment Buttons
         self.layout = QGridLayout(self.centralWidget())
         self.buttons = {}
-        for i, (name, cls) in enumerate(experiments.items()):
-            self.buttons[name] = QPushButton(name)
-            self.buttons[name].clicked.connect(self.open_app(name))
-            self.buttons[name].setToolTip(cls.__doc__)
-            self.layout.addWidget(self.buttons[name], 2, i)
+        for i, (cls, name) in enumerate(experiments.items()):
+            self.buttons[cls] = QPushButton(name)
+            self.buttons[cls].clicked.connect(self.open_app(cls))
+            self.buttons[cls].setToolTip(cls.__doc__)
+            self.layout.addWidget(self.buttons[cls], 2, i)
 
         # README Widget
         readme = QTextEdit(readOnly=True)
@@ -234,42 +234,42 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(settings, 0, 0)
 
         # Secuences Buttons
-        for i, (name, cls) in enumerate(sequences.items()):
-            self.buttons[name] = QPushButton(name)
-            self.buttons[name].clicked.connect(self.open_sequence(name))
-            self.buttons[name].setToolTip(cls.__doc__)
-            self.layout.addWidget(self.buttons[name], 0, 1+i)
+        for i, (cls, name) in enumerate(sequences.items()):
+            self.buttons[cls] = QPushButton(name)
+            self.buttons[cls].clicked.connect(self.open_sequence(cls))
+            self.buttons[cls].setToolTip(cls.__doc__)
+            self.layout.addWidget(self.buttons[cls], 0, 1+i)
 
         # Reload window button
         self.reload = QPushButton('Reload')
         self.reload.clicked.connect(lambda: os.execl(sys.executable, sys.executable, *sys.argv))
         self.layout.addWidget(self.reload, 0, self.gridx-1)
 
-        for i, (name, func) in enumerate(scripts.items()):
-            button = QPushButton(name)
-            button.clicked.connect(self.run_script(name))
-            button.setToolTip(func.__doc__)
-            self.layout.addWidget(button, 3, i)
+        for i, (func, name) in enumerate(scripts.items()):
+            self.buttons[func] = QPushButton(name)
+            self.buttons[func].clicked.connect(self.run_script(func))
+            self.buttons[func].setToolTip(func.__doc__)
+            self.layout.addWidget(self.buttons[func], 3, i)
 
-    def open_sequence(self, name: str):
+    def open_sequence(self, cls: Type[MetaProcedure]):
         def func():
-            self.windows[name] = MetaProcedureWindow(self.sequences[name], title=name, parent=self)
-            self.windows[name].show()
+            self.windows[cls] = MetaProcedureWindow(cls, title=self.sequences[cls], parent=self)
+            self.windows[cls].show()
             self.suggest_reload()
         return func
 
-    def open_app(self, name: str):
+    def open_app(self, cls: Type[Procedure]):
         def func():
-            self.windows[name] = ExperimentWindow(self.experiments[name], title=name, parent=self)
-            self.windows[name].show()
+            self.windows[cls] = ExperimentWindow(cls, title=self.experiments[cls], parent=self)
+            self.windows[cls].show()
         return func
 
-    def run_script(self, name: str):
+    def run_script(self, f: callable):
         def func():
             try:
-                self.scripts[name](parent=self)
+                f(parent=self)
             except TypeError:
-                self.scripts[name]()
+                f()
             self.suggest_reload()
         return func
 
