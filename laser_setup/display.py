@@ -247,7 +247,7 @@ class MainWindow(QMainWindow):
 
         # Reload window button
         self.reload = QPushButton('Reload')
-        self.reload.clicked.connect(lambda: os.execl(sys.executable, sys.executable, *sys.argv))
+        self.reload.clicked.connect(lambda: os.execl(sys.executable, sys.executable, '.', *sys.argv[1:]))
         self.layout.addWidget(self.reload, 0, self.gridx-1)
 
         for i, (func, name) in enumerate(scripts.items()):
