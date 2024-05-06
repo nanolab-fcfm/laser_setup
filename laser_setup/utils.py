@@ -121,6 +121,20 @@ def find_dp(data: Tuple[Dict, pd.DataFrame]) -> float:
     return df['Vg (V)'][peaks].mean()
 
 
+def sort_by_creation_date(filename: str) -> List[str]:
+    """This function sorts the files found in the given pattern by their
+    creation date.
+
+    :param pattern: The pattern to look for files
+    :return: A list of file paths sorted by creation date
+    """
+    filename = os.path.basename(filename)
+    date_part, number_part = filename.split('_')
+    date = datetime.datetime.strptime(date_part[-10:], '%Y-%m-%d')
+    number = int(number_part.split('.')[0])
+    return date, number
+
+
 def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -> float:
     """This function returns the latest Dirac Point found for the specified
     chip group, chip number and sample. This is based on IVg measurements.
@@ -139,7 +153,8 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     # return round(np.mean(df["Vg (V)"].values[indices_smallest_four]), 2)
     DataDir = config['Filename']['directory']
     data_total = glob(DataDir + '/**/*.csv', recursive=True)
-    data_files = [d for d in data_total if 'IVg' in d][-1:-max_files-1:-1]
+    data_sorted = sorted(data_total, key=sort_by_creation_date)
+    data_files = [d for d in data_sorted if 'IVg' in d][-1:-max_files-1:-1]
     for file in data_files:
         data = read_pymeasure(file)
         if data[0]['Chip group name'] == chip_group and data[0]['Chip number'] == str(chip_number) and data[0]['Sample'] == sample:
@@ -184,7 +199,7 @@ def get_timestamp(file):
     return float(read_pymeasure(file)[0]['Start time'])
 
 
-def sort_by_creation_date(pattern):
+def sort_by_creation_date_calibration(pattern):
     # Get a list of file paths that match the specified pattern
     file_paths = glob(pattern)
 
@@ -373,5 +388,5 @@ def get_date_time_from_timestamp_unix(timestamp_unix):
 
 
 def load_sorted_data(path_folder):
-    data = sort_by_creation_date(os.path.join(path_folder, "*.csv"))
+    data = sort_by_creation_date_calibration(os.path.join(path_folder, "*.csv"))
     return [read_pymeasure(path) for path in data]
