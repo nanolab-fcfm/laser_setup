@@ -13,13 +13,14 @@ import logging
 from pymeasure.experiment.config import get_config, set_mpl_rcparams
 from pymeasure.log import setup_logging
 
-# Load the config file
-config_path = './config/config.ini'
-os.makedirs(os.path.dirname(config_path), exist_ok=True)
-if os.path.exists(config_path):
-    os.environ['CONFIG'] = config_path
+# Load the config files
+_default_config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'default_config.ini'))
+config_path = './config/config.ini' # os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'config', 'config.ini') 
+os.makedirs(os.path.dirname(config_path), exist_ok=True) # [os.path.join('config', d) for d in os.listdir('config')]
+with open(config_path, 'a') as f: pass
 
-config = get_config()
+# Read both the default and user-defined config files, overwriting the defaults
+config = get_config([_default_config_path, config_path])
 
 # Setup logging
 log = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ if 'filename' in config['Logging']:
 
 setup_logging(log, **config['Logging'])
 
-_config_file_used = 'default_config.ini' if 'CONFIG' not in os.environ.keys() else os.environ['CONFIG']
+_config_file_used = config_path
 log.info(f"Using config file: {_config_file_used}")
 
 # Setup matplotlib.rcParams from config

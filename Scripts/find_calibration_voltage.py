@@ -3,13 +3,12 @@ This Script is used to find the corresponding voltages of the given powers
 from the selected calibration curve.
 """
 import os
-import json
 import sys
 from datetime import datetime
 from tkinter import Tk     
 from tkinter.filedialog import askopenfilenames
 
-from Scripts.utils import read_pymeasure
+from lib.utils import read_pymeasure
 
 import numpy as np
 import pandas as pd
