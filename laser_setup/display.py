@@ -5,6 +5,7 @@ import os
 import sys
 import time
 import logging
+from importlib.metadata import metadata
 from typing import Type
 
 from pymeasure.display.windows import ManagedWindow
@@ -15,7 +16,7 @@ from PyQt6.QtCore import QLocale
 from PyQt6.QtWidgets import QApplication, QStyle, QMainWindow, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QHBoxLayout
 from PyQt6 import QtWidgets, QtCore
 
-from . import config, _config_file_used
+from . import config, config_path, _config_file_used
 from .utils import remove_empty_data
 from .procedures import MetaProcedure, BaseProcedure
 
@@ -88,12 +89,12 @@ class MetaProcedureWindow(QMainWindow):
             if BaseProcedure in proc.__mro__:
                 for input in BaseProcedure.INPUTS:
                     proc_inputs.remove(input)
-                
+
             widget = InputsWidget(proc, inputs=proc_inputs)
             widget.layout().setSpacing(10)
             widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(widget)
-        
+
         scroll_area = QtWidgets.QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setFrameStyle(QtWidgets.QScrollArea.Shape.NoFrame)
@@ -107,14 +108,14 @@ class MetaProcedureWindow(QMainWindow):
         vbox = QtWidgets.QVBoxLayout()
         vbox.setContentsMargins(0, 0, 0, 0)
         vbox.addWidget(scroll_area, 1)
-        
+
         self.queue_button = QtWidgets.QPushButton("Queue")
         vbox.addWidget(self.queue_button)
         self.queue_button.clicked.connect(self.queue)
-        
-        container = QWidget()        
+
+        container = QWidget()
         container.setLayout(vbox)
-        
+
         self.setCentralWidget(container)
 
     def queue(self):
@@ -142,7 +143,7 @@ class MetaProcedureWindow(QMainWindow):
                 window.abort_button.clicked.connect(self.abort_current(window))
                 window.show()
                 window.queue_button.click()
-                
+
                 # Wait for the procedure to finish
                 while window.manager.is_running() and window.isVisible():
                     QtWidgets.QApplication.processEvents()
@@ -152,12 +153,12 @@ class MetaProcedureWindow(QMainWindow):
                 if window.manager.is_running():
                     window.manager.abort()
                     log.error(f"Aborted {proc.__name__}. Window closed.")
-                    
+
                 window.close()
 
         self.close()
         log.info("Sequence finished.")
-        
+
     def abort_current(self, window: ExperimentWindow):
         def func():
             window.manager.abort()
@@ -185,7 +186,7 @@ class MetaProcedureWindow(QMainWindow):
                 QtWidgets.QApplication.processEvents()
                 time.sleep(wait_time/1000)
             progress.hide()
-        
+
         else:
             time.sleep(wait_time)
 
@@ -213,74 +214,90 @@ class MainWindow(QMainWindow):
         # Experiment Buttons
         self.layout = QGridLayout(self.centralWidget())
         self.buttons = {}
-        for i, (name, cls) in enumerate(experiments.items()):
-            self.buttons[name] = QPushButton(name)
-            self.buttons[name].clicked.connect(self.open_app(name))
-            self.buttons[name].setToolTip(cls.__doc__)
-            self.layout.addWidget(self.buttons[name], 2, i)
+        for i, (cls, name) in enumerate(experiments.items()):
+            self.buttons[cls] = QPushButton(name)
+            self.buttons[cls].clicked.connect(self.open_app(cls))
+            self.buttons[cls].setToolTip(cls.__doc__)
+            self.layout.addWidget(self.buttons[cls], 2, i)
 
         # README Widget
         readme = QTextEdit(readOnly=True)
         readme.setStyleSheet("""
             font-size: 12pt;
         """)
-        with open('README.md') as f:
-            readme.setMarkdown(f.read())
+        try:
+            with open('README.md') as f:
+                readme_text = f.read()
+        except FileNotFoundError:
+            readme_text = metadata('laser_setup').get('Description')
+        readme.setMarkdown(readme_text)
         self.layout.addWidget(readme, 1, 0, 1, self.gridx)
-        
+
         # Settings Button
         settings = QPushButton('Settings')
         settings.clicked.connect(self.edit_settings)
         self.layout.addWidget(settings, 0, 0)
-        
-        # Secuences Button
-        meta_procedure = QPushButton('Sequence')
-        meta_procedure.clicked.connect(self.open_sequence('Main Sequence'))
-        meta_procedure.setToolTip(MetaProcedure.__doc__)
-        self.layout.addWidget(meta_procedure, 0, 1)
-        
-        
+
+        # Secuences Buttons
+        for i, (cls, name) in enumerate(sequences.items()):
+            self.buttons[cls] = QPushButton(name)
+            self.buttons[cls].clicked.connect(self.open_sequence(cls))
+            self.buttons[cls].setToolTip(cls.__doc__)
+            self.layout.addWidget(self.buttons[cls], 0, 1+i)
+
         # Reload window button
         self.reload = QPushButton('Reload')
         self.reload.clicked.connect(lambda: os.execl(sys.executable, sys.executable, *sys.argv))
         self.layout.addWidget(self.reload, 0, self.gridx-1)
-        
-        for i, (name, func) in enumerate(scripts.items()):
-            button = QPushButton(name)
-            button.clicked.connect(self.run_script(name))
-            button.setToolTip(func.__doc__)
-            self.layout.addWidget(button, 3, i)
-            
-    def open_sequence(self, name: str):
+
+        for i, (func, name) in enumerate(scripts.items()):
+            self.buttons[func] = QPushButton(name)
+            self.buttons[func].clicked.connect(self.run_script(func))
+            self.buttons[func].setToolTip(func.__doc__)
+            self.layout.addWidget(self.buttons[func], 3, i)
+
+    def open_sequence(self, cls: Type[MetaProcedure]):
         def func():
-            self.windows[name] = MetaProcedureWindow(self.sequences[name], title=name, parent=self)
-            self.windows[name].show()
+            self.windows[cls] = MetaProcedureWindow(cls, title=self.sequences[cls], parent=self)
+            self.windows[cls].show()
             self.suggest_reload()
         return func
 
-    def open_app(self, name: str):
+    def open_app(self, cls: Type[Procedure]):
         def func():
-            self.windows[name] = ExperimentWindow(self.experiments[name], title=name, parent=self)
-            self.windows[name].show()
+            self.windows[cls] = ExperimentWindow(cls, title=self.experiments[cls], parent=self)
+            self.windows[cls].show()
         return func
-    
-    def run_script(self, name: str):
+
+    def run_script(self, f: callable):
         def func():
             try:
-                self.scripts[name](parent=self)
+                f(parent=self)
             except TypeError:
-                self.scripts[name]()
+                f()
             self.suggest_reload()
         return func
-    
+
     def edit_settings(self):
-        os.startfile(_config_file_used.replace('/', '\\'))
+        if _config_file_used != config_path:
+            choice = self.select_from_list('No config file found',
+                ['Create new config', 'Use default config'], 'Select an option:')
+
+            if choice == 'Create new config':
+                os.makedirs(os.path.dirname(config_path), exist_ok=True)
+                with open(config_path, 'w') as f:
+                    config.write(f)
+
+            elif choice == 'Use default config':
+                return
+
+        os.startfile(config_path.replace('/', '\\'))
         self.suggest_reload()
-        
+
     def suggest_reload(self):
         self.reload.setStyleSheet('background-color: red;')
         self.reload.setText('Reload to apply changes')
-        
+
     def error_dialog(self, message:str):
         error_dialog = QMessageBox()
         error_dialog.setWindowTitle("Error")
@@ -288,13 +305,13 @@ class MainWindow(QMainWindow):
         error_dialog.setIcon(QMessageBox.Icon.Critical)
         error_dialog.exec()
         self.reload.click()
-        
+
     def lock_window(self, msg: str = ''):
         self.setEnabled(False)
         self.lock_msg = msg
         self.locked = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, 'Locked', msg)
         self.locked.exec()
-        
+
     def select_from_list(self, title: str, items: list[str], label: str = '') -> str:
         item, ok = QtWidgets.QInputDialog.getItem(self, title, label, items, 0, False)
         if ok:
@@ -306,7 +323,7 @@ def display_window(Window: Type[QMainWindow], *args):
     """Displays the window for the given class. Allows for the
     window to be run from the GUI, by queuing it in the manager.
     It also allows for existing data to be loaded and displayed.
-    
+
     :param Window: The Qt Window subclass to display.
     :param args: The arguments to pass to the window class.
     """

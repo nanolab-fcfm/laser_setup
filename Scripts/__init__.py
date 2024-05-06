@@ -1,5 +1,5 @@
 import logging
-from lib import config, setup_logging
+from laser_setup import config, setup_logging
 
 # Setup logging
 log = logging.getLogger(__name__)

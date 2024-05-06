@@ -2,7 +2,7 @@ import random
 import logging
 from time import sleep
 from pymeasure.experiment import IntegerParameter, FloatParameter, Parameter, Experiment, Procedure, BooleanParameter, ListParameter
-from lib.display import display_experiment
+from laser_setup.display import display_experiment
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())

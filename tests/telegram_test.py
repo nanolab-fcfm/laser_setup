@@ -1,4 +1,4 @@
-from lib.display import send_telegram_alert
+from laser_setup.display import send_telegram_alert
 
 def test_telegram_alert():
     send_telegram_alert('Hello World!')

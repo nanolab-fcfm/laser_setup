@@ -4,9 +4,9 @@ import numpy as np
 
 from pymeasure.experiment import Procedure, FloatParameter
 
-from lib import log, config
-from lib.display import display_experiment
-from lib.instruments import Keithley2450
+from laser_setup import log, config
+from laser_setup.display import display_experiment
+from laser_setup.instruments import Keithley2450
 
 np.random.seed(2)
 

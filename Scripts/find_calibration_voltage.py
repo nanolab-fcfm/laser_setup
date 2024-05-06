@@ -8,7 +8,7 @@ from datetime import datetime
 from tkinter import Tk     
 from tkinter.filedialog import askopenfilenames
 
-from lib.utils import read_pymeasure
+from laser_setup.utils import read_pymeasure
 
 import numpy as np
 import pandas as pd

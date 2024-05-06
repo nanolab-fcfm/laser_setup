@@ -10,7 +10,7 @@ import pandas as pd
 from scipy.stats import linregress
 from scipy.signal import find_peaks
 
-from lib import config
+from . import config
 
 log = logging.getLogger(__name__)
 
