@@ -57,7 +57,7 @@ class It(BaseProcedure):
     def update_parameters(self):
         vg = str(self.vg)
         assert vg.endswith(' V'), "Gate voltage must be in Volts"
-        vg = vg[:-2].replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=3):.2f}")
+        vg = vg[:-2].replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20):.2f}")
         float_vg = float(eval(vg))
         assert -100 <= float_vg <= 100, "Gate voltage must be between -100 and 100 V"
         self.vg = float_vg
