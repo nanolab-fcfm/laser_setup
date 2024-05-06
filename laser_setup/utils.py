@@ -56,7 +56,7 @@ def remove_empty_data():
 
         if len(nonheader) == 1:
             os.remove(file)
-    
+
     log.info('Empty files removed')
 
 
@@ -69,7 +69,7 @@ def send_telegram_alert(message: str):
     except:
         log.error("No internet connection. Cannot send Telegram message.")
         return
-    
+
     if 'TOKEN' not in config['Telegram']:
         log.error("Telegram token not specified in config.")
         return
@@ -80,9 +80,9 @@ def send_telegram_alert(message: str):
     if len(chats) == 0:
         log.error("No chats specified in config.")
         return
-    
+
     message = ''.join(['\\' + c if c in "_*[]()~`>#+-=|{}.!" else c for c in message])
-    
+
     for chat in chats:
         chat_id = config['Telegram'][chat]
         params = dict(
@@ -149,9 +149,30 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
                 continue
 
             return DP
-    
+
     log.error(f"Dirac Point not found for {chip_group} {chip_number} {sample}")
     raise ValueError("Dirac Point not found")
+
+
+def rename_data_value(original: str, replace: str):
+    """Takes all .csv files in data/**/*.csv, checks for
+    headers and replaces all strings matching original with replace
+    """
+    DataDir = config['Filename']['directory']
+    data_total = glob(DataDir + '/**/*.csv', recursive=True)
+    for file in data_total:
+        with open(file, 'r+') as f:
+            lines = f.readlines()
+
+            for i, line in enumerate(lines):
+                if line.startswith('#'):
+                    lines[i] = line.replace(original, replace)
+
+            f.seek(0)
+            f.writelines(lines)
+            f.truncate()
+
+    log.info(f"Replaced '{original}' with '{replace}' in all data files.")
 
 
 ####################################################################################################
@@ -203,10 +224,10 @@ def interpolate_df(data, vg):
     df = data.copy()
     df["Vg (V)"] -= vg
     x_1, x_2, y_1, y_2 = find_NN_points(data, vg)
-   
+
     return y_2 - x_2 * (y_2 - y_1) / (x_2 - x_1)
-    
-    
+
+
 def increment_numbers(input_list):
     current_number = input_list[0]
     counter = 1
@@ -245,7 +266,7 @@ def get_mean_current_for_given_gate(data, vg):
             continue
 
         results.append(interpolate_df(current_df, vg))
-    
+
     #devolver el promedio de la lista
     return np.mean(results)
 
@@ -299,8 +320,8 @@ def make_data_summary(experiments):
             dp.append(find_dp(data))
         else:
             dp.append(np.nan)
-    
-    
+
+
     data = {'led V': ledV, 'Experiment type': exp_type, 'wl': led_wl, "vg": vg, "dp": dp, "timestamp": timestamp}
     df = pd.DataFrame(data)
     return df
@@ -322,24 +343,24 @@ def get_current_from_Vg(data, vg):
     #x = np.linspace(vg-2*dVg, vg+2*dVg, 100)
     #y = reg.slope * x + reg.intercept
     #plt.plot(x, y)
-    
+
     return reg.slope * vg + reg.intercept
 
 
 def get_timestamp_from_unix(timestamp_unix):
     # Convert Unix timestamp to a datetime object
     dt_object = datetime.datetime.fromtimestamp(timestamp_unix)
-    
+
     # Convert the datetime object to a pandas Timestamp
     timestamp_pandas = pd.Timestamp(dt_object)
-    
+
     return timestamp_pandas
 
 
 def get_date_time_from_timestamp_unix(timestamp_unix):
     # Convert Unix timestamp to a datetime object
     dt_object = datetime.datetime.fromtimestamp(timestamp_unix)
-    
+
     # Extract year, month, day, hour, minute, and second from the datetime object
     year = dt_object.year
     month = dt_object.month
@@ -347,9 +368,9 @@ def get_date_time_from_timestamp_unix(timestamp_unix):
     hour = dt_object.hour
     minute = dt_object.minute
     second = dt_object.second
-    
+
     return year, month, day, hour, minute, second
-    
+
 
 def load_sorted_data(path_folder):
     data = sort_by_creation_date(os.path.join(path_folder, "*.csv"))
