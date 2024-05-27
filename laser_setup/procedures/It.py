@@ -46,8 +46,9 @@ class It(BaseProcedure):
     sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
     N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
     Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
+    NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'N_avg', 'Irange']
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'N_avg', 'Irange', 'NPLC']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
@@ -79,7 +80,7 @@ class It(BaseProcedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.measure_current(current=self.Irange, auto_range=not bool(self.Irange))
+        self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
