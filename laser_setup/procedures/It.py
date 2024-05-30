@@ -16,21 +16,6 @@ class It(BaseProcedure):
     """Measures a time-dependant current with a Keithley 2450. The gate voltage
     is controlled by two TENMA sources. The laser is controlled by another
     TENMA source.
-
-    :param chip_group: The chip group name.
-    :param sample: The sample name.
-    :param info: A comment to add to the data file.
-    :param laser_freq: The laser frequency in Hz.
-    :param laser_T: The laser ON+OFF period in seconds.
-    :param laser_v: The laser voltage in Volts.
-    :param vds: The drain-source voltage in Volts.
-    :param vg: The gate voltage in Volts.
-    :param Irange: The current range in Ampere.
-
-    :ivar meter: The Keithley 2450 meter.
-    :ivar tenma_neg: The negative TENMA source.
-    :ivar tenma_pos: The positive TENMA source.
-    :ivar tenma_laser: The laser TENMA source.
     """
     wavelengths = list(eval(config['Laser']['wavelengths']))
 
@@ -54,7 +39,7 @@ class It(BaseProcedure):
 
     def get_keithley_time(self):
         return float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
-    
+
     def update_parameters(self):
         vg = str(self.vg)
         assert vg.endswith(' V'), "Gate voltage must be in Volts"
@@ -99,7 +84,7 @@ class It(BaseProcedure):
 
     def execute(self):
         log.info("Starting the measurement")
-        
+
         self.meter.source_voltage = self.vds
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)

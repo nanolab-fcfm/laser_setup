@@ -15,25 +15,6 @@ log = logging.getLogger(__name__)
 class IV(BaseProcedure):
     """Measures an IV with a Keithley 2450. The source drain voltage is
     controlled by the same instrument.
-
-    :param chip_group: The chip group name.
-    :param chip_number: The chip number.
-    :param sample: The sample name.
-    :param info: A comment to add to the data file.
-    :param vds: The drain-source voltage in Volts.
-    :param vsd_start: The starting source drain voltage in Volts.
-    :param vsd_end: The ending source drain voltage in Volts.
-    :laser_toggle: Whether to turn on the laser
-    :laser_wl: The laser wavelength in nm.
-    :laser_v: The laser voltage in Volts.
-    :param N_avg: The number of measurements to average.
-    :param vsd_step: The step size of the source drain voltage.
-    :param step_time: The time to wait between measurements.
-    :param Irange: The current range in Ampere.
-
-    :ivar meter: The Keithley 2450 meter.
-    :ivar tenma_neg: The negative TENMA source.
-    :ivar tenma_pos: The positive TENMA source.
     """
     wavelengths = list(eval(config['Laser']['wavelengths']))
 

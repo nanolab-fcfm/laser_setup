@@ -14,17 +14,9 @@ class Pt(Procedure):
     """
     Basic procedure for measuring light power over time with a Thorlabs
     Powermeter and one laser controlled by a TENMA Power Supply.
-
-    :param info: A comment to add to the data file.
-    :param laser_wl: The laser wavelength in nm.
-    :param laser_T: The laser ON+OFF period in seconds.
-    :param laser_v: The laser voltage in Volts.
-    :param Irange: The current range in Ampere.
-
-    :ivar tenma_laser: The laser TENMA source.
     """
     procedure_version = Parameter('Procedure version', default='0.1.1')
-    
+
     wavelengths = list(eval(config['Laser']['wavelengths']))
     fibers = list(eval(config['Laser']['fibers']))
 
@@ -102,6 +94,6 @@ class Pt(Procedure):
         if not hasattr(self, 'power_meter'):
             log.info("No instruments to shutdown.")
             return
-        
+
         self.tenma_laser.shutdown()
         log.info("Instruments shutdown.")

@@ -16,25 +16,6 @@ log = logging.getLogger(__name__)
 class IVg(BaseProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources.
-
-    :param chip_group: The chip group name.
-    :param chip_number: The chip number.
-    :param sample: The sample name.
-    :param info: A comment to add to the data file.
-    :param vds: The drain-source voltage in Volts.
-    :param vg_start: The starting gate voltage in Volts.
-    :param vg_end: The ending gate voltage in Volts.
-    :laser_toggle: Whether to turn on the laser
-    :laser_wl: The laser wavelength in nm.
-    :laser_v: The laser voltage in Volts.
-    :param N_avg: The number of measurements to average.
-    :param vg_step: The step size of the gate voltage.
-    :param step_time: The time to wait between measurements.
-    :param Irange: The current range in Ampere.
-
-    :ivar meter: The Keithley 2450 meter.
-    :ivar tenma_neg: The negative TENMA source.
-    :ivar tenma_pos: The positive TENMA source.
     """
     wavelengths = list(eval(config['Laser']['wavelengths']))
 
@@ -173,6 +154,6 @@ class IVg(BaseProcedure):
                 ('Dirac Point', f"{data[0, peaks].mean():.1f}"),
             ]
             return estimates
-        
+
         except:
             return [('Dirac Point', 'None')]
