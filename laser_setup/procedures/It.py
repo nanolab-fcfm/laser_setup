@@ -29,11 +29,11 @@ class It(BaseProcedure):
 
     # Additional Parameters, preferably don't change
     sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
-    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
+    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')  # deprecated
     Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
     NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'N_avg', 'Irange', 'NPLC']
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
@@ -93,7 +93,6 @@ class It(BaseProcedure):
 
 
         def measuring_loop(t_end: float, laser_v: float):
-            avg_array = np.zeros(self.N_avg)
             keithley_time = self.get_keithley_time()
             while keithley_time < t_end:
                 if self.should_stop():
@@ -102,13 +101,10 @@ class It(BaseProcedure):
 
                 self.emit('progress', 100 * keithley_time / (self.laser_T * 3/2))
 
-                # Take the average of N_avg measurements
-                for j in range(self.N_avg):
-                    avg_array[j] = self.meter.current
-
                 keithley_time = self.get_keithley_time()
-                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, np.mean(avg_array), laser_v])))
-                avg_array[:] = 0.
+                current = self.meter.current
+
+                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, current, laser_v])))
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.

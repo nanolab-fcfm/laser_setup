@@ -30,12 +30,13 @@ class IV(BaseProcedure):
     burn_in_t = FloatParameter('Burn-in time', units='s', default=60., group_by='laser_toggle')
 
     # Additional Parameters, preferably don't change
-    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
+    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')  # deprecated
     vsd_step = FloatParameter('VSD step', units='V', default=0.01, group_by='show_more')
     step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
     Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
+    NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vg', 'vsd_start', 'vsd_end', 'vsd_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange']
+    INPUTS = BaseProcedure.INPUTS + ['vg', 'vsd_start', 'vsd_end', 'vsd_step', 'step_time', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange', 'NPLC']
     DATA_COLUMNS = ['Vsd (V)', 'I (A)']
     SEQUENCER_INPUTS = ['laser_v', 'vg', 'vds']
 
@@ -55,7 +56,7 @@ class IV(BaseProcedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.measure_current(current=self.Irange, auto_range=not bool(self.Irange))
+        self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
@@ -90,7 +91,6 @@ class IV(BaseProcedure):
 
         # Set the Vsd ramp and the measuring loop
         self.vsd_ramp = voltage_sweep_ramp(self.vsd_start, self.vsd_end, self.vsd_step)
-        avg_array = np.zeros(self.N_avg)
         for i, vsd in enumerate(self.vsd_ramp):
             if self.should_stop():
                 log.error('Measurement aborted')
@@ -98,16 +98,13 @@ class IV(BaseProcedure):
 
             self.emit('progress', 100 * i / len(self.vsd_ramp))
 
-            self.meter.source_voltage=vsd
+            self.meter.source_voltage = vsd
 
             time.sleep(self.step_time)
 
-            # Take the average of N_avg measurements
-            for j in range(self.N_avg):
-                avg_array[j] = self.meter.current
+            current = self.meter.current
 
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [vsd, np.mean(avg_array)])))
-            avg_array[:] = 0.
+            self.emit('results', dict(zip(self.DATA_COLUMNS, [vsd, current])))
 
     def shutdown(self):
         if not hasattr(self, 'meter'):

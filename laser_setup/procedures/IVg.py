@@ -31,12 +31,13 @@ class IVg(BaseProcedure):
     burn_in_t = FloatParameter('Burn-in time', units='s', default=60., group_by='laser_toggle')
 
     # Additional Parameters, preferably don't change
-    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')
+    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')  # deprecated
     vg_step = FloatParameter('VG step', units='V', default=0.2, group_by='show_more')
     step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
     Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
+    NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'N_avg', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange']
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange', 'NPLC']
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
     # SEQUENCER_INPUTS = ['vds']
 
@@ -59,7 +60,7 @@ class IVg(BaseProcedure):
         self.meter.reset()
         self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
         # self.meter.use_front_terminals()
-        self.meter.measure_current(current=self.Irange, auto_range=not bool(self.Irange))
+        self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
@@ -91,7 +92,6 @@ class IVg(BaseProcedure):
         # Set the Vg ramp and the measuring loop
         self.vg_ramp = voltage_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
         self.DATA[0] = list(self.vg_ramp)
-        avg_array = np.zeros(self.N_avg)
         for i, vg in enumerate(self.vg_ramp):
             if self.should_stop():
                 log.error('Measurement aborted')
@@ -108,13 +108,10 @@ class IVg(BaseProcedure):
 
             time.sleep(self.step_time)
 
-            # Take the average of N_avg measurements
-            for j in range(self.N_avg):
-                avg_array[j] = self.meter.current
+            current = self.meter.current
 
-            self.DATA[1].append(np.mean(avg_array))
+            self.DATA[1].append(current)
             self.emit('results', dict(zip(self.DATA_COLUMNS, [vg, self.DATA[1][-1]])))
-            avg_array[:] = 0.
 
     def shutdown(self):
         IVg.DATA = [[], []]
