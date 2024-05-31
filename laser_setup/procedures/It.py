@@ -57,8 +57,8 @@ class It(BaseProcedure):
             self.tenma_neg = TENMA(config['Adapters']['tenma_neg'])
             self.tenma_pos = TENMA(config['Adapters']['tenma_pos'])
             self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
-        except ValueError:
-            log.error("Could not connect to instruments")
+        except Exception as e:
+            log.error(f"Could not connect to instruments: {e}")
             raise
 
         # Keithley 2450 meter
@@ -97,7 +97,7 @@ class It(BaseProcedure):
             while keithley_time < t_end:
                 if self.should_stop():
                     log.error('Measurement aborted')
-                    break
+                    return
 
                 self.emit('progress', 100 * keithley_time / (self.laser_T * 3/2))
 

@@ -52,8 +52,8 @@ class IVg(BaseProcedure):
             self.tenma_pos = TENMA(config['Adapters']['tenma_pos'])
             if self.laser_toggle:
                 self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
-        except ValueError:
-            log.error("Could not connect to instruments")
+        except Exception as e:
+            log.error(f"Could not connect to instruments: {e}")
             raise
 
         # Keithley 2450 meter

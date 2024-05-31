@@ -50,8 +50,8 @@ class Pt(Procedure):
         try:
             self.power_meter = ThorlabsPM100USB(config['Adapters']['power_meter'])
             self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
-        except ValueError:
-            log.error("Could not connect to instruments")
+        except Exception as e:
+            log.error(f"Could not connect to instruments: {e}")
             raise
 
         # TENMA sources
