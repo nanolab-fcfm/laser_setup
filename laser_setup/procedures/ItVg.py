@@ -32,7 +32,7 @@ class ItVg(BaseProcedure):
     # Gate Voltage Array Parameters
     vg_start = FloatParameter('VG start', units='V', default=0.)
     vg_end = FloatParameter('VG end', units='V', default=15.)
-    vg_step = FloatParameter('VG step', units='V', default=15.)
+    vg_step = FloatParameter('VG step', units='V', default=0.)
     step_time = FloatParameter('Step time', units='s', default=30*60.)
 
     # Additional Parameters, preferably don't change
@@ -82,7 +82,8 @@ class ItVg(BaseProcedure):
     def execute(self):
         log.info("Starting the measurement")
 
-        self.vg_ramp = up_down_ramp(self.vg_start, self.vg_end, self.vg_step)
+        step = self.vg_step if self.vg_step else self.vg_end - self.vg_start
+        self.vg_ramp = up_down_ramp(self.vg_start, self.vg_end, step)
         log.info(f'Gate voltage ramp: {self.vg_ramp}')
         t_total = self.step_time * len(self.vg_ramp) + self.burn_in_t * self.laser_toggle
 
