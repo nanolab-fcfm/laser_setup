@@ -22,6 +22,21 @@ SONGS: Dict[str, List[Tuple[float, float]]] = dict(
 )
 
 
+def up_down_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarray:
+    """This function returns a ramp array with the voltages to be applied
+    for a voltage sweep. It goes from v_start to v_end, then to v_start.
+
+    :param v_start: The starting voltage of the sweep
+    :param v_end: The ending voltage of the sweep
+    :param v_step: The step size of the sweep
+    :return: An array with the voltages to be applied
+    """
+    V_up = np.arange(v_start, v_end, v_step)
+    V_down = np.arange(v_end, v_start - v_step, -v_step)
+    V = np.concatenate((V_up, V_down))
+    return V
+
+
 def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarray:
     """This function returns an array with the voltages to be applied
     for a voltage sweep. It goes from 0 to v_start, then to v_end, then to
@@ -32,9 +47,7 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
     :param v_step: The step size of the sweep
     :return: An array with the voltages to be applied
     """
-    V_up = np.arange(v_start, v_end, v_step)
-    V_down = np.arange(v_end, v_start - v_step, -v_step)
-    V_m = np.concatenate((V_up, V_down))
+    V_m = up_down_ramp(v_start, v_end, v_step)
 
     direction = 1 if v_start > 0 else -1
 
