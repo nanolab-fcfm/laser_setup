@@ -30,9 +30,9 @@ class ItVg(BaseProcedure):
     burn_in_t = FloatParameter('Burn-in time', units='s', default=10*60, group_by='laser_toggle')
 
     # Gate Voltage Array Parameters
-    vg_start = FloatParameter('VG start', units='V', default=-35.)
-    vg_end = FloatParameter('VG end', units='V', default=35.)
-    vg_step = FloatParameter('VG step', units='V', default=5.)
+    vg_start = FloatParameter('VG start', units='V', default=0.)
+    vg_end = FloatParameter('VG end', units='V', default=15.)
+    vg_step = FloatParameter('VG step', units='V', default=15.)
     step_time = FloatParameter('Step time', units='s', default=30*60.)
 
     # Additional Parameters, preferably don't change
