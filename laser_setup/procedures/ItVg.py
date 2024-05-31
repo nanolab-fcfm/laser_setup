@@ -32,7 +32,7 @@ class ItVg(BaseProcedure):
     # Gate Voltage Array Parameters
     vg_start = FloatParameter('VG start', units='V', default=0.)
     vg_end = FloatParameter('VG end', units='V', default=15.)
-    vg_step = FloatParameter('VG step', units='V', default=0.)
+    vg_step = FloatParameter('VG step', units='V', default=0., group_by='show_more')
     step_time = FloatParameter('Step time', units='s', default=30*60.)
 
     # Additional Parameters, preferably don't change
