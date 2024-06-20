@@ -12,7 +12,7 @@ from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import unique_filename, Results, Procedure
 from pymeasure.display.widgets import InputsWidget
 from pymeasure.display.manager import Experiment
-from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtGui import QColor, QPalette, QPixmap
 from PyQt6.QtCore import QLocale
 from PyQt6.QtWidgets import QApplication, QStyle, QMainWindow, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QHBoxLayout
 from PyQt6 import QtWidgets, QtCore
@@ -113,8 +113,9 @@ class ExperimentWindow(ManagedWindow):
                 return
 
             self.manager.abort()
-            time.sleep(0.5) # Wait for the procedure to abort (works)
-        event.accept()
+            # time.sleep(0.5)    # Uncomment if RuntimeError: wrapped C/C++ object of type Emitter has been deleted
+        self.log_widget._blink_qtimer.stop()
+        super().closeEvent(event)
 
 
 class MetaProcedureWindow(QMainWindow):
@@ -122,20 +123,22 @@ class MetaProcedureWindow(QMainWindow):
     for the sequence, and displays an ExperimentWindow for each procedure.
     """
     aborted: bool = False
+    status_labels = []
     def __init__(self, cls: Type[MetaProcedure], title: str = '', **kwargs):
         super().__init__(**kwargs)
         self.cls = cls
+
         self.resize(200*(len(cls.procedures)+1), 480)
         self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in cls.procedures))})")
 
         layout = QHBoxLayout()
-        layout.addWidget(QtWidgets.QLabel(cls.__name__ + '\n→'))
+        layout.addLayout(self._get_procedure_vlayout(cls))
         widget = InputsWidget(BaseProcedure, inputs=BaseProcedure.INPUTS[1:])
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
         for i, proc in enumerate(cls.procedures):
-            layout.addWidget(QtWidgets.QLabel(proc.__name__ + '\n→'))
+            layout.addLayout(self._get_procedure_vlayout(proc))
             proc_inputs = list(proc.INPUTS)
             if BaseProcedure in proc.__mro__:
                 for input in BaseProcedure.INPUTS:
@@ -169,8 +172,30 @@ class MetaProcedureWindow(QMainWindow):
 
         self.setCentralWidget(container)
 
+    def _get_procedure_vlayout(self, proc: Type[Procedure]):
+        vlayout = QtWidgets.QVBoxLayout()
+        vlayout.setSpacing(0)
+        vlayout.addWidget(QtWidgets.QLabel(proc.__name__ + '\n→'))
+        self.status_labels.append(QtWidgets.QLabel(self))
+        pixmap = QPixmap(20, 20)
+        pixmap.fill(QColor('white'))
+        self.status_labels[-1].setPixmap(pixmap)
+        vlayout.addWidget(self.status_labels[-1])
+        vlayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        return vlayout
+
+    def set_status(self, index: int, color: str):
+        def func():
+            pixmap = QPixmap(20, 20)
+            pixmap.fill(QColor(color))
+            self.status_labels[index + 1].setPixmap(pixmap)
+        return func
+
     def queue(self):
         log.info("Queueing the procedures.")
+        self.set_status(-1, 'yellow')()
+        for i in range(len(self.cls.procedures)):
+            self.set_status(i, 'white')()
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
         base_parameters = inputs[0].get_procedure()._parameters
@@ -178,7 +203,9 @@ class MetaProcedureWindow(QMainWindow):
             # Spawn the corresponding ExperimentWindow and queue it
             if proc.__name__ == 'Wait':
                 wait_time = inputs[i+1].get_procedure().wait_time
+                self.set_status(i, 'yellow')()
                 self.wait(wait_time)
+                self.set_status(i, 'green')()
 
             else:
                 window = ExperimentWindow(proc, title=proc.__name__)
@@ -193,6 +220,13 @@ class MetaProcedureWindow(QMainWindow):
                 window.show()
                 window.queue_button.click()
 
+                # Update the status label
+                window.manager.running.connect(self.set_status(i, 'yellow'))
+                window.manager.finished.connect(self.set_status(i, 'green'))
+                window.manager.failed.connect(self.set_status(i, 'red'))
+                window.manager.aborted.connect(self.set_status(i, 'red'))
+
+                # Window managing
                 window.manager.aborted.connect(self.aborted_procedure(window))
                 window.manager.failed.connect(self.failed_procedure(window))
                 window.manager.finished.connect(window.close)
@@ -205,11 +239,12 @@ class MetaProcedureWindow(QMainWindow):
                 loop.exec()
 
                 if self.aborted:
-                    self.aborted = False
                     break
 
         self.queue_button.setEnabled(True)
-        log.info("Sequence finished.")
+        if not self.aborted: log.info("Sequence finished.")
+        self.set_status(-1, 'red' if self.aborted else 'green')()
+        self.aborted = False
 
     @QtCore.pyqtSlot()
     def aborted_procedure(self, window: ExperimentWindow, close_window=True):
