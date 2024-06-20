@@ -96,7 +96,7 @@ class It(BaseProcedure):
             keithley_time = self.get_keithley_time()
             while keithley_time < t_end:
                 if self.should_stop():
-                    log.error('Measurement aborted')
+                    log.warning('Measurement aborted')
                     return
 
                 self.emit('progress', 100 * keithley_time / (self.laser_T * 3/2))

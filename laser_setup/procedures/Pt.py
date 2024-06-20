@@ -68,7 +68,7 @@ class Pt(Procedure):
             avg_array = np.zeros(self.N_avg)
             while (time.time() - initial_time) < t_end:
                 if self.should_stop():
-                    log.error('Measurement aborted')
+                    log.warning('Measurement aborted')
                     break
 
                 self.emit('progress', 100 * (time.time() - initial_time) / (self.laser_T * 3/2))

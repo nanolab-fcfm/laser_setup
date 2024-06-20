@@ -94,7 +94,7 @@ class IVg(BaseProcedure):
         self.DATA[0] = list(self.vg_ramp)
         for i, vg in enumerate(self.vg_ramp):
             if self.should_stop():
-                log.error('Measurement aborted')
+                log.warning('Measurement aborted')
                 break
 
             self.emit('progress', 100 * i / len(self.vg_ramp))

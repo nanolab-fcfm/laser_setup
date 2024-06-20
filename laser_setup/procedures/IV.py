@@ -93,7 +93,7 @@ class IV(BaseProcedure):
         self.vsd_ramp = voltage_sweep_ramp(self.vsd_start, self.vsd_end, self.vsd_step)
         for i, vsd in enumerate(self.vsd_ramp):
             if self.should_stop():
-                log.error('Measurement aborted')
+                log.warning('Measurement aborted')
                 break
 
             self.emit('progress', 100 * i / len(self.vsd_ramp))

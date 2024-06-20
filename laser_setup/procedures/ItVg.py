@@ -98,7 +98,7 @@ class ItVg(BaseProcedure):
             t_keithley = self.get_keithley_time()
             while t_keithley < t_end:
                 if self.should_stop():
-                    log.error('Measurement aborted')
+                    log.warning('Measurement aborted')
                     return
 
                 self.emit('progress', 100 * t_keithley / t_total)
