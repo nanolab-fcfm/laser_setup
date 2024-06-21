@@ -113,7 +113,7 @@ class ExperimentWindow(ManagedWindow):
                 return
 
             self.manager.abort()
-            # time.sleep(0.5)    # Uncomment if RuntimeError: wrapped C/C++ object of type Emitter has been deleted
+            time.sleep(0.5)
         self.log_widget._blink_qtimer.stop()
         super().closeEvent(event)
 
