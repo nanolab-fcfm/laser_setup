@@ -39,8 +39,8 @@ class LaserCalibration(Procedure):
         try:
             self.power_meter = ThorlabsPM100USB(config['Adapters']['power_meter'])
             self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
-        except:
-            log.error("Could not connect to instruments")
+        except Exception as e:
+            log.error(f"Could not connect to instruments: {e}")
             raise
 
         self.tenma_laser.apply_voltage(0.)
@@ -76,7 +76,7 @@ class LaserCalibration(Procedure):
         if not hasattr(self, 'power_meter'):
             log.info("No instruments to shutdown.")
             return
-        
+
         self.power_meter.shutdown()
         self.tenma_laser.shutdown()
         log.info("Instruments shutdown.")

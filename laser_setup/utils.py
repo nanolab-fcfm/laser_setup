@@ -22,6 +22,21 @@ SONGS: Dict[str, List[Tuple[float, float]]] = dict(
 )
 
 
+def up_down_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarray:
+    """This function returns a ramp array with the voltages to be applied
+    for a voltage sweep. It goes from v_start to v_end, then to v_start.
+
+    :param v_start: The starting voltage of the sweep
+    :param v_end: The ending voltage of the sweep
+    :param v_step: The step size of the sweep
+    :return: An array with the voltages to be applied
+    """
+    V_up = np.arange(v_start, v_end, v_step)
+    V_down = np.arange(v_end, v_start - v_step, -v_step)
+    V = np.concatenate((V_up, V_down))
+    return V
+
+
 def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarray:
     """This function returns an array with the voltages to be applied
     for a voltage sweep. It goes from 0 to v_start, then to v_end, then to
@@ -32,9 +47,7 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
     :param v_step: The step size of the sweep
     :return: An array with the voltages to be applied
     """
-    V_up = np.arange(v_start, v_end, v_step)
-    V_down = np.arange(v_end, v_start - v_step, -v_step)
-    V_m = np.concatenate((V_up, V_down))
+    V_m = up_down_ramp(v_start, v_end, v_step)
 
     direction = 1 if v_start > 0 else -1
 
@@ -56,7 +69,7 @@ def remove_empty_data():
 
         if len(nonheader) == 1:
             os.remove(file)
-    
+
     log.info('Empty files removed')
 
 
@@ -69,7 +82,7 @@ def send_telegram_alert(message: str):
     except:
         log.error("No internet connection. Cannot send Telegram message.")
         return
-    
+
     if 'TOKEN' not in config['Telegram']:
         log.error("Telegram token not specified in config.")
         return
@@ -80,9 +93,9 @@ def send_telegram_alert(message: str):
     if len(chats) == 0:
         log.error("No chats specified in config.")
         return
-    
+
     message = ''.join(['\\' + c if c in "_*[]()~`>#+-=|{}.!" else c for c in message])
-    
+
     for chat in chats:
         chat_id = config['Telegram'][chat]
         params = dict(
@@ -121,6 +134,20 @@ def find_dp(data: Tuple[Dict, pd.DataFrame]) -> float:
     return df['Vg (V)'][peaks].mean()
 
 
+def sort_by_creation_date(filename: str) -> List[str]:
+    """This function sorts the files found in the given pattern by their
+    creation date.
+
+    :param pattern: The pattern to look for files
+    :return: A list of file paths sorted by creation date
+    """
+    filename = os.path.basename(filename)
+    date_part, number_part = filename.split('_')
+    date = datetime.datetime.strptime(date_part[-10:], '%Y-%m-%d')
+    number = int(number_part.split('.')[0])
+    return date, number
+
+
 def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -> float:
     """This function returns the latest Dirac Point found for the specified
     chip group, chip number and sample. This is based on IVg measurements.
@@ -139,7 +166,8 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     # return round(np.mean(df["Vg (V)"].values[indices_smallest_four]), 2)
     DataDir = config['Filename']['directory']
     data_total = glob(DataDir + '/**/*.csv', recursive=True)
-    data_files = [d for d in data_total if 'IVg' in d][-1:-max_files-1:-1]
+    data_sorted = sorted(data_total, key=sort_by_creation_date)
+    data_files = [d for d in data_sorted if 'IVg' in d][-1:-max_files-1:-1]
     for file in data_files:
         data = read_pymeasure(file)
         if data[0]['Chip group name'] == chip_group and data[0]['Chip number'] == str(chip_number) and data[0]['Sample'] == sample:
@@ -149,9 +177,30 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
                 continue
 
             return DP
-    
+
     log.error(f"Dirac Point not found for {chip_group} {chip_number} {sample}")
     raise ValueError("Dirac Point not found")
+
+
+def rename_data_value(original: str, replace: str):
+    """Takes all .csv files in data/**/*.csv, checks for
+    headers and replaces all strings matching original with replace
+    """
+    DataDir = config['Filename']['directory']
+    data_total = glob(DataDir + '/**/*.csv', recursive=True)
+    for file in data_total:
+        with open(file, 'r+') as f:
+            lines = f.readlines()
+
+            for i, line in enumerate(lines):
+                if line.startswith('#'):
+                    lines[i] = line.replace(original, replace)
+
+            f.seek(0)
+            f.writelines(lines)
+            f.truncate()
+
+    log.info(f"Replaced '{original}' with '{replace}' in all data files.")
 
 
 ####################################################################################################
@@ -163,7 +212,7 @@ def get_timestamp(file):
     return float(read_pymeasure(file)[0]['Start time'])
 
 
-def sort_by_creation_date(pattern):
+def sort_by_creation_date_calibration(pattern):
     # Get a list of file paths that match the specified pattern
     file_paths = glob(pattern)
 
@@ -203,10 +252,10 @@ def interpolate_df(data, vg):
     df = data.copy()
     df["Vg (V)"] -= vg
     x_1, x_2, y_1, y_2 = find_NN_points(data, vg)
-   
+
     return y_2 - x_2 * (y_2 - y_1) / (x_2 - x_1)
-    
-    
+
+
 def increment_numbers(input_list):
     current_number = input_list[0]
     counter = 1
@@ -245,7 +294,7 @@ def get_mean_current_for_given_gate(data, vg):
             continue
 
         results.append(interpolate_df(current_df, vg))
-    
+
     #devolver el promedio de la lista
     return np.mean(results)
 
@@ -299,8 +348,8 @@ def make_data_summary(experiments):
             dp.append(find_dp(data))
         else:
             dp.append(np.nan)
-    
-    
+
+
     data = {'led V': ledV, 'Experiment type': exp_type, 'wl': led_wl, "vg": vg, "dp": dp, "timestamp": timestamp}
     df = pd.DataFrame(data)
     return df
@@ -322,24 +371,24 @@ def get_current_from_Vg(data, vg):
     #x = np.linspace(vg-2*dVg, vg+2*dVg, 100)
     #y = reg.slope * x + reg.intercept
     #plt.plot(x, y)
-    
+
     return reg.slope * vg + reg.intercept
 
 
 def get_timestamp_from_unix(timestamp_unix):
     # Convert Unix timestamp to a datetime object
     dt_object = datetime.datetime.fromtimestamp(timestamp_unix)
-    
+
     # Convert the datetime object to a pandas Timestamp
     timestamp_pandas = pd.Timestamp(dt_object)
-    
+
     return timestamp_pandas
 
 
 def get_date_time_from_timestamp_unix(timestamp_unix):
     # Convert Unix timestamp to a datetime object
     dt_object = datetime.datetime.fromtimestamp(timestamp_unix)
-    
+
     # Extract year, month, day, hour, minute, and second from the datetime object
     year = dt_object.year
     month = dt_object.month
@@ -347,10 +396,10 @@ def get_date_time_from_timestamp_unix(timestamp_unix):
     hour = dt_object.hour
     minute = dt_object.minute
     second = dt_object.second
-    
+
     return year, month, day, hour, minute, second
-    
+
 
 def load_sorted_data(path_folder):
-    data = sort_by_creation_date(os.path.join(path_folder, "*.csv"))
+    data = sort_by_creation_date_calibration(os.path.join(path_folder, "*.csv"))
     return [read_pymeasure(path) for path in data]

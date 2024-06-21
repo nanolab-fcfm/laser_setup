@@ -14,17 +14,9 @@ class Pt(Procedure):
     """
     Basic procedure for measuring light power over time with a Thorlabs
     Powermeter and one laser controlled by a TENMA Power Supply.
-
-    :param info: A comment to add to the data file.
-    :param laser_wl: The laser wavelength in nm.
-    :param laser_T: The laser ON+OFF period in seconds.
-    :param laser_v: The laser voltage in Volts.
-    :param Irange: The current range in Ampere.
-
-    :ivar tenma_laser: The laser TENMA source.
     """
     procedure_version = Parameter('Procedure version', default='0.1.1')
-    
+
     wavelengths = list(eval(config['Laser']['wavelengths']))
     fibers = list(eval(config['Laser']['fibers']))
 
@@ -58,8 +50,8 @@ class Pt(Procedure):
         try:
             self.power_meter = ThorlabsPM100USB(config['Adapters']['power_meter'])
             self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
-        except ValueError:
-            log.error("Could not connect to instruments")
+        except Exception as e:
+            log.error(f"Could not connect to instruments: {e}")
             raise
 
         # TENMA sources
@@ -76,7 +68,7 @@ class Pt(Procedure):
             avg_array = np.zeros(self.N_avg)
             while (time.time() - initial_time) < t_end:
                 if self.should_stop():
-                    log.error('Measurement aborted')
+                    log.warning('Measurement aborted')
                     break
 
                 self.emit('progress', 100 * (time.time() - initial_time) / (self.laser_T * 3/2))
@@ -102,6 +94,6 @@ class Pt(Procedure):
         if not hasattr(self, 'power_meter'):
             log.info("No instruments to shutdown.")
             return
-        
+
         self.tenma_laser.shutdown()
         log.info("Instruments shutdown.")

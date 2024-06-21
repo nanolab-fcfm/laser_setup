@@ -19,6 +19,19 @@ Deltas respecto al DP: -30, -15, -2, +2 [V]
 8. IVg apagado.
 9. Esperar 30 minutos.
 10. IVg apagado
+---
+0. Have LEDs calibrated to obtain voltages for a given power.
+1. IVg LED OFF.
+2. Turn on the LED for 5 minutes.
+3. IVg LED ON.
+4. IVg LED off immediately.
+5. Wait 30 minutes.
+6. IVg LED off and find DP.
+    + If there are two DPs, use the average.
+7. It for Vg = DP + Delta chosen.
+8. IVg LED OFF.
+9. Wait 30 minutes.
+10. IVg LED OFF
 
 #### Observaciones:
 + Luego de correr `setup_adapters` cerciorarse con el primer IVg que las tenmas estén bien configuradas.

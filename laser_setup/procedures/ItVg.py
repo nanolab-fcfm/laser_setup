@@ -2,47 +2,49 @@ import time
 import logging
 
 import numpy as np
-from scipy.signal import find_peaks
-from pymeasure.experiment import FloatParameter, IntegerParameter, BooleanParameter, ListParameter
+from pymeasure.experiment import FloatParameter, IntegerParameter, Parameter, ListParameter, BooleanParameter
 
 from .. import config
-from ..utils import SONGS, send_telegram_alert, voltage_sweep_ramp
+from ..utils import SONGS, send_telegram_alert, up_down_ramp
 from ..instruments import TENMA, Keithley2450
 from .BaseProcedure import BaseProcedure
 
 log = logging.getLogger(__name__)
 
 
-class IVg(BaseProcedure):
-    """Measures a gate sweep with a Keithley 2450. The gate voltage is
-    controlled by two TENMA sources.
+class ItVg(BaseProcedure):
+    """Measures a time-dependant current with a Keithley 2450, while
+    varying the gate voltage in steps. The drain-source and laser voltages are
+    fixed. The gate voltage is controlled by two TENMA sources. The laser is
+    controlled by another TENMA source.
     """
     wavelengths = list(eval(config['Laser']['wavelengths']))
 
     # Important Parameters
-    vds = FloatParameter('VDS', units='V', default=0.075)
-    vg_start = FloatParameter('VG start', units='V', default=-35.)
-    vg_end = FloatParameter('VG end', units='V', default=35.)
+    vds = FloatParameter('VDS', units='V', default=0.075, decimals=10)
 
     # Laser Parameters
     laser_toggle = BooleanParameter('Laser toggle', default=False)
     laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths, group_by='laser_toggle')
     laser_v = FloatParameter('Laser voltage', units='V', default=0., group_by='laser_toggle')
-    burn_in_t = FloatParameter('Burn-in time', units='s', default=60., group_by='laser_toggle')
+    burn_in_t = FloatParameter('Burn-in time', units='s', default=10*60, group_by='laser_toggle')
+
+    # Gate Voltage Array Parameters
+    vg_start = FloatParameter('VG start', units='V', default=0.)
+    vg_end = FloatParameter('VG end', units='V', default=15.)
+    vg_step = FloatParameter('VG step', units='V', default=0., group_by='show_more')
+    step_time = FloatParameter('Step time', units='s', default=30*60.)
 
     # Additional Parameters, preferably don't change
-    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')  # deprecated
-    vg_step = FloatParameter('VG step', units='V', default=0.2, group_by='show_more')
-    step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
+    sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
     Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
     NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange', 'NPLC']
-    DATA_COLUMNS = ['Vg (V)', 'I (A)']
-    # SEQUENCER_INPUTS = ['vds']
+    INPUTS = BaseProcedure.INPUTS + ['vds', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'sampling_t', 'Irange', 'NPLC']
+    DATA_COLUMNS = ['t (s)', 'I (A)', 'Vg (V)']
 
-    # Fix Data not defined for get_estimates. TODO: Find a better way to handle this.
-    DATA = [[], []]
+    def get_keithley_time(self):
+        return float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
 
     def startup(self):
         log.info("Setting up instruments")
@@ -80,25 +82,39 @@ class IVg(BaseProcedure):
     def execute(self):
         log.info("Starting the measurement")
 
-        # Set the Vds
+        step = self.vg_step if self.vg_step else self.vg_end - self.vg_start
+        self.vg_ramp = up_down_ramp(self.vg_start, self.vg_end, step)
+        log.info(f'Gate voltage ramp: {self.vg_ramp}')
+        t_total = self.step_time * len(self.vg_ramp) + self.burn_in_t * self.laser_toggle
+
         self.meter.source_voltage = self.vds
 
-        # Set the laser if toggled and wait for burn-in
+        if self.vg_ramp[0] > 0:
+            self.tenma_pos.ramp_to_voltage(self.vg_ramp[0])
+        elif self.vg_ramp[0] < 0:
+            self.tenma_neg.ramp_to_voltage(-self.vg_ramp[0])
+
+        def measuring_loop(t_end: float, vg: float):
+            t_keithley = self.get_keithley_time()
+            while t_keithley < t_end:
+                if self.should_stop():
+                    log.warning('Measurement aborted')
+                    return
+
+                self.emit('progress', 100 * t_keithley / t_total)
+
+                current = self.meter.current
+
+                t_keithley = self.get_keithley_time()
+                self.emit('results', dict(zip(self.DATA_COLUMNS, [t_keithley, current, vg])))
+                time.sleep(self.sampling_t)
+
         if self.laser_toggle:
             self.tenma_laser.voltage = self.laser_v
             log.info(f"Laser is ON. Sleeping for {self.burn_in_t} seconds to let the current stabilize.")
-            time.sleep(self.burn_in_t)
+            measuring_loop(self.burn_in_t, self.vg_ramp[0])
 
-        # Set the Vg ramp and the measuring loop
-        self.vg_ramp = voltage_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
-        self.DATA[0] = list(self.vg_ramp)
         for i, vg in enumerate(self.vg_ramp):
-            if self.should_stop():
-                log.warning('Measurement aborted')
-                break
-
-            self.emit('progress', 100 * i / len(self.vg_ramp))
-
             if vg >= 0:
                 self.tenma_neg.voltage = 0.
                 self.tenma_pos.voltage = vg
@@ -106,15 +122,12 @@ class IVg(BaseProcedure):
                 self.tenma_pos.voltage = 0.
                 self.tenma_neg.voltage = -vg
 
-            time.sleep(self.step_time)
+            measuring_loop(self.step_time * (i + 1) + self.burn_in_t * self.laser_toggle, vg)
 
-            current = self.meter.current
-
-            self.DATA[1].append(current)
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [vg, self.DATA[1][-1]])))
+        self.tenma_neg.ramp_to_voltage(0.)
+        self.tenma_pos.ramp_to_voltage(0.)
 
     def shutdown(self):
-        IVg.DATA = [[], []]
         if not hasattr(self, 'meter'):
             log.info("No instruments to shutdown.")
             return
@@ -131,26 +144,5 @@ class IVg(BaseProcedure):
         log.info("Instruments shutdown.")
 
         send_telegram_alert(
-            f"Finished IVg measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
+            f"Finished It measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
         )
-
-    def get_estimates(self):
-        """Estimate the Dirac Point.
-        """
-        try:
-            data = np.array(self.DATA)
-            if data.size == 0:
-                raise ValueError("No data to analyze")
-
-            R = 1 / data[1]
-
-            # Find peaks in the resistance data
-            peaks, _ = find_peaks(R)
-
-            estimates = [
-                ('Dirac Point', f"{data[0, peaks].mean():.1f}"),
-            ]
-            return estimates
-
-        except:
-            return [('Dirac Point', 'None')]

@@ -11,7 +11,8 @@ from typing import Type
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import unique_filename, Results, Procedure
 from pymeasure.display.widgets import InputsWidget
-from PyQt6.QtGui import QColor, QPalette
+from pymeasure.display.manager import Experiment
+from PyQt6.QtGui import QColor, QPalette, QPixmap
 from PyQt6.QtCore import QLocale
 from PyQt6.QtWidgets import QApplication, QStyle, QMainWindow, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QHBoxLayout
 from PyQt6 import QtWidgets, QtCore
@@ -21,6 +22,40 @@ from .utils import remove_empty_data
 from .procedures import MetaProcedure, BaseProcedure
 
 log = logging.getLogger(__name__)
+
+
+class ProgressBar(QtWidgets.QDialog):
+    """A simple progress bar dialog."""
+    def __init__(self, parent=None, title="Waiting", text=""):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self._layout = QtWidgets.QVBoxLayout(self)
+        self.label = QtWidgets.QLabel(self)
+        self.label.setText(text)
+        self.progress = QtWidgets.QProgressBar(self)
+        self._layout.addWidget(self.label)
+        self._layout.addWidget(self.progress)
+        self.setLayout(self._layout)
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.update_progress)
+
+    def start(self, wait_time, fps=30):
+        self.wait_time = wait_time
+        self.fps = fps
+        self.frames = int(self.fps * wait_time)
+        self.i = 0
+        self.progress.setRange(0, self.frames)
+        self.show()
+        self.timer.start(max(1, round(1000/self.fps)))
+
+    def update_progress(self):
+        self.i += 1
+        self.progress.setValue(self.i)
+        self.progress.setFormat(f"{self.i/self.fps:.0f} / {self.wait_time:.0f} s")
+        self.progress.repaint()
+        if self.i >= self.frames:
+            self.timer.stop()
+            self.close()
 
 
 class ExperimentWindow(ManagedWindow):
@@ -66,25 +101,44 @@ class ExperimentWindow(ManagedWindow):
 
         self.manager.queue(experiment)
 
+    def closeEvent(self, event):
+        if self.manager.is_running():
+            reply = QMessageBox.question(self, 'Message',
+                        'Do you want to close the window? This will abort the current experiment.',
+                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                    )
+
+            if reply == QMessageBox.StandardButton.No:
+                event.ignore()
+                return
+
+            self.manager.abort()
+            time.sleep(0.5)
+        self.log_widget._blink_qtimer.stop()
+        super().closeEvent(event)
+
 
 class MetaProcedureWindow(QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
     """
+    aborted: bool = False
+    status_labels = []
     def __init__(self, cls: Type[MetaProcedure], title: str = '', **kwargs):
         super().__init__(**kwargs)
         self.cls = cls
+
         self.resize(200*(len(cls.procedures)+1), 480)
         self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in cls.procedures))})")
 
         layout = QHBoxLayout()
-        layout.addWidget(QtWidgets.QLabel(cls.__name__ + '\n→'))
+        layout.addLayout(self._get_procedure_vlayout(cls))
         widget = InputsWidget(BaseProcedure, inputs=BaseProcedure.INPUTS[1:])
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
         for i, proc in enumerate(cls.procedures):
-            layout.addWidget(QtWidgets.QLabel(proc.__name__ + '\n→'))
+            layout.addLayout(self._get_procedure_vlayout(proc))
             proc_inputs = list(proc.INPUTS)
             if BaseProcedure in proc.__mro__:
                 for input in BaseProcedure.INPUTS:
@@ -118,8 +172,30 @@ class MetaProcedureWindow(QMainWindow):
 
         self.setCentralWidget(container)
 
+    def _get_procedure_vlayout(self, proc: Type[Procedure]):
+        vlayout = QtWidgets.QVBoxLayout()
+        vlayout.setSpacing(0)
+        vlayout.addWidget(QtWidgets.QLabel(proc.__name__ + '\n→'))
+        self.status_labels.append(QtWidgets.QLabel(self))
+        pixmap = QPixmap(20, 20)
+        pixmap.fill(QColor('white'))
+        self.status_labels[-1].setPixmap(pixmap)
+        vlayout.addWidget(self.status_labels[-1])
+        vlayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        return vlayout
+
+    def set_status(self, index: int, color: str):
+        def func():
+            pixmap = QPixmap(20, 20)
+            pixmap.fill(QColor(color))
+            self.status_labels[index + 1].setPixmap(pixmap)
+        return func
+
     def queue(self):
         log.info("Queueing the procedures.")
+        self.set_status(-1, 'yellow')()
+        for i in range(len(self.cls.procedures)):
+            self.set_status(i, 'white')()
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
         base_parameters = inputs[0].get_procedure()._parameters
@@ -127,7 +203,9 @@ class MetaProcedureWindow(QMainWindow):
             # Spawn the corresponding ExperimentWindow and queue it
             if proc.__name__ == 'Wait':
                 wait_time = inputs[i+1].get_procedure().wait_time
+                self.set_status(i, 'yellow')()
                 self.wait(wait_time)
+                self.set_status(i, 'green')()
 
             else:
                 window = ExperimentWindow(proc, title=proc.__name__)
@@ -139,53 +217,84 @@ class MetaProcedureWindow(QMainWindow):
                 window.browser_widget.hide_button.hide()
                 window.browser_widget.open_button.hide()
                 window.browser_widget.show_button.hide()
-                window.abort_button.clicked.disconnect()
-                window.abort_button.clicked.connect(self.abort_current(window))
                 window.show()
                 window.queue_button.click()
 
-                # Wait for the procedure to finish
-                while window.manager.is_running() and window.isVisible():
-                    QtWidgets.QApplication.processEvents()
-                    log.debug(f"Waiting for {proc.__name__} to finish.")
-                    time.sleep(0.1)
+                # Update the status label
+                window.manager.running.connect(self.set_status(i, 'yellow'))
+                window.manager.finished.connect(self.set_status(i, 'green'))
+                window.manager.failed.connect(self.set_status(i, 'red'))
+                window.manager.aborted.connect(self.set_status(i, 'red'))
 
-                if window.manager.is_running():
-                    window.manager.abort()
-                    log.error(f"Aborted {proc.__name__}. Window closed.")
+                # Window managing
+                window.manager.aborted.connect(self.aborted_procedure(window))
+                window.manager.failed.connect(self.failed_procedure(window))
+                window.manager.finished.connect(window.close)
 
+                # Non-blocking wait for the procedure to finish
+                loop = QtCore.QEventLoop()
+                window.manager.aborted.connect(loop.quit)
+                window.manager.failed.connect(loop.quit)
+                window.manager.finished.connect(loop.quit)
+                loop.exec()
+
+                if self.aborted:
+                    break
+
+        self.queue_button.setEnabled(True)
+        if not self.aborted: log.info("Sequence finished.")
+        self.set_status(-1, 'red' if self.aborted else 'green')()
+        self.aborted = False
+
+    @QtCore.pyqtSlot()
+    def aborted_procedure(self, window: ExperimentWindow, close_window=True):
+        def func():
+            timeout = 30
+            t_text = lambda t: f'Abort (continuing in {t} s)'
+            t_iter = iter(range(timeout-1, -1, -1))
+
+            window.abort_button.setEnabled(False)
+
+            reply = QMessageBox(self)
+            reply.setWindowTitle(t_text(timeout))
+            reply.setText('This experiment was aborted. Do you want to abort the rest of the sequence?')
+            reply.setIcon(QMessageBox.Icon.Warning)
+            reply.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            reply.setDefaultButton(QMessageBox.StandardButton.No)
+            reply.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+
+            # Create a QTimer to update the title every second
+            timer = QtCore.QTimer()
+            timer.timeout.connect(lambda: reply.setWindowTitle(t_text(next(t_iter))))
+            timer.start(1000)
+
+            # Close the message box after timeout
+            QtCore.QTimer.singleShot(timeout*1000, reply.close)
+
+            result = reply.exec()
+            if result == QMessageBox.StandardButton.Yes:
+                log.warning("Sequence aborted.")
+                self.aborted = True
+
+            if close_window:
                 window.close()
 
-        self.close()
-        log.info("Sequence finished.")
+        return func
 
-    def abort_current(self, window: ExperimentWindow):
+    @QtCore.pyqtSlot()
+    def failed_procedure(self, window: ExperimentWindow):
         def func():
-            window.manager.abort()
-            window.close()
-            reply = QMessageBox.question(self, 'Abort', 'Do you want to abort the rest of the sequence?', QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            if reply == QMessageBox.StandardButton.Yes:
-                self.close()
-                log.warning("Sequence aborted.")
-                sys.exit()
-
+            log.error(f"Procedure {window.cls.__name__} failed to execute")
+            self.aborted_procedure(window, close_window=False)()
         return func
 
     def wait(self, wait_time: float, progress_bar: bool = True):
         """Waits for a given amount of time. Creates a progress bar."""
         log.info(f"Waiting for {wait_time} seconds.")
         if progress_bar:
-            progress = QtWidgets.QProgressBar()
-            progress.setWindowTitle("Waiting")
-            progress.setRange(0, 1000)
-            progress.setValue(0)
-            progress.show()
-            for i in range(1000):
-                progress.setValue(i+1)
-                progress.setFormat(f"{i/1000*wait_time:.0f} s")
-                QtWidgets.QApplication.processEvents()
-                time.sleep(wait_time/1000)
-            progress.hide()
+            self.progress = ProgressBar(self, text="Waiting for the next procedure.")
+            self.progress.start(wait_time)
+            self.progress.exec()
 
         else:
             time.sleep(wait_time)
@@ -212,13 +321,13 @@ class MainWindow(QMainWindow):
         self.windows = {}
 
         # Experiment Buttons
-        self.layout = QGridLayout(self.centralWidget())
+        self._layout = QGridLayout(self.centralWidget())
         self.buttons = {}
         for i, (cls, name) in enumerate(experiments.items()):
             self.buttons[cls] = QPushButton(name)
             self.buttons[cls].clicked.connect(self.open_app(cls))
             self.buttons[cls].setToolTip(cls.__doc__)
-            self.layout.addWidget(self.buttons[cls], 2, i)
+            self._layout.addWidget(self.buttons[cls], 2, i)
 
         # README Widget
         readme = QTextEdit(readOnly=True)
@@ -231,30 +340,30 @@ class MainWindow(QMainWindow):
         except FileNotFoundError:
             readme_text = metadata('laser_setup').get('Description')
         readme.setMarkdown(readme_text)
-        self.layout.addWidget(readme, 1, 0, 1, self.gridx)
+        self._layout.addWidget(readme, 1, 0, 1, self.gridx)
 
         # Settings Button
         settings = QPushButton('Settings')
         settings.clicked.connect(self.edit_settings)
-        self.layout.addWidget(settings, 0, 0)
+        self._layout.addWidget(settings, 0, 0)
 
         # Secuences Buttons
         for i, (cls, name) in enumerate(sequences.items()):
             self.buttons[cls] = QPushButton(name)
             self.buttons[cls].clicked.connect(self.open_sequence(cls))
             self.buttons[cls].setToolTip(cls.__doc__)
-            self.layout.addWidget(self.buttons[cls], 0, 1+i)
+            self._layout.addWidget(self.buttons[cls], 0, 1+i)
 
         # Reload window button
         self.reload = QPushButton('Reload')
-        self.reload.clicked.connect(lambda: os.execl(sys.executable, sys.executable, *sys.argv))
-        self.layout.addWidget(self.reload, 0, self.gridx-1)
+        self.reload.clicked.connect(lambda: os.execl(sys.executable, sys.executable, '.', *sys.argv[1:]))
+        self._layout.addWidget(self.reload, 0, self.gridx-1)
 
         for i, (func, name) in enumerate(scripts.items()):
             self.buttons[func] = QPushButton(name)
             self.buttons[func].clicked.connect(self.run_script(func))
             self.buttons[func].setToolTip(func.__doc__)
-            self.layout.addWidget(self.buttons[func], 3, i)
+            self._layout.addWidget(self.buttons[func], 3, i)
 
     def open_sequence(self, cls: Type[MetaProcedure]):
         def func():
