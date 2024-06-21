@@ -8,14 +8,10 @@ import logging
 from importlib.metadata import metadata
 from typing import Type
 
-from pymeasure.display.windows import ManagedWindow
 from pymeasure.experiment import unique_filename, Results, Procedure
 from pymeasure.display.widgets import InputsWidget
-from pymeasure.display.manager import Experiment
-from PyQt6.QtGui import QColor, QPalette, QPixmap
-from PyQt6.QtCore import QLocale
-from PyQt6.QtWidgets import QApplication, QStyle, QMainWindow, QWidget, QGridLayout, QPushButton, QTextEdit, QMessageBox, QHBoxLayout
-from PyQt6 import QtWidgets, QtCore
+from pymeasure.display.windows import ManagedWindow
+from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
 from . import config, config_path, _config_file_used
 from .utils import remove_empty_data
@@ -68,13 +64,13 @@ class ExperimentWindow(ManagedWindow):
         self.cls = cls
         sequencer_kwargs = dict(
             sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
-            sequencer_inputs = cls.SEQUENCER_INPUTS if hasattr(cls, 'SEQUENCER_INPUTS') else None,
+            sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
             # sequence_file = f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt' if hasattr(cls, 'SEQUENCER_INPUTS') else None,
         )
         super().__init__(
             procedure_class=cls,
-            inputs=cls.INPUTS,
-            displays=cls.INPUTS,
+            inputs=getattr(cls, 'INPUTS', []),
+            displays=getattr(cls, 'INPUTS', []),
             x_axis=cls.DATA_COLUMNS[0],
             y_axis=cls.DATA_COLUMNS[1],
             inputs_in_scrollarea=True,
@@ -103,12 +99,12 @@ class ExperimentWindow(ManagedWindow):
 
     def closeEvent(self, event):
         if self.manager.is_running():
-            reply = QMessageBox.question(self, 'Message',
+            reply = QtWidgets.QMessageBox.question(self, 'Message',
                         'Do you want to close the window? This will abort the current experiment.',
-                        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                        QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
                     )
 
-            if reply == QMessageBox.StandardButton.No:
+            if reply == QtWidgets.QMessageBox.StandardButton.No:
                 event.ignore()
                 return
 
@@ -118,7 +114,7 @@ class ExperimentWindow(ManagedWindow):
         super().closeEvent(event)
 
 
-class MetaProcedureWindow(QMainWindow):
+class MetaProcedureWindow(QtWidgets.QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
     """
@@ -131,7 +127,7 @@ class MetaProcedureWindow(QMainWindow):
         self.resize(200*(len(cls.procedures)+1), 480)
         self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in cls.procedures))})")
 
-        layout = QHBoxLayout()
+        layout = QtWidgets.QHBoxLayout()
         layout.addLayout(self._get_procedure_vlayout(cls))
         widget = InputsWidget(BaseProcedure, inputs=BaseProcedure.INPUTS[1:])
         widget.layout().setSpacing(10)
@@ -167,7 +163,7 @@ class MetaProcedureWindow(QMainWindow):
         vbox.addWidget(self.queue_button)
         self.queue_button.clicked.connect(self.queue)
 
-        container = QWidget()
+        container = QtWidgets.QWidget()
         container.setLayout(vbox)
 
         self.setCentralWidget(container)
@@ -177,8 +173,8 @@ class MetaProcedureWindow(QMainWindow):
         vlayout.setSpacing(0)
         vlayout.addWidget(QtWidgets.QLabel(proc.__name__ + '\n→'))
         self.status_labels.append(QtWidgets.QLabel(self))
-        pixmap = QPixmap(20, 20)
-        pixmap.fill(QColor('white'))
+        pixmap = QtGui.QPixmap(20, 20)
+        pixmap.fill(QtGui.QColor('white'))
         self.status_labels[-1].setPixmap(pixmap)
         vlayout.addWidget(self.status_labels[-1])
         vlayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -186,8 +182,8 @@ class MetaProcedureWindow(QMainWindow):
 
     def set_status(self, index: int, color: str):
         def func():
-            pixmap = QPixmap(20, 20)
-            pixmap.fill(QColor(color))
+            pixmap = QtGui.QPixmap(20, 20)
+            pixmap.fill(QtGui.QColor(color))
             self.status_labels[index + 1].setPixmap(pixmap)
         return func
 
@@ -255,12 +251,12 @@ class MetaProcedureWindow(QMainWindow):
 
             window.abort_button.setEnabled(False)
 
-            reply = QMessageBox(self)
+            reply = QtWidgets.QMessageBox(self)
             reply.setWindowTitle(t_text(timeout))
             reply.setText('This experiment was aborted. Do you want to abort the rest of the sequence?')
-            reply.setIcon(QMessageBox.Icon.Warning)
-            reply.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
-            reply.setDefaultButton(QMessageBox.StandardButton.No)
+            reply.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+            reply.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+            reply.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
             reply.setWindowModality(QtCore.Qt.WindowModality.NonModal)
 
             # Create a QTimer to update the title every second
@@ -272,7 +268,7 @@ class MetaProcedureWindow(QMainWindow):
             QtCore.QTimer.singleShot(timeout*1000, reply.close)
 
             result = reply.exec()
-            if result == QMessageBox.StandardButton.Yes:
+            if result == QtWidgets.QMessageBox.StandardButton.Yes:
                 log.warning("Sequence aborted.")
                 self.aborted = True
 
@@ -300,7 +296,7 @@ class MetaProcedureWindow(QMainWindow):
             time.sleep(wait_time)
 
 
-class MainWindow(QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     def __init__(
             self,
             sequences: dict[str, Type[MetaProcedure]],
@@ -310,9 +306,11 @@ class MainWindow(QMainWindow):
         ):
         super().__init__(**kwargs)
         self.setWindowTitle('Laser Setup')
-        self.setWindowIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon))
+        self.setWindowIcon(
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon)
+        )
         self.resize(640, 480)
-        self.setCentralWidget(QWidget())
+        self.setCentralWidget(QtWidgets.QWidget())
 
         self.sequences = sequences
         self.experiments = experiments
@@ -321,16 +319,16 @@ class MainWindow(QMainWindow):
         self.windows = {}
 
         # Experiment Buttons
-        self._layout = QGridLayout(self.centralWidget())
+        self._layout = QtWidgets.QGridLayout(self.centralWidget())
         self.buttons = {}
         for i, (cls, name) in enumerate(experiments.items()):
-            self.buttons[cls] = QPushButton(name)
+            self.buttons[cls] = QtWidgets.QPushButton(name)
             self.buttons[cls].clicked.connect(self.open_app(cls))
             self.buttons[cls].setToolTip(cls.__doc__)
             self._layout.addWidget(self.buttons[cls], 2, i)
 
         # README Widget
-        readme = QTextEdit(readOnly=True)
+        readme = QtWidgets.QTextEdit(readOnly=True)
         readme.setStyleSheet("""
             font-size: 12pt;
         """)
@@ -343,24 +341,26 @@ class MainWindow(QMainWindow):
         self._layout.addWidget(readme, 1, 0, 1, self.gridx)
 
         # Settings Button
-        settings = QPushButton('Settings')
+        settings = QtWidgets.QPushButton('Settings')
         settings.clicked.connect(self.edit_settings)
         self._layout.addWidget(settings, 0, 0)
 
         # Secuences Buttons
         for i, (cls, name) in enumerate(sequences.items()):
-            self.buttons[cls] = QPushButton(name)
+            self.buttons[cls] = QtWidgets.QPushButton(name)
             self.buttons[cls].clicked.connect(self.open_sequence(cls))
             self.buttons[cls].setToolTip(cls.__doc__)
             self._layout.addWidget(self.buttons[cls], 0, 1+i)
 
         # Reload window button
-        self.reload = QPushButton('Reload')
-        self.reload.clicked.connect(lambda: os.execl(sys.executable, sys.executable, '.', *sys.argv[1:]))
+        self.reload = QtWidgets.QPushButton('Reload')
+        self.reload.clicked.connect(
+            lambda: os.execl(sys.executable, sys.executable, '.', *sys.argv[1:])
+        )
         self._layout.addWidget(self.reload, 0, self.gridx-1)
 
         for i, (func, name) in enumerate(scripts.items()):
-            self.buttons[func] = QPushButton(name)
+            self.buttons[func] = QtWidgets.QPushButton(name)
             self.buttons[func].clicked.connect(self.run_script(func))
             self.buttons[func].setToolTip(func.__doc__)
             self._layout.addWidget(self.buttons[func], 3, i)
@@ -408,10 +408,10 @@ class MainWindow(QMainWindow):
         self.reload.setText('Reload to apply changes')
 
     def error_dialog(self, message:str):
-        error_dialog = QMessageBox()
+        error_dialog = QtWidgets.QMessageBox()
         error_dialog.setWindowTitle("Error")
         error_dialog.setText(f"An error occurred:\n{message}\nPlease reload the program.")
-        error_dialog.setIcon(QMessageBox.Icon.Critical)
+        error_dialog.setIcon(QtWidgets.QMessageBox.Icon.Critical)
         error_dialog.exec()
         self.reload.click()
 
@@ -428,7 +428,7 @@ class MainWindow(QMainWindow):
         return None
 
 
-def display_window(Window: Type[QMainWindow], *args):
+def display_window(Window: Type[QtWidgets.QMainWindow], *args):
     """Displays the window for the given class. Allows for the
     window to be run from the GUI, by queuing it in the manager.
     It also allows for existing data to be loaded and displayed.
@@ -436,10 +436,13 @@ def display_window(Window: Type[QMainWindow], *args):
     :param Window: The Qt Window subclass to display.
     :param args: The arguments to pass to the window class.
     """
-    app = QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     app.setStyle('Fusion')
     app.setPalette(get_dark_palette())
-    QLocale.setDefault(QLocale(QLocale.Language.English, QLocale.Country.UnitedStates))
+    QtCore.QLocale.setDefault(QtCore.QLocale(
+        QtCore.QLocale.Language.English,
+        QtCore.QLocale.Country.UnitedStates
+    ))
     window = Window(*args)
     window.show()
     app.exec()
@@ -455,34 +458,35 @@ def display_experiment(cls: Type[Procedure], title: str = ''):
 
 
 def get_dark_palette():
-    palette = QPalette()
+    palette = QtGui.QPalette()
+    ColorRole = QtGui.QPalette.ColorRole
 
     # Set the background color
-    palette.setColor(QPalette.ColorRole.Window, QColor(50, 50, 50))
+    palette.setColor(ColorRole.Window, QtGui.QColor(50, 50, 50))
 
     # Set the title text color
-    palette.setColor(QPalette.ColorRole.WindowText, QColor(200, 200, 200))
+    palette.setColor(ColorRole.WindowText, QtGui.QColor(200, 200, 200))
 
     # Set the input text color
-    palette.setColor(QPalette.ColorRole.Text, QColor(200, 200, 200))
+    palette.setColor(ColorRole.Text, QtGui.QColor(200, 200, 200))
 
     # Set the button color
-    palette.setColor(QPalette.ColorRole.Button, QColor(30, 30, 30))
+    palette.setColor(ColorRole.Button, QtGui.QColor(30, 30, 30))
 
     # Set the button text color
-    palette.setColor(QPalette.ColorRole.ButtonText, QColor(200, 200, 200))
+    palette.setColor(ColorRole.ButtonText, QtGui.QColor(200, 200, 200))
 
     # Set the base color
-    palette.setColor(QPalette.ColorRole.Base, QColor(35, 35, 35))
+    palette.setColor(ColorRole.Base, QtGui.QColor(35, 35, 35))
 
     # Set the alternate background color
-    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(45, 45, 45))
+    palette.setColor(ColorRole.AlternateBase, QtGui.QColor(45, 45, 45))
 
     # Set the highlight color
-    palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
+    palette.setColor(ColorRole.Highlight, QtGui.QColor(42, 130, 218))
 
     # Set the highlighted text color
-    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(240, 240, 240))
+    palette.setColor(ColorRole.HighlightedText, QtGui.QColor(240, 240, 240))
 
     return palette
 
