@@ -74,6 +74,7 @@ class ExperimentWindow(ManagedWindow):
             x_axis=cls.DATA_COLUMNS[0],
             y_axis=cls.DATA_COLUMNS[1],
             inputs_in_scrollarea=True,
+            enable_file_input=False,        # File Input incompatible with PyQt6
             **sequencer_kwargs,
             **kwargs
         )
