@@ -429,7 +429,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return None
 
 
-def display_window(Window: Type[QtWidgets.QMainWindow], *args):
+def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     """Displays the window for the given class. Allows for the
     window to be run from the GUI, by queuing it in the manager.
     It also allows for existing data to be loaded and displayed.
@@ -444,7 +444,7 @@ def display_window(Window: Type[QtWidgets.QMainWindow], *args):
         QtCore.QLocale.Language.English,
         QtCore.QLocale.Country.UnitedStates
     ))
-    window = Window(*args)
+    window = Window(*args, **kwargs)
     window.show()
     app.exec()
     remove_empty_data()
