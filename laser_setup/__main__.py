@@ -20,7 +20,7 @@ Experiments = {
 
 Scripts = {
     setup_adapters.setup: 'Set up Adapters',
-    console.keithley_console: 'Console',
+    console.main: 'Console',
     find_dp_script.main: 'Find Dirac Point',
 }
 
@@ -30,6 +30,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='Laser Setup')
     parser.add_argument('procedure', nargs='?', help='Procedure to run', choices=experiment_list + script_list)
+    parser.add_argument('-d', '--debug', action='store_true', default=False, help='Enable debug mode')
     args = parser.parse_args()
 
     if args.procedure is None:
