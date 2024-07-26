@@ -6,7 +6,7 @@ procedures.
 import sys
 import time
 import logging
-from typing import TypeVar, Type
+from typing import TypeVar, Dict
 import bendev.exceptions
 import numpy as np
 
@@ -16,9 +16,119 @@ from pymeasure.instruments import Instrument
 from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 from pymeasure.instruments.validators import truncated_range, strict_discrete_set
+from pymeasure.display.Qt import QtCore
 
 log = logging.getLogger(__name__)
 AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
+
+
+class InstrumentManager(QtCore.QObject):
+    """Manages multiple instruments at the same time using a dictionary to store them.
+    Instruments can persist between multiple instances of procedures. It also emits
+    signals when an instrument is connected, shutdown, or when all instruments are
+    shutdown.
+    """
+    instrument_connected = QtCore.pyqtSignal(str, Instrument)
+    instrument_shutdown = QtCore.pyqtSignal(str)
+    all_instruments_shutdown = QtCore.pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.instruments: Dict[str, AnyInstrument] = {}
+
+        self.instrument_connected.connect(self._on_instrument_connected)
+        self.instrument_shutdown.connect(self._on_instrument_shutdown)
+        self.all_instruments_shutdown.connect(self._on_all_instruments_shutdown)
+
+    def __repr__(self) -> str:
+        return f"InstrumentManager({self.instruments})"
+
+    @staticmethod
+    def setup_adapter(cls: AnyInstrument, adapter: str, **kwargs) -> AnyInstrument:
+        """Sets up the adapter for the given instrument class. If the setup fails,
+        it raises an exception, unless debug mode is enabled (-d flag), in which
+        case it replaces the adapter with a FakeAdapter. Returns the instrument
+        without saving it in the dictionary.
+
+        :param cls: The instrument class to set up.
+        :param adapter: The adapter to use for the communication.
+        :param kwargs: Additional keyword arguments to pass to the instrument class.
+        :return: The instrument object.
+        """
+        try:
+            instrument = cls(adapter, **kwargs)
+            log.debug(f"Connected to {cls.__name__} via {cls.adapter}")
+        except Exception as e:
+            if '-d' in sys.argv or '--debug' in sys.argv:
+                log.warning(f"Could not connect to {cls.__name__}: {e}. Using FakeAdapter.")
+                instrument = cls(FakeAdapter(), **kwargs)
+            else:
+                log.error(f"Failed to connect to {cls.__name__}: {e}")
+                raise
+        return instrument
+
+    def connect(
+        self, cls: AnyInstrument, adapter: str = None, name: str = None, **kwargs
+    ) -> AnyInstrument | None:
+        """Connects to an instrument and saves it in the dictionary.
+
+        :param cls: The instrument class to set up.
+        :param adapter: The adapter to use for the communication. If None, the result
+            depends on the instrument class.
+        :param name: The name of the instrument. If None, it uses the class name
+            and adapter.
+        :param kwargs: Additional keyword arguments to pass to the instrument class.
+        """
+        if name is None:
+            name = f"{cls.__name__}/{adapter}"
+
+        try:
+            instrument = self.setup_adapter(cls, adapter, **kwargs)
+            self.instrument_connected.emit(name, instrument)
+            return self.instruments[name]
+
+        except Exception as e:
+            log.error(f"Failed to add instrument '{name}': {e}")
+
+    def shutdown(self, name: str):
+        """Safely shuts down the instrument with the given name.
+
+        :param name: The name of the instrument to shutdown.
+        """
+        self.instrument_shutdown.emit(name)
+
+    def shutdown_all(self):
+        """Safely shuts down all instruments."""
+        self.all_instruments_shutdown.emit()
+
+    @QtCore.pyqtSlot(str, Instrument)
+    def _on_instrument_connected(self, name: str, instrument: Instrument):
+        if name in self.instruments:
+            log.info(f"Instrument '{name}' already exists.")
+        else:
+            self.instruments[name] = instrument
+            log.debug(f"Instrument '{name}' connected.")
+
+    @QtCore.pyqtSlot(str)
+    def _on_instrument_shutdown(self, name: str):
+        try:
+            instrument = self.instruments[name]
+        except KeyError:
+            log.error(f"Instrument '{name}' not found.")
+            return
+
+        try:
+            instrument.shutdown()
+            del self.instruments[name]
+            log.debug(f"Instrument '{name}' was shut down.")
+        except Exception as e:
+            log.error(f"Error shutting down instrument '{name}': {e}")
+
+    @QtCore.pyqtSlot()
+    def _on_all_instruments_shutdown(self):
+        for name in self.instruments:
+            self.shutdown(name)
+        log.info("All instruments were shut down.")
 
 
 class TENMA(Instrument):
@@ -194,24 +304,3 @@ class Bentham(Instrument):
     def reconnect(self):
         self.adapter.reconnect()
 
-
-def setup_adapter(cls: Type[AnyInstrument], adapter: str, **kwargs) -> AnyInstrument:
-    """Sets up the adapter for the given instrument class. If the setup fails,
-    it raises an exception, unless debug mode is enabled (-d flag), in which
-    case it replaces the adapter with a pymeasure.
-
-    :param cls: The instrument class to set up.
-    :param adapter: The adapter to use for the communication.
-    :param kwargs: Additional keyword arguments to pass to the instrument class.
-    :return: The instrument object.
-    """
-    try:
-        instrument = cls(adapter, **kwargs)
-    except Exception as e:
-        if '-d' in sys.argv:
-            log.warning(f"Could not connect to {cls.__name__}: {e}.\nUsing FakeAdapter")
-            instrument = cls(FakeAdapter(), **kwargs)
-        else:
-            log.error(f"Could not connect to {cls.__name__}")
-            raise
-    return instrument
