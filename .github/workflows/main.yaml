@@ -1,24 +1,67 @@
+name: Build binary files
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout
+
+      - name: Refresh data folder from source
+        run: |
+          rm -rf compiled/data
+          cp -rf src/data/ compiled/
+
   build:
+    needs: prepare
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ['windows-latest', 'ubuntu-latest']
+        python-version: ["3.11"]
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-python@v2
-      with:
-        python-version: 3.11
+      - uses: actions/checkout@v4
+        name: Checkout
 
-    - run: pip install . pyinstaller
-    - run: pyinstaller --noconfirm __main__.spec
-    - uses: actions/upload-artifact@v2
-      with:
-        path: dist/*
+      - uses: actions/setup-python@v5
+        name: Setup Python
+        with:
+          python-version: ${{ matrix['python-version'] }}
+
+      - name: Build Executables (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          python -m ensurepip
+          python -m pip install --upgrade pip
+          pip install pyinstaller .
+          pyinstaller .github/spec/build.spec
+          powershell Compress-Archive -Path dist/laser_setup -DestinationPath dist/laser_setup-Windows.zip
+
+      - name: Upload Artifacts (Windows)
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: laser_setup-Windows
+          path: |
+            dist/laser_setup-Windows.zip
+
+      - name: Build Executables (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          python3 -m ensurepip
+          python3 -m pip install --upgrade pip
+          pip install pyinstaller .
+          pyinstaller .github/spec/build.spec
+          tar -czvf dist/laser_setup-Linux.tar.gz -C dist laser_setup
+
+      - name: Upload Artifacts (Linux)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: laser_setup-Linux
+          path: |
+            dist/laser_setup-Linux.tar.gz

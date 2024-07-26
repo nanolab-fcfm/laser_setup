@@ -2,10 +2,10 @@
 
 
 a = Analysis(
-    ['__main__.py'],
+    ['../../__main__.py'],
     pathex=[],
     binaries=[],
-    datas=[('laser_setup/default_config.ini', 'laser_setup')],
+    datas=[('../../laser_setup/default_config.ini', 'laser_setup')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
