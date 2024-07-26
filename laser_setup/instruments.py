@@ -213,12 +213,26 @@ class Bentham(Instrument):
     the PyMeasure Instrument class. Replaces the adapter with a
     bendev.Device object for the communication.
     """
+    goto = Instrument.control(
+        ":MONO:GOTO?", ":MONO:GOTO? %.1f",
+        """Sets new targets for all components of the monochromator and if
+        successful triggers the move to the new wavelength.
+        """
+    )
 
     wavelength = Instrument.control(
         ":MONO:WAVE?", ":MONO:WAVE %.1f",
         """Sets the wavelength in nm. Gets the current and target wavelengths in nm.""",
         validator=truncated_range,
         values=[280., 1100.]
+    )
+
+    filt = Instrument.control(
+        ":MONO:FILT?", ":MONO:FILT:WAVE %.1f",
+        """Gets the current position of the filter wheel. Sets the filter wheel
+        to a position matching the target wavelength.""",
+        validator=truncated_range,
+        values=[280., 1100.],
     )
 
     bandwidth = Instrument.measurement(
@@ -241,7 +255,7 @@ class Bentham(Instrument):
     )
 
     lamp = Instrument.control(
-        ":LAMP?", ":LAMP? %d", """Sets the lamp state.""",
+        ":LAMP?", ":LAMP %d", """Sets the lamp state.""",
         validator=strict_discrete_set,
         values={True: 1, False: 0},
         map_values=True
@@ -278,6 +292,7 @@ class Bentham(Instrument):
             class will first try to connect to an available USB device.
         :param name: The name of the instrument.
         :param includeSCPI: Whether to include the SCPI commands in the help.
+            Pymeasure instruments should have a default value of False.
         :param kwargs: Additional keyword arguments to pass to the Instrument class.
         """
         temp_adapter = None if isinstance(adapter, str) else adapter
@@ -301,7 +316,7 @@ class Bentham(Instrument):
         self.write(":MONO:FILT 1")
         self.move
         self.wavelength = wavelength
-        self.write(":MONO:FILT:WAVE %.1f" % wavelength)
+        self.filt = wavelength
         self.move
 
     def read(self, timeout: float = 0, read_interval: float = 0.05) -> str:
@@ -316,4 +331,3 @@ class Bentham(Instrument):
 
     def reconnect(self):
         self.adapter.reconnect()
-
