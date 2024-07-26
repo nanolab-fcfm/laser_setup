@@ -1,6 +1,7 @@
 import sys
+import argparse
 
-from .display import MainWindow, display_window, display_experiment
+from .display import MainWindow, ExperimentWindow, display_window
 from .procedures import *
 from .cli import setup_adapters, console, find_dp_script
 
@@ -19,22 +20,32 @@ Experiments = {
 
 Scripts = {
     setup_adapters.setup: 'Set up Adapters',
-    console.keithley_console: 'Console',
+    console.main: 'Console',
     find_dp_script.main: 'Find Dirac Point',
 }
 
 def main():
-    if len(sys.argv) <= 1:
+    experiment_list = [cls.__name__ for cls in Experiments.keys()]
+    script_list = [func.__module__.split('.')[-1] for func in Scripts.keys()]
+
+    parser = argparse.ArgumentParser(description='Laser Setup')
+    parser.add_argument('procedure', nargs='?', help='Procedure to run', choices=experiment_list + script_list)
+    parser.add_argument('-d', '--debug', action='store_true', default=False, help='Enable debug mode')
+    args = parser.parse_args()
+
+    if args.procedure is None:
         display_window(MainWindow, Sequences, Experiments, Scripts)
 
-    elif sys.argv[1] in [cls.__name__ for cls in Experiments.keys()]:
-        display_experiment(eval(sys.argv[1]), title=Experiments[eval(sys.argv[1])])
+    elif args.procedure in experiment_list:
+        display_window(
+            ExperimentWindow, eval(args.procedure), title=Experiments[eval(args.procedure)]
+        )
 
-    elif sys.argv[1] in [func.__module__.split('.')[-1] for func in Scripts.keys()]:
-        eval(sys.argv[1]).main()
+    elif args.procedure in script_list:
+        eval(args.procedure).main()
 
     else:
-        raise ValueError(f"Invalid argument: {sys.argv[1]}")
+        raise ValueError(f"Invalid argument: {args.procedure}")
 
 
 if __name__ == '__main__':
