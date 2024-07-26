@@ -213,6 +213,7 @@ class Bentham(Instrument):
     the PyMeasure Instrument class. Replaces the adapter with a
     bendev.Device object for the communication.
     """
+
     wavelength = Instrument.control(
         ":MONO:WAVE?", ":MONO:WAVE %.1f",
         """Sets the wavelength in nm. Gets the current and target wavelengths in nm.""",
@@ -225,7 +226,7 @@ class Bentham(Instrument):
     )
 
     move = Instrument.measurement(
-        ":MONO:MOVE?", """Moves the monochromator to the specified wavelength."""
+        ":MONO:MOVE", """Moves the monochromator to the specified wavelength."""
     )
 
     at_target = Instrument.measurement(
@@ -240,7 +241,7 @@ class Bentham(Instrument):
     )
 
     lamp = Instrument.control(
-        ":LAMP?", ":LAMP %d", """Sets the lamp state.""",
+        ":LAMP?", ":LAMP? %d", """Sets the lamp state.""",
         validator=strict_discrete_set,
         values={True: 1, False: 0},
         map_values=True
@@ -293,8 +294,20 @@ class Bentham(Instrument):
             except bendev.exceptions.ExternalDeviceNotFound:
                 if adapter is not None:
                     raise
+        self.write("SYST:REM")
 
-    def query(self, command, timeout: int = 0, read_interval: float = 0.05) -> str:
+    def set_wavelength(self, wavelength: float, timeout: float = 10.):
+        """Sets the wavelength to the specified value."""
+        self.write(":MONO:FILT 1")
+        self.move
+        self.wavelength = wavelength
+        self.write(":MONO:FILT:WAVE %.1f" % wavelength)
+        self.move
+
+    def read(self, timeout: float = 0, read_interval: float = 0.05) -> str:
+            return self.adapter.read(timeout, read_interval)
+
+    def query(self, command, timeout: float = 0, read_interval: float = 0.05) -> str:
         return self.adapter.query(command, timeout, read_interval)
 
     def shutdown(self):
