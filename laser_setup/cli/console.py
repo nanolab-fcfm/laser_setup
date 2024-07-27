@@ -27,10 +27,12 @@ def launch(workspace_path: str, header: str = '', user_ns: dict = None):
 
 
 def main(parent=None):
-    header = "Interactive console. To instanciate an instrument, use the 'setup_adapter' function."
+    header = "Interactive console. To instantiate an instrument, use the 'instruments.connect' method."
     if '-d' in sys.argv or '--debug' in sys.argv:
-        header += "\nDebug mode enabled ('setup_adapter' will use a FakeAdapter if it can't connect to an instrument)."
+        header += "\nDebug mode (the InstrumentManager will use a FakeAdapter if it can't connect to an instrument)."
     workspace_path = os.path.abspath('.')
+
+    instruments = InstrumentManager()
 
     if parent is not None:
         parent.lock_window('This will lock the current Window. To keep using it, close the console (Type `exit`)')

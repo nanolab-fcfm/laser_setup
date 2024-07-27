@@ -18,6 +18,8 @@ from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 from pymeasure.instruments.validators import truncated_range, strict_discrete_set
 from pymeasure.display.Qt import QtCore
 
+from .utils import SONGS
+
 log = logging.getLogger(__name__)
 AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
 
@@ -27,6 +29,11 @@ class InstrumentManager(QtCore.QObject):
     Instruments can persist between multiple instances of procedures. It also emits
     signals when an instrument is connected, shutdown, or when all instruments are
     shutdown.
+
+    :method connect: Connects to an instrument and saves it in the instances dictionary.
+    :method setup_adapter: Returns an instance of the given instrument class.
+    :method shutdown: Safely shuts down the instrument with the given name.
+    :method shutdown_all: Safely shuts down all instruments.
     """
     instrument_connected = QtCore.pyqtSignal(str, Instrument)
     instrument_shutdown = QtCore.pyqtSignal(str)
@@ -34,14 +41,14 @@ class InstrumentManager(QtCore.QObject):
 
     def __init__(self):
         super().__init__()
-        self.instruments: Dict[str, AnyInstrument] = {}
+        self.instances: Dict[str, AnyInstrument] = {}
 
         self.instrument_connected.connect(self._on_instrument_connected)
         self.instrument_shutdown.connect(self._on_instrument_shutdown)
         self.all_instruments_shutdown.connect(self._on_all_instruments_shutdown)
 
     def __repr__(self) -> str:
-        return f"InstrumentManager({self.instruments})"
+        return f"InstrumentManager({self.instances})"
 
     @staticmethod
     def help(cls: AnyInstrument, return_str = False) -> str:
@@ -91,8 +98,8 @@ class InstrumentManager(QtCore.QObject):
                 log.warning(f"Could not connect to {cls.__name__}: {e}. Using FakeAdapter.")
                 instrument = cls(FakeAdapter(), **kwargs)
             else:
-                log.error(f"Failed to connect to {cls.__name__}: {e}")
                 raise
+
         return instrument
 
     def connect(
@@ -113,10 +120,11 @@ class InstrumentManager(QtCore.QObject):
         try:
             instrument = self.setup_adapter(cls, adapter, **kwargs)
             self.instrument_connected.emit(name, instrument)
-            return self.instruments[name]
+            return self.instances[name]
 
         except Exception as e:
-            log.error(f"Failed to add instrument '{name}': {e}")
+            log.error(f"Failed to connect to instrument '{name}': {e}")
+            raise
 
     def shutdown(self, name: str):
         """Safely shuts down the instrument with the given name.
@@ -131,32 +139,81 @@ class InstrumentManager(QtCore.QObject):
 
     @QtCore.pyqtSlot(str, Instrument)
     def _on_instrument_connected(self, name: str, instrument: Instrument):
-        if name in self.instruments:
+        if name in self.instances:
             log.info(f"Instrument '{name}' already exists.")
         else:
-            self.instruments[name] = instrument
+            self.instances[name] = instrument
             log.debug(f"Instrument '{name}' connected.")
 
     @QtCore.pyqtSlot(str)
     def _on_instrument_shutdown(self, name: str):
         try:
-            instrument = self.instruments[name]
+            instrument = self.instances[name]
         except KeyError:
             log.error(f"Instrument '{name}' not found.")
             return
 
         try:
             instrument.shutdown()
-            del self.instruments[name]
+            del self.instances[name]
             log.debug(f"Instrument '{name}' was shut down.")
         except Exception as e:
             log.error(f"Error shutting down instrument '{name}': {e}")
 
     @QtCore.pyqtSlot()
     def _on_all_instruments_shutdown(self):
-        for name in self.instruments:
+        if not self.instances:
+            log.info("No instruments to shut down")
+            return
+
+        log.info("Shutting down all instruments.")
+        for name in self.instances:
             self.shutdown(name)
-        log.info("All instruments were shut down.")
+
+
+class Keithley2450(Keithley2450):
+    buffer_name: str = None
+    buffer_modes = ['CONT', 'ONCE']
+
+    def __init__(self, adapter: str, name: str = None, includeSCPI=False, **kwargs):
+        super().__init__(
+            adapter, name or "Keithley 2450 SourceMeter", includeSCPI=includeSCPI, **kwargs
+        )
+
+    def make_buffer(
+        self, name: str = 'IVBuffer', size: int = 0, mode: str = None,
+    ):
+        """Creates a buffer with the given name and size. Sets the fill mode.
+
+        :param name: The name of the buffer.
+        :param size: The size of the buffer.
+        :param mode: The fill mode of the buffer. Default is 'CONT'.
+        """
+        if mode is None:
+            mode = self.buffer_modes[0]
+        elif mode not in self.buffer_modes:
+            log.error(f"Invalid buffer mode: {mode}")
+            return
+
+        self.write(f':TRACe:MAKE "{name}", {int(size)}')
+        self.buffer_name = name
+        self.write(f'TRACe:FILL:MODE {mode}')
+
+    def get_data(self):
+        """Returns the latest timestamp and data from the buffer."""
+        if self.buffer_name is None:
+            log.error("No buffer created. Data not available.")
+            return
+
+        data = self.ask(f':READ? "{self.buffer_name}", REL, READ')
+        return data
+
+    def shutdown(self):
+        for freq, t in SONGS['triad']:
+            self.beep(freq, t)
+            time.sleep(t)
+
+        super().shutdown()
 
 
 class TENMA(Instrument):
@@ -241,18 +298,21 @@ class Bentham(Instrument):
     the PyMeasure Instrument class. Replaces the adapter with a
     bendev.Device object for the communication.
     """
+    wavelength_range = [280., 1100.]
+
     goto = Instrument.control(
         ":MONO:GOTO?", ":MONO:GOTO? %.1f",
         """Sets new targets for all components of the monochromator and if
-        successful triggers the move to the new wavelength.
-        """
+        successful triggers the move to the new wavelength.""",
+        validator=truncated_range,
+        values=wavelength_range,
     )
 
     wavelength = Instrument.control(
         ":MONO:WAVE?", ":MONO:WAVE %.1f",
         """Sets the wavelength in nm. Gets the current and target wavelengths in nm.""",
         validator=truncated_range,
-        values=[280., 1100.]
+        values=wavelength_range,
     )
 
     filt = Instrument.control(
@@ -260,7 +320,7 @@ class Bentham(Instrument):
         """Gets the current position of the filter wheel. Sets the filter wheel
         to a position matching the target wavelength.""",
         validator=truncated_range,
-        values=[280., 1100.],
+        values=wavelength_range,
     )
 
     bandwidth = Instrument.measurement(
