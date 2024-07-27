@@ -44,6 +44,34 @@ class InstrumentManager(QtCore.QObject):
         return f"InstrumentManager({self.instruments})"
 
     @staticmethod
+    def help(cls: AnyInstrument, return_str = False) -> str:
+        """Returns all available controls and measurements for the given
+        instrument class. For each control and measurement, it shows the
+        description, command sent to the instrument, and the values that
+        can be set (either a range or a list of values).
+
+        :param cls: The instrument class to get the help from.
+        :param return_str: Whether to return the help string or print it.
+        """
+        help_str = f"Available controls and measurements for {cls.__name__} (not including methods):\n"
+        for name in dir(cls):
+            try:
+                attr = getattr(cls, name)
+                if isinstance(attr, property):
+                    if attr.fset.__doc__ is None:
+                        help_str += f"    {name} (measurement): {attr.__doc__} \n"
+                    else:
+                        help_str += f"    {name} (control): {attr.__doc__} \n"
+
+                    help_str += f"\tfget: '{attr.fget.__defaults__[0]}', fset: '{attr.fset.__defaults__[0]}', values={attr.fget.__defaults__[1]}\n\n"
+
+            except Exception:
+                continue
+
+        return help_str if return_str else print(help_str)
+
+
+    @staticmethod
     def setup_adapter(cls: AnyInstrument, adapter: str, **kwargs) -> AnyInstrument:
         """Sets up the adapter for the given instrument class. If the setup fails,
         it raises an exception, unless debug mode is enabled (-d flag), in which
