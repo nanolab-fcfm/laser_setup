@@ -7,12 +7,12 @@ from pymeasure.experiment import FloatParameter, IntegerParameter, Parameter, Li
 from .. import config
 from ..utils import SONGS, send_telegram_alert, up_down_ramp
 from ..instruments import TENMA, Keithley2450
-from .BaseProcedure import BaseProcedure
+from .BaseProcedure import ChipProcedure
 
 log = logging.getLogger(__name__)
 
 
-class ItVg(BaseProcedure):
+class ItVg(ChipProcedure):
     """Measures a time-dependant current with a Keithley 2450, while
     varying the gate voltage in steps. The drain-source and laser voltages are
     fixed. The gate voltage is controlled by two TENMA sources. The laser is
@@ -40,7 +40,7 @@ class ItVg(BaseProcedure):
     Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
     NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'sampling_t', 'Irange', 'NPLC']
+    INPUTS = ChipProcedure.INPUTS + ['vds', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'sampling_t', 'Irange', 'NPLC']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'Vg (V)']
 
     def get_keithley_time(self):
@@ -60,8 +60,7 @@ class ItVg(BaseProcedure):
 
         # Keithley 2450 meter
         self.meter.reset()
-        self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
-        # self.meter.use_front_terminals()
+        self.meter.make_buffer()
         self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
 
         # TENMA sources

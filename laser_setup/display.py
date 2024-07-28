@@ -15,7 +15,7 @@ from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
 from . import config, config_path, _config_file_used
 from .utils import remove_empty_data
-from .procedures import MetaProcedure, BaseProcedure
+from .procedures import MetaProcedure, ChipProcedure
 
 log = logging.getLogger(__name__)
 
@@ -130,15 +130,15 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(self._get_procedure_vlayout(cls))
-        widget = InputsWidget(BaseProcedure, inputs=BaseProcedure.INPUTS[1:])
+        widget = InputsWidget(ChipProcedure, inputs=ChipProcedure.INPUTS[1:])
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
         for i, proc in enumerate(cls.procedures):
             layout.addLayout(self._get_procedure_vlayout(proc))
             proc_inputs = list(proc.INPUTS)
-            if BaseProcedure in proc.__mro__:
-                for input in BaseProcedure.INPUTS:
+            if ChipProcedure in proc.__mro__:
+                for input in ChipProcedure.INPUTS:
                     proc_inputs.remove(input)
 
             widget = InputsWidget(proc, inputs=proc_inputs)

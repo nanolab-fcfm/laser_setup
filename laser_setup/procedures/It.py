@@ -1,13 +1,12 @@
 import time
 import logging
 
-import numpy as np
 from pymeasure.experiment import FloatParameter, IntegerParameter, Parameter, ListParameter
 
 from .. import config
-from ..utils import SONGS, send_telegram_alert, get_latest_DP
+from ..utils import send_telegram_alert, get_latest_DP
 from ..instruments import TENMA, Keithley2450
-from .BaseProcedure import BaseProcedure
+from .BaseProcedure import ChipProcedure
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +32,7 @@ class It(BaseProcedure):
     Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
     NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC']
+    INPUTS = ChipProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
@@ -42,8 +41,10 @@ class It(BaseProcedure):
 
     def update_parameters(self):
         vg = str(self.vg)
-        assert vg.endswith(' V'), "Gate voltage must be in Volts"
-        vg = vg[:-2].replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20):.2f}")
+        if vg.endswith(' V'):
+            vg = vg[:-2]
+        if 'DP' in vg:
+            vg = vg.replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20):.2f}")
         float_vg = float(eval(vg))
         assert -100 <= float_vg <= 100, "Gate voltage must be between -100 and 100 V"
         self.vg = float_vg
@@ -63,8 +64,7 @@ class It(BaseProcedure):
 
         # Keithley 2450 meter
         self.meter.reset()
-        self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
-        # self.meter.use_front_terminals()
+        self.meter.make_buffer()
         self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
 
         # TENMA sources

@@ -2,15 +2,16 @@ import time
 import logging
 
 import numpy as np
-from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, BooleanParameter, ListParameter, Metadata
+from pymeasure.experiment import FloatParameter, IntegerParameter, Parameter, ListParameter, Metadata
 
 from .. import config
 from ..instruments import TENMA, ThorlabsPM100USB
+from ..procedures import BaseProcedure
 
 log = logging.getLogger(__name__)
 
 
-class Pt(Procedure):
+class Pt(BaseProcedure):
     """
     Basic procedure for measuring light power over time with a Thorlabs
     Powermeter and one laser controlled by a TENMA Power Supply.
@@ -19,13 +20,6 @@ class Pt(Procedure):
 
     wavelengths = list(eval(config['Laser']['wavelengths']))
     fibers = list(eval(config['Laser']['fibers']))
-
-    # config
-    show_more = BooleanParameter('Show more', default=False)
-    info = Parameter('Information', default='None')
-
-    # Metadata
-    start_time = Metadata('Start time', fget=time.time)
 
     # Important Parameter
     laser_wl  = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
@@ -41,7 +35,7 @@ class Pt(Procedure):
     sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
     Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
 
-    INPUTS = ['show_more', 'info', 'laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t', 'Irange']
+    INPUTS = ['laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t', 'Irange']
     DATA_COLUMNS = ['t (s)', 'P (W)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 

@@ -2,20 +2,21 @@ import time
 import logging
 
 import numpy as np
-from pymeasure.experiment import Procedure, FloatParameter, IntegerParameter, Parameter, ListParameter, Metadata
+from pymeasure.experiment import FloatParameter, IntegerParameter, Parameter, ListParameter, Metadata
 
 from .. import config
 from ..instruments import TENMA, ThorlabsPM100USB
+from .BaseProcedure import BaseProcedure
 
 log = logging.getLogger(__name__)
 
 
-class LaserCalibration(Procedure):
+class LaserCalibration(BaseProcedure):
     """Uses the Power Meter to calculate the effective power of the laser
     at a given voltage.
     """
-    # Procedure version. When modified, increment
-    # <parameter name>.<parameter property>.<procedure startup/shutdown>
+    show_more = None
+    info = None
     procedure_version = Parameter('Procedure version', default='1.1.1')
     fibers = list(eval(config['Laser']['fibers']))
 
@@ -28,7 +29,6 @@ class LaserCalibration(Procedure):
     N_avg = IntegerParameter('N_avg', default=2)
 
     # Metadata
-    start_time = Metadata('Start time', fget=time.time)
     sensor = Metadata('Sensor model', fget='power_meter.sensor_name')
 
     INPUTS = ['laser_wl', 'fiber', 'vl_start', 'vl_end', 'vl_step', 'step_time', 'N_avg']

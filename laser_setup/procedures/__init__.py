@@ -1,4 +1,4 @@
-from .BaseProcedure import BaseProcedure
+from .BaseProcedure import BaseProcedure, ChipProcedure
 from .FakeProcedure import FakeProcedure
 from .IVg import IVg
 from .It import It
