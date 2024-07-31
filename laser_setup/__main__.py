@@ -3,7 +3,7 @@ import argparse
 
 from .display import MainWindow, ExperimentWindow, display_window
 from .procedures import *
-from .cli import setup_adapters, console, find_dp_script
+from .cli import setup_adapters, console, find_dp_script, get_updates
 
 Sequences = {
     MainSequence: 'Sequence',
@@ -22,6 +22,7 @@ Scripts = {
     setup_adapters.setup: 'Set up Adapters',
     console.main: 'Console',
     find_dp_script.main: 'Find Dirac Point',
+    get_updates.main: 'Get Updates',
 }
 
 def main():

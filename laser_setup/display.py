@@ -428,6 +428,11 @@ class MainWindow(QtWidgets.QMainWindow):
             return item
         return None
 
+    def question_box(self, title: str, text: str) -> bool:
+        buttons = QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+        reply = QtWidgets.QMessageBox.question(self, title, text, buttons)
+        return reply == QtWidgets.QMessageBox.StandardButton.Yes
+
 
 def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     """Displays the window for the given class. Allows for the
