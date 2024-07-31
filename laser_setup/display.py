@@ -91,8 +91,7 @@ class ExperimentWindow(ManagedWindow):
             dated_folder=True,
             )
         log.info(f"Saving data to {filename}.")
-        if hasattr(procedure, 'update_parameters'):
-            procedure.update_parameters()
+
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)
 

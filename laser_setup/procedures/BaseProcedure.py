@@ -25,11 +25,15 @@ class BaseProcedure(Procedure):
 
     def update_parameters(self):
         """Function to update the parameters after the initialization,
-        but before startup. It is useful to modify the parameters
-        based on the values of other parameters. It is called
-        only by the ExperimentWindow.
+        but before startup. It is useful for creating dynamic parameters that
+        depend on others, can only be determined after initialization, or
+        change type.
         """
         pass
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.update_parameters()
 
 
 class ChipProcedure(BaseProcedure):
