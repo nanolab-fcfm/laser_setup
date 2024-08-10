@@ -120,6 +120,8 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
     """
     aborted: bool = False
     status_labels = []
+    inputs_ignored = ['show_more', 'chained_exec']
+
     def __init__(self, cls: Type[MetaProcedure], title: str = '', **kwargs):
         super().__init__(**kwargs)
         self.cls = cls
@@ -129,16 +131,21 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(self._get_procedure_vlayout(cls))
-        widget = InputsWidget(ChipProcedure, inputs=ChipProcedure.INPUTS[1:])
+
+        base_inputs = [i for i in ChipProcedure.INPUTS if i not in self.inputs_ignored]
+
+        widget = InputsWidget(ChipProcedure, inputs=base_inputs)
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
         for i, proc in enumerate(cls.procedures):
             layout.addLayout(self._get_procedure_vlayout(proc))
             proc_inputs = list(proc.INPUTS)
-            if ChipProcedure in proc.__mro__:
-                for input in ChipProcedure.INPUTS:
+            for input in base_inputs:
+                try:
                     proc_inputs.remove(input)
+                except ValueError:
+                    pass
 
             widget = InputsWidget(proc, inputs=proc_inputs)
             widget.layout().setSpacing(10)
@@ -205,7 +212,7 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
 
             else:
                 window = ExperimentWindow(proc, title=proc.__name__)
-                parameters = inputs[i+1].get_procedure()._parameters | base_parameters
+                parameters = base_parameters | inputs[i+1].get_procedure()._parameters
                 window.set_parameters(parameters)
 
                 window.queue_button.hide()
