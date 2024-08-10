@@ -148,13 +148,13 @@ class InstrumentManager(QtCore.QObject):
     @QtCore.pyqtSlot(str)
     def _on_instrument_shutdown(self, name: str):
         try:
-            instrument = self.instances[name]
+            _ = self.instances[name]
         except KeyError:
             log.error(f"Instrument '{name}' not found.")
             return
 
         try:
-            instrument.shutdown()
+            self.instances[name].shutdown()
             del self.instances[name]
             log.debug(f"Instrument '{name}' was shut down.")
         except Exception as e:
@@ -172,7 +172,7 @@ class InstrumentManager(QtCore.QObject):
 
 
 class Keithley2450(Keithley2450):
-    buffer_name: str = None
+    buffer_name: str = "defbuffer1"
     buffer_modes = ['CONT', 'ONCE']
 
     def __init__(self, adapter: str, name: str = None, includeSCPI=False, **kwargs):
@@ -201,12 +201,13 @@ class Keithley2450(Keithley2450):
 
     def get_data(self):
         """Returns the latest timestamp and data from the buffer."""
-        if self.buffer_name is None:
-            log.error("No buffer created. Data not available.")
-            return
-
         data = self.ask(f':READ? "{self.buffer_name}", REL, READ')
         return data
+
+    def get_time(self):
+        """Returns the latest timestamp from the buffer."""
+        time = float(self.ask(f':READ? "{self.buffer_name}", REL')[:-1])
+        return time
 
     def shutdown(self):
         for freq, t in SONGS['triad']:
