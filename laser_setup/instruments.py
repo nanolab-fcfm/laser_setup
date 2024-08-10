@@ -16,7 +16,6 @@ from pymeasure.instruments import Instrument
 from pymeasure.instruments.keithley import Keithley2450
 from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 from pymeasure.instruments.validators import truncated_range, strict_discrete_set
-from pymeasure.display.Qt import QtCore
 
 from .utils import SONGS
 
@@ -24,7 +23,7 @@ log = logging.getLogger(__name__)
 AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
 
 
-class InstrumentManager(QtCore.QObject):
+class InstrumentManager:
     """Manages multiple instruments at the same time using a dictionary to store them.
     Instruments can persist between multiple instances of procedures. It also emits
     signals when an instrument is connected, shutdown, or when all instruments are
@@ -35,17 +34,9 @@ class InstrumentManager(QtCore.QObject):
     :method shutdown: Safely shuts down the instrument with the given name.
     :method shutdown_all: Safely shuts down all instruments.
     """
-    instrument_connected = QtCore.pyqtSignal(str, Instrument)
-    instrument_shutdown = QtCore.pyqtSignal(str)
-    all_instruments_shutdown = QtCore.pyqtSignal()
-
     def __init__(self):
         super().__init__()
         self.instances: Dict[str, AnyInstrument] = {}
-
-        self.instrument_connected.connect(self._on_instrument_connected)
-        self.instrument_shutdown.connect(self._on_instrument_shutdown)
-        self.all_instruments_shutdown.connect(self._on_all_instruments_shutdown)
 
     def __repr__(self) -> str:
         return f"InstrumentManager({self.instances})"
@@ -95,7 +86,7 @@ class InstrumentManager(QtCore.QObject):
             log.debug(f"Connected to {cls.__name__} via {cls.adapter}")
         except Exception as e:
             if '-d' in sys.argv or '--debug' in sys.argv:
-                log.warning(f"Could not connect to {cls.__name__}: {e}. Using FakeAdapter.")
+                log.warning(f"Could not connect to {cls.__name__}: {e} Using FakeAdapter.")
                 instrument = cls(FakeAdapter(), **kwargs)
             else:
                 raise
@@ -119,7 +110,11 @@ class InstrumentManager(QtCore.QObject):
 
         try:
             instrument = self.setup_adapter(cls, adapter, **kwargs)
-            self.instrument_connected.emit(name, instrument)
+            if name in self.instances:
+                log.info(f"Instrument '{name}' already exists.")
+            else:
+                self.instances[name] = instrument
+                log.debug(f"Instrument '{name}' connected.")
             return self.instances[name]
 
         except Exception as e:
@@ -131,22 +126,6 @@ class InstrumentManager(QtCore.QObject):
 
         :param name: The name of the instrument to shutdown.
         """
-        self.instrument_shutdown.emit(name)
-
-    def shutdown_all(self):
-        """Safely shuts down all instruments."""
-        self.all_instruments_shutdown.emit()
-
-    @QtCore.pyqtSlot(str, Instrument)
-    def _on_instrument_connected(self, name: str, instrument: Instrument):
-        if name in self.instances:
-            log.info(f"Instrument '{name}' already exists.")
-        else:
-            self.instances[name] = instrument
-            log.debug(f"Instrument '{name}' connected.")
-
-    @QtCore.pyqtSlot(str)
-    def _on_instrument_shutdown(self, name: str):
         try:
             _ = self.instances[name]
         except KeyError:
@@ -160,8 +139,8 @@ class InstrumentManager(QtCore.QObject):
         except Exception as e:
             log.error(f"Error shutting down instrument '{name}': {e}")
 
-    @QtCore.pyqtSlot()
-    def _on_all_instruments_shutdown(self):
+    def shutdown_all(self):
+        """Safely shuts down all instruments."""
         if not self.instances:
             log.info("No instruments to shut down")
             return
