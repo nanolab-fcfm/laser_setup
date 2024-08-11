@@ -23,6 +23,32 @@ log = logging.getLogger(__name__)
 AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
 
 
+class PendingInstrument(Instrument):
+    """A placeholder for an instrument that is pending initialization.
+
+    This class holds the configuration for an instrument that will be connected
+    and initialized at a later stage. It allows for the deferred setup of instruments,
+    enabling dynamic and flexible instrument management within procedures.
+
+    :param cls: The class of the instrument to be initialized.
+    :param adapter: The adapter string for the instrument connection.
+    :param name: The name of the instrument.
+    :param includeSCPI: Flag indicating whether to include SCPI commands.
+    :param kwargs: Additional keyword arguments for instrument configuration.
+    """
+    def __init__(self, cls: AnyInstrument = Instrument, adapter: str = None, name: str = None, includeSCPI=False, **kwargs):
+        self.config = {
+            'cls': cls,
+            'adapter': adapter,
+            'name': name,
+            'includeSCPI': includeSCPI,
+            **kwargs
+        }
+
+    def __repr__(self) -> str:
+        return f"PendingInstrument({self.config})"
+
+
 class InstrumentManager:
     """Manages multiple instruments at the same time using a dictionary to store them.
     Instruments can persist between multiple instances of procedures. It also emits
