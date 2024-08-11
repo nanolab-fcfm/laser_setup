@@ -1,12 +1,10 @@
 import time
 import logging
 
-import numpy as np
-from pymeasure.experiment import FloatParameter, IntegerParameter, Parameter, ListParameter, BooleanParameter
-
 from .. import config
-from ..utils import SONGS, send_telegram_alert, up_down_ramp
-from ..instruments import TENMA, Keithley2450
+from ..utils import up_down_ramp
+from ..instruments import TENMA, Keithley2450, PendingInstrument
+from ..parameters import Parameters
 from .BaseProcedure import ChipProcedure
 
 log = logging.getLogger(__name__)
@@ -18,45 +16,42 @@ class ItVg(ChipProcedure):
     fixed. The gate voltage is controlled by two TENMA sources. The laser is
     controlled by another TENMA source.
     """
-    wavelengths = list(eval(config['Laser']['wavelengths']))
+    meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
+    tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
+    tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
+    tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
 
     # Important Parameters
-    vds = FloatParameter('VDS', units='V', default=0.075, decimals=10)
+    vds = Parameters.Control.vds
 
     # Laser Parameters
-    laser_toggle = BooleanParameter('Laser toggle', default=False)
-    laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths, group_by='laser_toggle')
-    laser_v = FloatParameter('Laser voltage', units='V', default=0., group_by='laser_toggle')
-    burn_in_t = FloatParameter('Burn-in time', units='s', default=10*60, group_by='laser_toggle')
+    laser_toggle = Parameters.Laser.laser_toggle
+    group_by = {'laser_toggle': True}
+    laser_wl = Parameters.Laser.laser_wl; laser_wl.group_by = group_by
+    laser_v = Parameters.Laser.laser_v; laser_v.group_by = group_by
+    burn_in_t = Parameters.Laser.burn_in_t; burn_in_t.group_by = group_by; burn_in_t.value = 10*60
 
     # Gate Voltage Array Parameters
-    vg_start = FloatParameter('VG start', units='V', default=0.)
-    vg_end = FloatParameter('VG end', units='V', default=15.)
-    vg_step = FloatParameter('VG step', units='V', default=0., group_by='show_more')
-    step_time = FloatParameter('Step time', units='s', default=30*60.)
+    vg_start = Parameters.Control.vg_start; vg_start.value = 0.
+    vg_end = Parameters.Control.vg_end; vg_end.value = 15.
+    vg_step = Parameters.Control.vg_step; vg_step.value = 0.
+    step_time = Parameters.Control.step_time; step_time.group_by = {}; step_time.value = 30*60.
 
     # Additional Parameters, preferably don't change
-    sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
-    Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
-    NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
+    sampling_t = Parameters.Control.sampling_t
+    Irange = Parameters.Instrument.Irange
+    NPLC = Parameters.Instrument.NPLC
 
     INPUTS = ChipProcedure.INPUTS + ['vds', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'sampling_t', 'Irange', 'NPLC']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'Vg (V)']
 
-    def get_keithley_time(self):
-        return float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
-
     def startup(self):
-        log.info("Setting up instruments")
-        try:
-            self.meter = Keithley2450(config['Adapters']['keithley2450'])
-            self.tenma_neg = TENMA(config['Adapters']['tenma_neg'])
-            self.tenma_pos = TENMA(config['Adapters']['tenma_pos'])
-            if self.laser_toggle:
-                self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
-        except Exception as e:
-            log.error(f"Could not connect to instruments: {e}")
-            raise
+        self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
+        self.connect_instruments()
+
+        if self.chained_exec and self.__class__.startup_executed:
+            log.info("Skipping startup")
+            return
 
         # Keithley 2450 meter
         self.meter.reset()
@@ -78,6 +73,8 @@ class ItVg(ChipProcedure):
             self.tenma_laser.output = True
         time.sleep(1.)
 
+        self.__class__.startup_executed = True
+
     def execute(self):
         log.info("Starting the measurement")
 
@@ -94,7 +91,7 @@ class ItVg(ChipProcedure):
             self.tenma_neg.ramp_to_voltage(-self.vg_ramp[0])
 
         def measuring_loop(t_end: float, vg: float):
-            t_keithley = self.get_keithley_time()
+            t_keithley = self.meter.get_time()
             while t_keithley < t_end:
                 if self.should_stop():
                     log.warning('Measurement aborted')
@@ -104,7 +101,7 @@ class ItVg(ChipProcedure):
 
                 current = self.meter.current
 
-                t_keithley = self.get_keithley_time()
+                t_keithley = self.meter.get_time()
                 self.emit('results', dict(zip(self.DATA_COLUMNS, [t_keithley, current, vg])))
                 time.sleep(self.sampling_t)
 
@@ -125,23 +122,3 @@ class ItVg(ChipProcedure):
 
         self.tenma_neg.ramp_to_voltage(0.)
         self.tenma_pos.ramp_to_voltage(0.)
-
-    def shutdown(self):
-        if not hasattr(self, 'meter'):
-            log.info("No instruments to shutdown.")
-            return
-
-        for freq, t in SONGS['triad']:
-            self.meter.beep(freq, t)
-            time.sleep(t)
-
-        self.meter.shutdown()
-        self.tenma_neg.shutdown()
-        self.tenma_pos.shutdown()
-        if self.laser_toggle:
-            self.tenma_laser.shutdown()
-        log.info("Instruments shutdown.")
-
-        send_telegram_alert(
-            f"Finished It measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
-        )
