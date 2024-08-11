@@ -109,6 +109,7 @@ class ExperimentWindow(ManagedWindow):
                 return
 
             self.manager.abort()
+            self.procedure_class.instruments.shutdown_all()
             time.sleep(0.5)
         self.log_widget._blink_qtimer.stop()
         super().closeEvent(event)

@@ -43,7 +43,7 @@ class FakeProcedure(BaseProcedure):
             tc = time.time()
 
     def shutdown(self):
-        if self.chained_exec:
+        if not self.should_stop() and self.chained_exec:
             log.info("Skipping shutdown")
             return
 
