@@ -26,8 +26,8 @@ def get_updates(parent=None):
 
     latest_commit_remote = repo.remotes.origin.fetch()[0].commit.hexsha
     latest_commit_local = repo.head.commit.hexsha
-
-    if latest_commit_remote != latest_commit_local:
+    common_ancestor = repo.merge_base(latest_commit_local, latest_commit_remote)[0].hexsha
+    if latest_commit_remote != common_ancestor:
         if parent is not None:
             reply = parent.question_box('Updates',
                 "New updates are available. Do you want to update?"
