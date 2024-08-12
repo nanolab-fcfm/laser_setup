@@ -249,6 +249,7 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
                 if self.aborted:
                     break
 
+        self.cls.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
         if not self.aborted: log.info("Sequence finished.")
         self.set_status(-1, 'red' if self.aborted else 'green')()
