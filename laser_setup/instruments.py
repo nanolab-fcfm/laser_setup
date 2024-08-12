@@ -172,7 +172,7 @@ class InstrumentManager:
             return
 
         log.info("Shutting down all instruments.")
-        for name in self.instances:
+        for name in list(self.instances):
             self.shutdown(name)
 
 
@@ -186,7 +186,7 @@ class Keithley2450(Keithley2450):
         )
 
     def make_buffer(
-        self, name: str = 'IVBuffer', size: int = 0, mode: str = None,
+        self, name: str = 'IVBuffer', size: int = 1_000_000, mode: str = None,
     ):
         """Creates a buffer with the given name and size. Sets the fill mode.
 

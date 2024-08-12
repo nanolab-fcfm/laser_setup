@@ -96,6 +96,8 @@ class ExperimentWindow(ManagedWindow):
             )
         log.info(f"Saving data to {filename}.")
 
+        if hasattr(procedure, 'pre_startup'):
+            procedure.pre_startup()
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)
 

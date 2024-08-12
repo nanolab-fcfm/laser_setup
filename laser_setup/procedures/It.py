@@ -38,24 +38,16 @@ class It(ChipProcedure):
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
-    def update_parameters(self):
-        super().update_parameters()
-        if not self.parameters_are_set():
-            return
-
+    def pre_startup(self):
         vg = str(self.vg)
         if vg.endswith(' V'):
             vg = vg[:-2]
         if 'DP' in vg:
-            try:
-                vg = vg.replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20):.2f}")
-            except Exception as e:
-                log.error(f"Could not get the latest DP: {e} (Using DP = 0. instead)")
-                vg = vg.replace('DP', '0.')
+            vg = vg.replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20):.2f}")
 
         self._parameters['vg'] = Parameters.Control.vg
         self._parameters['vg'].value = float(eval(vg))
-        self.refresh_parameters()
+        self.vg = self._parameters['vg'].value
 
     def startup(self):
         self.connect_instruments()

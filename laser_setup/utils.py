@@ -178,8 +178,8 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
 
             return DP
 
-    log.error(f"Dirac Point not found for {chip_group} {chip_number} {sample}")
-    raise ValueError("Dirac Point not found")
+    log.warning(f"Dirac Point not found for {chip_group} {chip_number} {sample}. (Using DP = 0. instead)")
+    return 0.
 
 
 def rename_data_value(original: str, replace: str):
