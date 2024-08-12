@@ -78,6 +78,10 @@ class ExperimentWindow(ManagedWindow):
             **sequencer_kwargs,
             **kwargs
         )
+        if bool(eval(config['GUI']['dark_mode'])):
+            self.plot_widget.plot_frame.setStyleSheet('background-color: black;')
+            self.plot_widget.plot_frame.plot_widget.setBackground('k')
+
         self.setWindowTitle(title)
 
     def queue(self, procedure: Type[Procedure] = None):
@@ -450,8 +454,9 @@ def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     :param args: The arguments to pass to the window class.
     """
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle('Fusion')
-    app.setPalette(get_dark_palette())
+    app.setStyle(config['GUI']['style'])    # Get available styles with QtWidgets.QStyleFactory.keys()
+    if bool(eval(config['GUI']['dark_mode'])):
+        app.setPalette(get_dark_palette())
     QtCore.QLocale.setDefault(QtCore.QLocale(
         QtCore.QLocale.Language.English,
         QtCore.QLocale.Country.UnitedStates
