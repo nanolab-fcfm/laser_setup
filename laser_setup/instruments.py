@@ -109,7 +109,7 @@ class InstrumentManager:
         """
         try:
             instrument = cls(adapter, **kwargs)
-            log.debug(f"Connected to {cls.__name__} via {cls.adapter}")
+            log.debug(f"Connected to {cls.__name__} via {instrument.adapter}")
         except Exception as e:
             if '-d' in sys.argv or '--debug' in sys.argv:
                 log.warning(f"Could not connect to {cls.__name__}: {e} Using FakeAdapter.")
