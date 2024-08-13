@@ -9,11 +9,6 @@ jobs:
       - uses: actions/checkout@v4
         name: Checkout
 
-      - name: Refresh data folder from source
-        run: |
-          rm -rf compiled/data
-          cp -rf src/data/ compiled/
-
   build:
     needs: prepare
     runs-on: ${{ matrix.os }}
