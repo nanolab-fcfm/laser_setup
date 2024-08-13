@@ -111,7 +111,7 @@ class ExperimentWindow(ManagedWindow):
             self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
             self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
 
-        widget = TextWidget('Protocol', parent=self, file='docs/led_protocol.md')
+        widget = TextWidget('Information', parent=self, file=config['GUI']['info_file'])
         self.widget_list += (widget,)
         self.tabs.addTab(widget, widget.name)
 
