@@ -15,7 +15,7 @@ from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
 from . import config, config_path, _config_file_used
 from .utils import remove_empty_data
-from .procedures import MetaProcedure, ChipProcedure
+from .procedures import MetaProcedure, BaseProcedure, ChipProcedure
 
 log = logging.getLogger(__name__)
 
@@ -84,6 +84,11 @@ class ExperimentWindow(ManagedWindow):
 
         self.setWindowTitle(title)
 
+        if issubclass(self.procedure_class, BaseProcedure):
+            self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
+            self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
+            self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
+
     def queue(self, procedure: Type[Procedure] = None):
         if procedure is None:
             procedure = self.make_procedure()
@@ -115,7 +120,8 @@ class ExperimentWindow(ManagedWindow):
                 return
 
             self.manager.abort()
-            self.procedure_class.instruments.shutdown_all()
+            if issubclass(self.procedure_class, BaseProcedure):
+                self.procedure_class.instruments.shutdown_all()
             time.sleep(0.5)
         self.log_widget._blink_qtimer.stop()
         super().closeEvent(event)
