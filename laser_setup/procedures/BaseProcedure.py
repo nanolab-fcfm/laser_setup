@@ -56,6 +56,14 @@ class BaseProcedure(Procedure):
             if isinstance(instrument, PendingInstrument):
                 setattr(self, key, self.instruments.connect(**instrument.config))
 
+    def shutdown(self):
+        if not self.should_stop() and self.status >= self.RUNNING and self.chained_exec:
+            log.info("Skipping shutdown")
+            return
+
+        self.instruments.shutdown_all()
+        self.__class__.startup_executed = False
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.update_parameters()
