@@ -204,6 +204,16 @@ class Keithley2450(Keithley2450):
         self.buffer_name = name
         self.write(f'TRACe:FILL:MODE {mode}')
 
+    def clear_buffer(self, name: str = None):
+        """Clears the buffer with the given name. If no name is given, it clears
+        the default buffer.
+
+        :param name: The name of the buffer to clear.
+        """
+        if name is None:
+            name = self.buffer_name
+        self.write(f':TRACe:CLEar "{name}"')
+
     def get_data(self):
         """Returns the latest timestamp and data from the buffer."""
         data = self.ask(f':READ? "{self.buffer_name}", REL, READ')

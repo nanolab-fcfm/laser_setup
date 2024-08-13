@@ -77,6 +77,7 @@ class ItVg(ChipProcedure):
 
     def execute(self):
         log.info("Starting the measurement")
+        self.meter.clear_buffer()
 
         step = self.vg_step if self.vg_step else self.vg_end - self.vg_start
         self.vg_ramp = up_down_ramp(self.vg_start, self.vg_end, step)

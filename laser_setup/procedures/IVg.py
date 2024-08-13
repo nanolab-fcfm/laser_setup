@@ -80,6 +80,7 @@ class IVg(ChipProcedure):
 
     def execute(self):
         log.info("Starting the measurement")
+        self.meter.clear_buffer()
 
         # Set the Vds
         self.meter.source_voltage = self.vds

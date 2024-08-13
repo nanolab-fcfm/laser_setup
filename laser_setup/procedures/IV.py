@@ -74,6 +74,7 @@ class IV(ChipProcedure):
 
     def execute(self):
         log.info("Starting the measurement")
+        self.meter.clear_buffer()
 
         # Set the Vg
         if self.vg >= 0:

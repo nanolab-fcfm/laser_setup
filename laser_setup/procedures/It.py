@@ -78,7 +78,7 @@ class It(ChipProcedure):
 
     def execute(self):
         log.info("Starting the measurement")
-        self.meter.write(f':TRACe:CLEar "{self.meter.buffer_name}"')
+        self.meter.clear_buffer()
 
         self.meter.source_voltage = self.vds
         if self.vg >= 0:
