@@ -37,9 +37,11 @@ class BaseProcedure(Procedure):
         from the overrides file.
         """
         cls_name = self.__class__.__name__
+        lower_params = {key.lower(): key for key in self._parameters.keys()}
         if overrides.has_section(cls_name):
             for key, value in overrides[cls_name].items():
-                if key in self._parameters:
+                if key in lower_params:
+                    key = lower_params[key]
                     self._parameters[key].value = value
                     setattr(self, key, self._parameters[key].value)
 
