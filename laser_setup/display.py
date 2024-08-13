@@ -9,7 +9,7 @@ from importlib.metadata import metadata
 from typing import Type
 
 from pymeasure.experiment import unique_filename, Results, Procedure
-from pymeasure.display.widgets import InputsWidget
+from pymeasure.display.widgets import InputsWidget, TabWidget
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
@@ -54,6 +54,28 @@ class ProgressBar(QtWidgets.QDialog):
             self.close()
 
 
+class TextWidget(TabWidget, QtWidgets.QWidget):
+    def __init__(self, name: str = None, parent=None, file: str = None):
+        super().__init__(name, parent)
+        self.view = QtWidgets.QTextEdit(self, readOnly=True)
+        self.view.setReadOnly(True)
+        self.view.setStyleSheet("""
+            font-size: 12pt;
+        """)
+        try:
+            with open(file, encoding='utf-8') as f:
+                readme_text = f.read()
+        except:
+            readme_text = f'{file} not found :('
+        self.view.setMarkdown(readme_text)
+
+        vbox = QtWidgets.QVBoxLayout(self)
+        vbox.setSpacing(0)
+
+        vbox.addWidget(self.view)
+        self.setLayout(vbox)
+
+
 class ExperimentWindow(ManagedWindow):
     """The main window for the GUI. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
@@ -88,6 +110,10 @@ class ExperimentWindow(ManagedWindow):
             self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
             self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
             self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
+
+        widget = TextWidget('Protocol', parent=self, file='docs/led_protocol.md')
+        self.widget_list += (widget,)
+        self.tabs.addTab(widget, widget.name)
 
     def queue(self, procedure: Type[Procedure] = None):
         if procedure is None:
