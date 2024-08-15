@@ -18,13 +18,14 @@ def get_updates(parent=None):
     """Gets updates from the GitHub repo, and makes a git fetch if
     necessary. If parent is given, it's assumed to be a PyQT window
     """
+    timeout = 1.
     try:
         repo = git.Repo(search_parent_directories=True)
     except git.InvalidGitRepositoryError:
         log.error("Not a git repository.")
         return
 
-    latest_commit_remote = repo.remotes.origin.fetch()[0].commit.hexsha
+    latest_commit_remote = repo.remotes.origin.fetch(kill_after_timeout=timeout)[0].commit.hexsha
     latest_commit_local = repo.head.commit.hexsha
     common_ancestor = repo.merge_base(latest_commit_local, latest_commit_remote)[0].hexsha
     if latest_commit_remote != common_ancestor:
@@ -35,7 +36,7 @@ def get_updates(parent=None):
             if not reply:
                 return
 
-            repo.remotes.origin.pull()
+            repo.remotes.origin.pull(kill_after_timeout=timeout)
             file_to_check='pyproject.toml'
             diff = repo.git.diff(latest_commit_local, latest_commit_remote, file_to_check)
             if diff:
