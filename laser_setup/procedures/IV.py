@@ -48,6 +48,7 @@ class IV(ChipProcedure):
 
         if self.chained_exec and self.__class__.startup_executed:
             log.info("Skipping startup")
+            self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
             return
 
         # Keithley 2450 meter
