@@ -248,40 +248,40 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
                 self.set_status(i, 'yellow')()
                 self.wait(wait_time)
                 self.set_status(i, 'green')()
+                continue
 
-            else:
-                window = ExperimentWindow(proc, title=proc.__name__)
-                parameters = base_parameters | inputs[i+1].get_procedure()._parameters
-                window.set_parameters(parameters)
+            window = ExperimentWindow(proc, title=proc.__name__)
+            parameters = inputs[i+1].get_procedure()._parameters | base_parameters
+            window.set_parameters(parameters)
 
-                window.queue_button.hide()
-                window.browser_widget.clear_button.hide()
-                window.browser_widget.hide_button.hide()
-                window.browser_widget.open_button.hide()
-                window.browser_widget.show_button.hide()
-                window.show()
-                window.queue_button.click()
+            window.queue_button.hide()
+            window.browser_widget.clear_button.hide()
+            window.browser_widget.hide_button.hide()
+            window.browser_widget.open_button.hide()
+            window.browser_widget.show_button.hide()
+            window.show()
+            window.queue_button.click()
 
-                # Update the status label
-                window.manager.running.connect(self.set_status(i, 'yellow'))
-                window.manager.finished.connect(self.set_status(i, 'green'))
-                window.manager.failed.connect(self.set_status(i, 'red'))
-                window.manager.aborted.connect(self.set_status(i, 'red'))
+            # Update the status label
+            window.manager.running.connect(self.set_status(i, 'yellow'))
+            window.manager.finished.connect(self.set_status(i, 'green'))
+            window.manager.failed.connect(self.set_status(i, 'red'))
+            window.manager.aborted.connect(self.set_status(i, 'red'))
 
-                # Window managing
-                window.manager.aborted.connect(self.aborted_procedure(window))
-                window.manager.failed.connect(self.failed_procedure(window))
-                window.manager.finished.connect(window.close)
+            # Window managing
+            window.manager.aborted.connect(self.aborted_procedure(window))
+            window.manager.failed.connect(self.failed_procedure(window))
+            window.manager.finished.connect(window.close)
 
-                # Non-blocking wait for the procedure to finish
-                loop = QtCore.QEventLoop()
-                window.manager.aborted.connect(loop.quit)
-                window.manager.failed.connect(loop.quit)
-                window.manager.finished.connect(loop.quit)
-                loop.exec()
+            # Non-blocking wait for the procedure to finish
+            loop = QtCore.QEventLoop()
+            window.manager.aborted.connect(loop.quit)
+            window.manager.failed.connect(loop.quit)
+            window.manager.finished.connect(loop.quit)
+            loop.exec()
 
-                if self.aborted:
-                    break
+            if self.aborted:
+                break
 
         self.cls.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
