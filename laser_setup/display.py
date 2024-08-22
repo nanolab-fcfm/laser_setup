@@ -241,6 +241,7 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
         base_parameters = inputs[0].get_procedure()._parameters
+        base_parameters = {k: v for k, v in base_parameters.items() if k not in self.inputs_ignored}
         for i, proc in enumerate(self.cls.procedures):
             # Spawn the corresponding ExperimentWindow and queue it
             if proc.__name__ == 'Wait':
@@ -251,7 +252,8 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
                 continue
 
             window = ExperimentWindow(proc, title=proc.__name__)
-            parameters = inputs[i+1].get_procedure()._parameters | base_parameters
+            procedure_parameters = inputs[i+1].get_procedure()._parameters
+            parameters = procedure_parameters | base_parameters
             window.set_parameters(parameters)
 
             window.queue_button.hide()
