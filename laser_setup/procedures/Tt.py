@@ -1,0 +1,76 @@
+# laser_setup/procedures/Tt.py
+
+import time
+import logging
+
+from .BaseProcedure import ChipProcedure  # Adjust the import based on your actual base class location
+from ..parameters import Parameters
+from ..instruments import PT100SerialSensor, PendingInstrument
+from .. import config
+
+log = logging.getLogger(__name__)
+
+class Tt(ChipProcedure):
+    """Measures temperature over time using a PT100 sensor connected via Arduino."""
+
+    # Instrument
+    temperature_sensor: PT100SerialSensor = PendingInstrument(
+        PT100SerialSensor, config['Adapters']['pt100_port'], includeSCPI=False
+    )
+
+    # Parameters
+    sampling_t = Parameters.Control.sampling_t
+    laser_T = Parameters.Laser.laser_T  # Using laser_T as total measurement time
+
+    # Inputs and data columns
+    INPUTS = ChipProcedure.INPUTS + ['sampling_t', 'laser_T']
+    DATA_COLUMNS = ['Time (s)', 'Temperature (°C)']
+
+    def startup(self):
+        """Connect to the temperature sensor."""
+        self.connect_instruments()
+        log.info("Temperature sensor connected and ready.")
+
+    def execute(self):
+        """Perform the temperature measurement over time."""
+        log.info("Starting temperature measurement.")
+        start_time = time.time()
+        total_time = self.laser_T  # Total measurement time
+
+        while True:
+            if self.should_stop():
+                log.warning('Measurement aborted by user.')
+                break
+
+            elapsed_time = time.time() - start_time
+            if elapsed_time > total_time:
+                log.info('Measurement time completed.')
+                break
+
+            # Read temperature from PT100 sensor
+            temperature = self.temperature_sensor.read_temperature()
+            if temperature is None:
+                log.error("Failed to read temperature. Recording NaN.")
+                temperature = float('nan')
+
+            # Emit results
+            self.emit(
+                'results',
+                {
+                    'Time (s)': elapsed_time,
+                    'Temperature (°C)': temperature,
+                },
+            )
+
+            # Emit progress
+            self.emit('progress', 100 * elapsed_time / total_time)
+
+            time.sleep(self.sampling_t)
+
+    def shutdown(self):
+        """Safely shut down the temperature sensor."""
+        if isinstance(self.temperature_sensor, PendingInstrument):
+            log.warning("Temperature sensor was not connected. Skipping shutdown.")
+        else:
+            self.temperature_sensor.shutdown()
+            log.info("Temperature measurement procedure completed.")

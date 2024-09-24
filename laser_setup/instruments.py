@@ -4,6 +4,7 @@ It also includes some base procedures that can be used to build more complex
 procedures.
 """
 import sys
+import serial
 import time
 import logging
 from typing import TypeVar, Dict
@@ -14,6 +15,7 @@ import bendev
 from pymeasure.adapters import FakeAdapter
 from pymeasure.instruments import Instrument
 from pymeasure.instruments.keithley import Keithley2450
+from pymeasure.adapters import SerialAdapter
 from pymeasure.instruments.thorlabs import ThorlabsPM100USB
 from pymeasure.instruments.validators import truncated_range, strict_discrete_set
 
@@ -435,3 +437,59 @@ class Bentham(Instrument):
 
     def reconnect(self):
         self.adapter.reconnect()
+
+
+class PT100SerialSensor(Instrument):
+    """Instrument class for the PT100 temperature sensor using PyMeasure's SerialAdapter."""
+
+    def __init__(self, port, name="PT100 Sensor", baudrate=115200, timeout=1, **kwargs):
+        """
+        Initializes the PT100 sensor connected via serial communication.
+
+        :param port: The serial port where the Arduino is connected (e.g., '/dev/ttyACM0').
+        :param name: The name of the instrument.
+        :param baudrate: The baud rate for serial communication (default: 9600).
+        :param timeout: Read timeout in seconds (default: 1 second).
+        :param kwargs: Additional keyword arguments.
+        """
+        adapter = SerialAdapter(port, baudrate=baudrate, timeout=timeout)
+        # Remove 'includeSCPI' from kwargs if it exists
+        kwargs.pop('includeSCPI', None)
+        super().__init__(
+            adapter,
+            name=name,
+            includeSCPI=False,
+            write_termination='\n',
+            read_termination='\r\n',
+            **kwargs
+        )
+        log.info(f"{self.name} initialized on port {port} at {baudrate} baud.")
+
+    def read_temperature(self):
+        """
+        Reads the temperature from the PT100 sensor.
+
+        :return: Temperature in Celsius.
+        """
+        self.write('R')
+        time.sleep(0.1)  # 100 milliseconds
+        line = self.read().strip()
+        line = line.replace("\n", "")
+        if line == "ERROR":
+            log.error("Fault detected in temperature sensor.")
+            return None
+        try:
+            temperature = float(line)
+            log.debug(f"{self.name}: Temperature read: {temperature} °C")
+            return temperature
+        except ValueError:
+            log.error(f"{self.name}: Invalid temperature reading: {line}")
+            return None
+
+    def shutdown(self):
+        """
+        Safely shuts down the serial connection.
+        """
+        self.adapter.disconnect()
+        super().shutdown()
+        log.info(f"{self.name} serial connection closed.")
