@@ -9,7 +9,7 @@ from importlib.metadata import metadata
 from typing import Type
 
 from pymeasure.experiment import unique_filename, Results, Procedure
-from pymeasure.display.widgets import InputsWidget, TabWidget
+from pymeasure.display.widgets import InputsWidget, TabWidget, PlotFrame
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
@@ -89,6 +89,9 @@ class ExperimentWindow(ManagedWindow):
             sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
             # sequence_file = f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt' if hasattr(cls, 'SEQUENCER_INPUTS') else None,
         )
+        if bool(eval(config['GUI']['dark_mode'])):
+            PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
+
         super().__init__(
             procedure_class=cls,
             inputs=getattr(cls, 'INPUTS', []),
