@@ -139,10 +139,10 @@ class InstrumentManager:
             name = f"{cls.__name__}/{adapter}"
 
         try:
-            instrument = self.setup_adapter(cls, adapter, **kwargs)
             if name in self.instances:
                 log.info(f"Instrument '{name}' already exists.")
             else:
+                instrument = self.setup_adapter(cls, adapter, **kwargs)
                 self.instances[name] = instrument
                 log.debug(f"Instrument '{name}' connected.")
             return self.instances[name]
@@ -525,6 +525,5 @@ class PT100SerialSensor(Instrument):
         """
         self._stop_thread = True
         self._thread.join()
-        self.adapter.disconnect()
         super().shutdown()
         log.info(f"{self.name} serial connection closed.")

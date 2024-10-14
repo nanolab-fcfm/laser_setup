@@ -29,7 +29,9 @@ class Tt(ChipProcedure):
     def startup(self):
         """Connect to the temperature sensor."""
         self.connect_instruments()
+        self.__class__.startup_executed = True
         log.info("Temperature sensor connected and ready.")
+        
 
     def execute(self):
         """Perform the temperature measurement over time."""
@@ -66,10 +68,3 @@ class Tt(ChipProcedure):
 
             time.sleep(self.sampling_t)
 
-    def shutdown(self):
-        """Safely shut down the temperature sensor."""
-        if isinstance(self.temperature_sensor, PendingInstrument):
-            log.warning("Temperature sensor was not connected. Skipping shutdown.")
-        else:
-            self.temperature_sensor.shutdown()
-            log.info("Temperature measurement procedure completed.")

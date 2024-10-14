@@ -5,7 +5,7 @@ from .It import It
 from .ItVg import ItVg
 from .IV import IV
 from .Pt import Pt
+from .Tt import Tt
 from .Wait import Wait
 from .LaserCalibration import LaserCalibration
 from .Sequence import MetaProcedure, MainSequence
-from .Tt import Tt
