@@ -16,6 +16,7 @@ Experiments = {
     ItVg: 'I vs t (Vg)',
     Pt: 'P vs t',
     LaserCalibration: 'Calibrate Laser',
+    Tt: 'Temp time'
 }
 
 Scripts = {

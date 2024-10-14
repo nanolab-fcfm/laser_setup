@@ -10,6 +10,8 @@ import logging
 from typing import TypeVar, Dict
 import bendev.exceptions
 import numpy as np
+import asyncio
+import threading
 
 import bendev
 from pymeasure.adapters import FakeAdapter
@@ -438,18 +440,17 @@ class Bentham(Instrument):
     def reconnect(self):
         self.adapter.reconnect()
 
-
 class PT100SerialSensor(Instrument):
     """Instrument class for the PT100 temperature sensor using PyMeasure's SerialAdapter."""
 
-    def __init__(self, port, name="PT100 Sensor", baudrate=115200, timeout=1, **kwargs):
+    def __init__(self, port, name="PT100 Sensor", baudrate=115200, timeout=0.15, **kwargs):
         """
         Initializes the PT100 sensor connected via serial communication.
 
         :param port: The serial port where the Arduino is connected (e.g., '/dev/ttyACM0').
         :param name: The name of the instrument.
-        :param baudrate: The baud rate for serial communication (default: 9600).
-        :param timeout: Read timeout in seconds (default: 1 second).
+        :param baudrate: The baud rate for serial communication (default: 115200).
+        :param timeout: Read timeout in seconds (default: 0.05 seconds).
         :param kwargs: Additional keyword arguments.
         """
         adapter = SerialAdapter(port, baudrate=baudrate, timeout=timeout)
@@ -464,32 +465,66 @@ class PT100SerialSensor(Instrument):
             **kwargs
         )
         log.info(f"{self.name} initialized on port {port} at {baudrate} baud.")
+        self.clock = np.nan
+        self.plate_temp = np.nan
+        self.ambient_temp = np.nan
+        self.data = (self.plate_temp, self.ambient_temp, self.clock)
+        self.timeout = timeout  # Store the timeout in the class
+        self._stop_thread = False
+        self._thread = threading.Thread(target=self._get_meas)
+        self._thread.daemon = True
+        self._thread.start()
+
+    def _get_meas(self):
+        try:
+            while not self._stop_thread:
+                result = self.read_temperature()
+                if result:
+                    self.plate_temp, self.ambient_temp, self.clock = result
+                    self.data = result
+                # Very short sleep to prevent CPU overload
+                time.sleep(0.001)  # Sleep for 1 millisecond
+        except Exception as e:
+            log.critical(f"{self.name} measurement thread failed: {e}")
 
     def read_temperature(self):
         """
         Reads the temperature from the PT100 sensor.
 
-        :return: Temperature in Celsius.
+        :return: (clock, plate_temp, ambient_temp) or None if error
         """
         self.write('R')
-        time.sleep(0.1)  # 100 milliseconds
-        line = self.read().strip()
-        line = line.replace("\n", "")
+        line = ''
+        start_time = time.time()
+        while True:
+            # Read available data without blocking
+            data = self.adapter.connection.read_all().decode('ascii', errors='ignore')
+            if data:
+                line += data
+                if '\r\n' in line:
+                    line = line.strip()
+                    break
+            if time.time() - start_time > self.timeout:
+                return None
+            time.sleep(0.001)  # Sleep briefly to prevent CPU overload
         if line == "ERROR":
             log.error("Fault detected in temperature sensor.")
             return None
         try:
-            temperature = float(line)
-            log.debug(f"{self.name}: Temperature read: {temperature} °C")
-            return temperature
+            clock, plate, ambient = line.split(",")
+            clock = int(clock)
+            plate = float(plate)
+            ambient = float(ambient)
+            return plate, ambient, clock
         except ValueError:
-            log.error(f"{self.name}: Invalid temperature reading: {line}")
             return None
 
     def shutdown(self):
         """
         Safely shuts down the serial connection.
         """
+        self._stop_thread = True
+        self._thread.join()
         self.adapter.disconnect()
         super().shutdown()
         log.info(f"{self.name} serial connection closed.")

@@ -24,7 +24,7 @@ class Tt(ChipProcedure):
 
     # Inputs and data columns
     INPUTS = ChipProcedure.INPUTS + ['sampling_t', 'laser_T']
-    DATA_COLUMNS = ['Time (s)', 'Temperature (°C)']
+    DATA_COLUMNS = ['Time (s)', 'Plate Temperature (degC)', 'Ambient Temperature (degC)',  "Clock"]
 
     def startup(self):
         """Connect to the temperature sensor."""
@@ -48,17 +48,16 @@ class Tt(ChipProcedure):
                 break
 
             # Read temperature from PT100 sensor
-            temperature = self.temperature_sensor.read_temperature()
-            if temperature is None:
+            data = self.temperature_sensor.data
+            if data is None:
                 log.error("Failed to read temperature. Recording NaN.")
-                temperature = float('nan')
+                data = float('nan'), float('nan'), float('nan')
 
             # Emit results
             self.emit(
                 'results',
                 {
-                    'Time (s)': elapsed_time,
-                    'Temperature (°C)': temperature,
+                    column: value for column, value in zip(self.DATA_COLUMNS, [elapsed_time] + list(data))
                 },
             )
 
