@@ -1,25 +1,23 @@
-# laser_setup/procedures/Tt.py
-
 import time
 import logging
 
-from .BaseProcedure import ChipProcedure  # Adjust the import based on your actual base class location
+from .. import config
+from .BaseProcedure import ChipProcedure
 from ..parameters import Parameters
 from ..instruments import PT100SerialSensor, PendingInstrument
-from .. import config
 
 log = logging.getLogger(__name__)
 
-class Tt(ChipProcedure):
-    """Measures temperature over time using a PT100 sensor connected via Arduino."""
 
+class Tt(ChipProcedure):
+    """Measures temperature over time using a PT100 sensor connected via
+    Arduino."""
     # Instrument
     temperature_sensor: PT100SerialSensor = PendingInstrument(
         PT100SerialSensor, config['Adapters']['pt100_port'], includeSCPI=False
     )
-
     # Parameters
-    sampling_t = Parameters.Control.sampling_t
+    sampling_t = Parameters.Control.sampling_t; sampling_t.value = 0.15
     laser_T = Parameters.Laser.laser_T  # Using laser_T as total measurement time
 
     # Inputs and data columns
@@ -31,7 +29,6 @@ class Tt(ChipProcedure):
         self.connect_instruments()
         self.__class__.startup_executed = True
         log.info("Temperature sensor connected and ready.")
-        
 
     def execute(self):
         """Perform the temperature measurement over time."""

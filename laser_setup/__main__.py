@@ -1,4 +1,3 @@
-import sys
 import argparse
 
 from .display import MainWindow, ExperimentWindow, display_window
@@ -14,9 +13,10 @@ Experiments = {
     IVg: 'I vs Vg',
     It: 'I vs t',
     ItVg: 'I vs t (Vg)',
+    ITt: 'I,T vs t',
+    Tt: 'T vs t',
     Pt: 'P vs t',
     LaserCalibration: 'Calibrate Laser',
-    Tt: 'Temp time'
 }
 
 Scripts = {
