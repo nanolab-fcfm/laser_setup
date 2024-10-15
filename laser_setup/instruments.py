@@ -112,8 +112,7 @@ class InstrumentManager:
         :return: The instrument object.
         """
         try:
-            instrument = cls(adapter, **kwargs)
-            log.debug(f"Connected to {cls.__name__} via {instrument.adapter}")
+            instrument: AnyInstrument = cls(adapter, **kwargs)
         except Exception as e:
             if '-d' in sys.argv or '--debug' in sys.argv:
                 log.warning(f"Could not connect to {cls.__name__}: {e} Using FakeAdapter.")
@@ -138,18 +137,20 @@ class InstrumentManager:
         if name is None:
             name = f"{cls.__name__}/{adapter}"
 
-        try:
-            if name in self.instances:
-                log.info(f"Instrument '{name}' already exists.")
-            else:
+        if name not in self.instances:
+            try:
                 instrument = self.setup_adapter(cls, adapter, **kwargs)
                 self.instances[name] = instrument
-                log.debug(f"Instrument '{name}' connected.")
-            return self.instances[name]
+                log.debug(f"Connected '{name}' as {cls.__name__} via {instrument.adapter}")
 
-        except Exception as e:
-            log.error(f"Failed to connect to instrument '{name}': {e}")
-            raise
+            except Exception as e:
+                log.error(f"Failed to connect to instrument '{name}': {e}")
+                raise
+
+        else:
+            log.info(f"Instrument '{name}' already exists.")
+
+        return self.instances[name]
 
     def shutdown(self, name: str):
         """Safely shuts down the instrument with the given name.
@@ -441,25 +442,33 @@ class Bentham(Instrument):
         self.adapter.reconnect()
 
 class PT100SerialSensor(Instrument):
-    """Instrument class for the PT100 temperature sensor using PyMeasure's SerialAdapter."""
+    """Instrument class for the PT100 temperature sensor using PyMeasure's
+    SerialAdapter.
+    """
+    def __init__(
+        self,
+        port: str,
+        name: str = "PT100 Sensor",
+        baudrate: int = 115200,
+        timeout: float = 0.15,
+        includeSCPI=False,
+        **kwargs
+    ):
+        """Initializes the PT100 sensor connected via serial communication.
 
-    def __init__(self, port, name="PT100 Sensor", baudrate=115200, timeout=0.15, **kwargs):
-        """
-        Initializes the PT100 sensor connected via serial communication.
-
-        :param port: The serial port where the Arduino is connected (e.g., '/dev/ttyACM0').
+        :param port: The serial port where the Arduino is connected \
+            (e.g., '/dev/ttyACM0' or 'COM6').
         :param name: The name of the instrument.
-        :param baudrate: The baud rate for serial communication (default: 115200).
-        :param timeout: Read timeout in seconds (default: 0.05 seconds).
+        :param baudrate: The baud rate for serial communication
+        :param timeout: Read timeout in seconds
+        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param kwargs: Additional keyword arguments.
         """
         adapter = SerialAdapter(port, baudrate=baudrate, timeout=timeout)
-        # Remove 'includeSCPI' from kwargs if it exists
-        kwargs.pop('includeSCPI', None)
         super().__init__(
             adapter,
             name=name,
-            includeSCPI=False,
+            includeSCPI=includeSCPI,
             write_termination='\n',
             read_termination='\r\n',
             **kwargs
@@ -469,7 +478,7 @@ class PT100SerialSensor(Instrument):
         self.plate_temp = np.nan
         self.ambient_temp = np.nan
         self.data = (self.plate_temp, self.ambient_temp, self.clock)
-        self.timeout = timeout  # Store the timeout in the class
+        self.timeout = timeout
         self._stop_thread = False
         self._thread = threading.Thread(target=self._get_meas)
         self._thread.daemon = True
@@ -488,10 +497,9 @@ class PT100SerialSensor(Instrument):
             log.critical(f"{self.name} measurement thread failed: {e}")
 
     def read_temperature(self):
-        """
-        Reads the temperature from the PT100 sensor.
+        """Reads the temperature from the PT100 sensor.
 
-        :return: (clock, plate_temp, ambient_temp) or None if error
+        :return: (plate_temp, ambient_temp, clock) or None if error
         """
         self.write('R')
         line = ''
@@ -520,10 +528,9 @@ class PT100SerialSensor(Instrument):
             return None
 
     def shutdown(self):
-        """
-        Safely shuts down the serial connection.
+        """Safely shuts down the serial connection.
         """
         self._stop_thread = True
         self._thread.join()
+        self.adapter.close()
         super().shutdown()
-        log.info(f"{self.name} serial connection closed.")
