@@ -57,12 +57,17 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
     return V
 
 
-def remove_empty_data():
-    """This function removes all the empty files in the data folder.
-    By empty files we mean files with only the header and no data.
+def remove_empty_data(days: int = 2):
+    """This function removes all the empty files in the data folder,
+    up to a certain number of days back. Empty files are considered files with
+    only the header and no data.
     """
     DataDir = config['Filename']['directory']
     data = glob(DataDir + '/**/*.csv', recursive=True)
+    try:
+        data = [file for file in data if (datetime.datetime.now() - sort_by_creation_date(file)[0]).days <= days]
+    except:
+        pass
     for file in data:
         with open(file, 'r') as f:
             nonheader = [l for l in f.readlines() if not l.startswith('#')]
