@@ -2,7 +2,7 @@ import time
 import logging
 
 from .. import config
-from ..instruments import PendingInstrument, PT100SerialSensor
+from ..instruments import PendingInstrument, PT100SerialSensor, Keithley2450, TENMA
 from .It import It
 
 log = logging.getLogger(__name__)
@@ -15,6 +15,10 @@ class ITt(It):
     PT100 sensor
     """
     # Instruments
+    meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
+    tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
+    tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
+    tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
     temperature_sensor: PT100SerialSensor = PendingInstrument(
         PT100SerialSensor, config['Adapters']['pt100_port']
     )
