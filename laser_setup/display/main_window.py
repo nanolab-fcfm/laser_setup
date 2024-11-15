@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from functools import partial
 from importlib.metadata import metadata
 from typing import Type
 
@@ -41,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow):
         procedure_menu = menu.addMenu('&Procedures')
         for cls, name in experiments.items():
             action = QtGui.QAction(name, self)
-            action.triggered.connect(self.open_app(cls))
+            action.triggered.connect(partial(self.open_app, cls))
             action.setToolTip(cls.__doc__)
             action.setStatusTip(cls.__doc__.replace('    ', ''))
             procedure_menu.addAction(action)
@@ -49,7 +50,7 @@ class MainWindow(QtWidgets.QMainWindow):
         sequence_menu = menu.addMenu('Se&quences')
         for cls, name in sequences.items():
             action = QtGui.QAction(name, self)
-            action.triggered.connect(self.open_sequence(cls))
+            action.triggered.connect(partial(self.open_sequence, cls))
             action.setToolTip(cls.__doc__)
             action.setStatusTip(cls.__doc__.replace('    ', ''))
             sequence_menu.addAction(action)
@@ -58,7 +59,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for f, name in scripts.items():
             action = QtGui.QAction(name, self)
             doc = sys.modules[f.__module__].__doc__ or ''
-            action.triggered.connect(self.run_script(f))
+            action.triggered.connect(partial(self.run_script, f))
             action.setToolTip(doc)
             action.setStatusTip(doc.replace('    ', ''))
             script_menu.addAction(action)
@@ -96,26 +97,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self._layout.addWidget(self.reload, 0, self.gridx-1)
 
     def open_sequence(self, cls: Type[MetaProcedure]):
-        def func():
-            self.windows[cls] = MetaProcedureWindow(cls, title=self.sequences[cls], parent=self)
-            self.windows[cls].show()
-            self.suggest_reload()
-        return func
+        self.windows[cls] = MetaProcedureWindow(cls, title=self.sequences[cls], parent=self)
+        self.windows[cls].show()
+        self.suggest_reload()
 
     def open_app(self, cls: Type[Procedure]):
-        def func():
-            self.windows[cls] = ExperimentWindow(cls, title=self.experiments[cls], parent=self)
-            self.windows[cls].show()
-        return func
+        self.windows[cls] = ExperimentWindow(cls, title=self.experiments[cls], parent=self)
+        self.windows[cls].show()
 
     def run_script(self, f: callable):
-        def func():
-            try:
-                f(parent=self)
-            except TypeError:
-                f()
-            self.suggest_reload()
-        return func
+        try:
+            f(parent=self)
+        except TypeError:
+            f()
+        self.suggest_reload()
 
     def edit_settings(self):
         if _config_file_used != config_path:
