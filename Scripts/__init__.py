@@ -19,3 +19,5 @@ __all__ = [
     'find_calibration_voltage',
     'Tt',
 ]
+
+log.warning('The Scripts package will be deprecated in the future. Please use laser_setup <script> instead.')
