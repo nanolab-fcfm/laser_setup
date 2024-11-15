@@ -3,7 +3,7 @@ import logging
 from typing import TypeVar
 
 from pymeasure.instruments import Instrument
-from pymeasure.instruments.keithley import Keithley2450
+from pymeasure.instruments.keithley import Keithley2450, Keithley6517B
 
 from ..utils import SONGS
 
