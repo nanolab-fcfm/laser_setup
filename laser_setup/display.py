@@ -9,13 +9,13 @@ from importlib.metadata import metadata
 from typing import Type
 
 from pymeasure.experiment import unique_filename, Results, Procedure
-from pymeasure.display.widgets import InputsWidget
+from pymeasure.display.widgets import InputsWidget, TabWidget, PlotFrame
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
 from . import config, config_path, _config_file_used
 from .utils import remove_empty_data
-from .procedures import MetaProcedure, BaseProcedure
+from .procedures import MetaProcedure, BaseProcedure, ChipProcedure
 
 log = logging.getLogger(__name__)
 
@@ -33,25 +33,56 @@ class ProgressBar(QtWidgets.QDialog):
         self._layout.addWidget(self.progress)
         self.setLayout(self._layout)
         self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.update_progress)
+        self.timer.timeout.connect(self._update_progress)
 
-    def start(self, wait_time, fps=30):
+    def start(self, wait_time: float, fps: float = 30., decimals: int = 0):
         self.wait_time = wait_time
-        self.fps = fps
-        self.frames = int(self.fps * wait_time)
-        self.i = 0
-        self.progress.setRange(0, self.frames)
+        self.frame_interval = 1 / fps
+        self.total_frames = int(fps * wait_time)
+        self.start_time = time.perf_counter()
+        self.progress.setRange(0, self.total_frames)
         self.show()
-        self.timer.start(max(1, round(1000/self.fps)))
+        self.timer.start(max(1, round(1000 / fps)))
+        self.d = decimals
 
-    def update_progress(self):
-        self.i += 1
-        self.progress.setValue(self.i)
-        self.progress.setFormat(f"{self.i/self.fps:.0f} / {self.wait_time:.0f} s")
-        self.progress.repaint()
-        if self.i >= self.frames:
+    def _update_progress(self):
+        elapsed_time = time.perf_counter() - self.start_time
+        current_frame = int(elapsed_time / self.frame_interval)
+
+        if current_frame >= self.total_frames:
+            self.progress.setValue(self.total_frames)
+            self.progress.setFormat(
+                f"{self.wait_time:.{self.d}f} / {self.wait_time:.{self.d}f} s"
+            )
             self.timer.stop()
             self.close()
+        else:
+            self.progress.setValue(current_frame)
+            self.progress.setFormat(
+                f"{elapsed_time:.{self.d}f} / {self.wait_time:.{self.d}f} s"
+            )
+
+
+class TextWidget(TabWidget, QtWidgets.QWidget):
+    def __init__(self, name: str = None, parent=None, file: str = None):
+        super().__init__(name, parent)
+        self.view = QtWidgets.QTextEdit(self, readOnly=True)
+        self.view.setReadOnly(True)
+        self.view.setStyleSheet("""
+            font-size: 12pt;
+        """)
+        try:
+            with open(file, encoding='utf-8') as f:
+                readme_text = f.read()
+        except:
+            readme_text = f'{file} not found :('
+        self.view.setMarkdown(readme_text)
+
+        vbox = QtWidgets.QVBoxLayout(self)
+        vbox.setSpacing(0)
+
+        vbox.addWidget(self.view)
+        self.setLayout(vbox)
 
 
 class ExperimentWindow(ManagedWindow):
@@ -67,6 +98,9 @@ class ExperimentWindow(ManagedWindow):
             sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
             # sequence_file = f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt' if hasattr(cls, 'SEQUENCER_INPUTS') else None,
         )
+        if bool(eval(config['GUI']['dark_mode'])):
+            PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
+
         super().__init__(
             procedure_class=cls,
             inputs=getattr(cls, 'INPUTS', []),
@@ -78,7 +112,20 @@ class ExperimentWindow(ManagedWindow):
             **sequencer_kwargs,
             **kwargs
         )
+        if bool(eval(config['GUI']['dark_mode'])):
+            self.plot_widget.plot_frame.setStyleSheet('background-color: black;')
+            self.plot_widget.plot_frame.plot_widget.setBackground('k')
+
         self.setWindowTitle(title)
+
+        if issubclass(self.procedure_class, BaseProcedure):
+            self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
+            self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
+            self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
+
+        widget = TextWidget('Information', parent=self, file=config['GUI']['info_file'])
+        self.widget_list += (widget,)
+        self.tabs.addTab(widget, widget.name)
 
     def queue(self, procedure: Type[Procedure] = None):
         if procedure is None:
@@ -91,8 +138,9 @@ class ExperimentWindow(ManagedWindow):
             dated_folder=True,
             )
         log.info(f"Saving data to {filename}.")
-        if hasattr(procedure, 'update_parameters'):
-            procedure.update_parameters()
+
+        if hasattr(procedure, 'pre_startup'):
+            procedure.pre_startup()
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)
 
@@ -110,6 +158,8 @@ class ExperimentWindow(ManagedWindow):
                 return
 
             self.manager.abort()
+            if issubclass(self.procedure_class, BaseProcedure):
+                self.procedure_class.instruments.shutdown_all()
             time.sleep(0.5)
         self.log_widget._blink_qtimer.stop()
         super().closeEvent(event)
@@ -121,6 +171,8 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
     """
     aborted: bool = False
     status_labels = []
+    inputs_ignored = ['show_more', 'chained_exec']
+
     def __init__(self, cls: Type[MetaProcedure], title: str = '', **kwargs):
         super().__init__(**kwargs)
         self.cls = cls
@@ -130,16 +182,21 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
 
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(self._get_procedure_vlayout(cls))
-        widget = InputsWidget(BaseProcedure, inputs=BaseProcedure.INPUTS[1:])
+
+        base_inputs = [i for i in ChipProcedure.INPUTS if i not in self.inputs_ignored]
+
+        widget = InputsWidget(ChipProcedure, inputs=base_inputs)
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
         for i, proc in enumerate(cls.procedures):
             layout.addLayout(self._get_procedure_vlayout(proc))
             proc_inputs = list(proc.INPUTS)
-            if BaseProcedure in proc.__mro__:
-                for input in BaseProcedure.INPUTS:
+            for input in base_inputs:
+                try:
                     proc_inputs.remove(input)
+                except ValueError:
+                    pass
 
             widget = InputsWidget(proc, inputs=proc_inputs)
             widget.layout().setSpacing(10)
@@ -196,6 +253,7 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
         base_parameters = inputs[0].get_procedure()._parameters
+        base_parameters = {k: v for k, v in base_parameters.items() if k not in self.inputs_ignored}
         for i, proc in enumerate(self.cls.procedures):
             # Spawn the corresponding ExperimentWindow and queue it
             if proc.__name__ == 'Wait':
@@ -203,41 +261,43 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
                 self.set_status(i, 'yellow')()
                 self.wait(wait_time)
                 self.set_status(i, 'green')()
+                continue
 
-            else:
-                window = ExperimentWindow(proc, title=proc.__name__)
-                parameters = inputs[i+1].get_procedure()._parameters | base_parameters
-                window.set_parameters(parameters)
+            window = ExperimentWindow(proc, title=proc.__name__)
+            procedure_parameters = inputs[i+1].get_procedure()._parameters
+            parameters = procedure_parameters | base_parameters
+            window.set_parameters(parameters)
 
-                window.queue_button.hide()
-                window.browser_widget.clear_button.hide()
-                window.browser_widget.hide_button.hide()
-                window.browser_widget.open_button.hide()
-                window.browser_widget.show_button.hide()
-                window.show()
-                window.queue_button.click()
+            window.queue_button.hide()
+            window.browser_widget.clear_button.hide()
+            window.browser_widget.hide_button.hide()
+            window.browser_widget.open_button.hide()
+            window.browser_widget.show_button.hide()
+            window.show()
+            window.queue_button.click()
 
-                # Update the status label
-                window.manager.running.connect(self.set_status(i, 'yellow'))
-                window.manager.finished.connect(self.set_status(i, 'green'))
-                window.manager.failed.connect(self.set_status(i, 'red'))
-                window.manager.aborted.connect(self.set_status(i, 'red'))
+            # Update the status label
+            window.manager.running.connect(self.set_status(i, 'yellow'))
+            window.manager.finished.connect(self.set_status(i, 'green'))
+            window.manager.failed.connect(self.set_status(i, 'red'))
+            window.manager.aborted.connect(self.set_status(i, 'red'))
 
-                # Window managing
-                window.manager.aborted.connect(self.aborted_procedure(window))
-                window.manager.failed.connect(self.failed_procedure(window))
-                window.manager.finished.connect(window.close)
+            # Window managing
+            window.manager.aborted.connect(self.aborted_procedure(window))
+            window.manager.failed.connect(self.failed_procedure(window))
+            window.manager.finished.connect(window.close)
 
-                # Non-blocking wait for the procedure to finish
-                loop = QtCore.QEventLoop()
-                window.manager.aborted.connect(loop.quit)
-                window.manager.failed.connect(loop.quit)
-                window.manager.finished.connect(loop.quit)
-                loop.exec()
+            # Non-blocking wait for the procedure to finish
+            loop = QtCore.QEventLoop()
+            window.manager.aborted.connect(loop.quit)
+            window.manager.failed.connect(loop.quit)
+            window.manager.finished.connect(loop.quit)
+            loop.exec()
 
-                if self.aborted:
-                    break
+            if self.aborted:
+                break
 
+        self.cls.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
         if not self.aborted: log.info("Sequence finished.")
         self.set_status(-1, 'red' if self.aborted else 'green')()
@@ -428,6 +488,11 @@ class MainWindow(QtWidgets.QMainWindow):
             return item
         return None
 
+    def question_box(self, title: str, text: str) -> bool:
+        buttons = QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+        reply = QtWidgets.QMessageBox.question(self, title, text, buttons)
+        return reply == QtWidgets.QMessageBox.StandardButton.Yes
+
 
 def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     """Displays the window for the given class. Allows for the
@@ -438,8 +503,9 @@ def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     :param args: The arguments to pass to the window class.
     """
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle('Fusion')
-    app.setPalette(get_dark_palette())
+    app.setStyle(config['GUI']['style'])    # Get available styles with QtWidgets.QStyleFactory.keys()
+    if bool(eval(config['GUI']['dark_mode'])):
+        app.setPalette(get_dark_palette())
     QtCore.QLocale.setDefault(QtCore.QLocale(
         QtCore.QLocale.Language.English,
         QtCore.QLocale.Country.UnitedStates
@@ -490,4 +556,3 @@ def get_dark_palette():
     palette.setColor(ColorRole.HighlightedText, QtGui.QColor(240, 240, 240))
 
     return palette
-

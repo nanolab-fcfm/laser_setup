@@ -8,6 +8,7 @@ description = "Experimental setup for Laser, I-V and Transfer Curve measurements
 requires-python = ">=3.9,<3.13"
 dependencies = [
     'bendev==0.3.1',
+    'GitPython',
     'ipython',
     'matplotlib',
     'pymeasure>=0.14.0,<0.15',

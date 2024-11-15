@@ -57,12 +57,17 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
     return V
 
 
-def remove_empty_data():
-    """This function removes all the empty files in the data folder.
-    By empty files we mean files with only the header and no data.
+def remove_empty_data(days: int = 2):
+    """This function removes all the empty files in the data folder,
+    up to a certain number of days back. Empty files are considered files with
+    only the header and no data.
     """
     DataDir = config['Filename']['directory']
     data = glob(DataDir + '/**/*.csv', recursive=True)
+    try:
+        data = [file for file in data if (datetime.datetime.now() - sort_by_creation_date(file)[0]).days <= days]
+    except:
+        pass
     for file in data:
         with open(file, 'r') as f:
             nonheader = [l for l in f.readlines() if not l.startswith('#')]
@@ -109,21 +114,29 @@ def send_telegram_alert(message: str):
         log.info(f"Sent '{message}' to {chat}.")
 
 
-def read_pymeasure(file_path):
-    data = pd.read_csv(file_path, comment="#")
+def read_file_parameters(file_path: str) -> Dict[str, str]:
+    """Reads the parameters from a PyMeasure data file."""
     parameters = {}
     with open(file_path, 'r') as file:
         for line in file:
-            if line.startswith('#Parameters:'):
-                break
-        for line in file:
             line = line.strip()
             if not line or line.startswith('#Data:'):
-                break
+                break           # Stop reading after the data starts
+
             if ':' in line:
+                if any(map(line.startswith, ('#Parameters:', '#Metadata:'))):
+                    continue    # Skip these lines
+
                 key, value = map(str.strip, line.split(':', 1))
                 key = key.lstrip('#\t')
                 parameters[key] = value
+    return parameters
+
+
+def read_pymeasure(file_path: str, comment='#') -> Tuple[Dict, pd.DataFrame]:
+    """Reads the parameters and data from a PyMeasure data file."""
+    parameters = read_file_parameters(file_path)
+    data = pd.read_csv(file_path, comment=comment)
     return parameters, data
 
 
@@ -178,8 +191,8 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
 
             return DP
 
-    log.error(f"Dirac Point not found for {chip_group} {chip_number} {sample}")
-    raise ValueError("Dirac Point not found")
+    log.warning(f"Dirac Point not found for {chip_group} {chip_number} {sample}. (Using DP = 0. instead)")
+    return 0.
 
 
 def rename_data_value(original: str, replace: str):

@@ -1,70 +1,65 @@
 import time
 import logging
 
-import numpy as np
-from pymeasure.experiment import FloatParameter, IntegerParameter, Parameter, ListParameter
-
 from .. import config
-from ..utils import SONGS, send_telegram_alert, get_latest_DP
-from ..instruments import TENMA, Keithley2450
-from .BaseProcedure import BaseProcedure
+from ..utils import get_latest_DP
+from ..instruments import TENMA, Keithley2450, PendingInstrument
+from ..parameters import Parameters
+from .BaseProcedure import ChipProcedure
 
 log = logging.getLogger(__name__)
 
 
-class It(BaseProcedure):
+class It(ChipProcedure):
     """Measures a time-dependant current with a Keithley 2450. The gate voltage
     is controlled by two TENMA sources. The laser is controlled by another
     TENMA source.
     """
-    wavelengths = list(eval(config['Laser']['wavelengths']))
+    # Instruments
+    meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
+    tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
+    tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
+    tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
 
     # Important Parameters
-    vds = FloatParameter('VDS', units='V', default=0.075, decimals=10)
-    #vg = FloatParameter('VG', units='V', default=0.)
-    vg = Parameter('VG', default='DP + 0. V')
-    laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
-    laser_v = FloatParameter('Laser voltage', units='V', default=0.)
-    laser_T = FloatParameter('Laser ON+OFF period', units='s', default=120.)
+    vds = Parameters.Control.vds
+    vg = Parameters.Control.vg_dynamic
+    laser_wl = Parameters.Laser.laser_wl
+    laser_v = Parameters.Laser.laser_v
+    laser_T = Parameters.Laser.laser_T
 
     # Additional Parameters, preferably don't change
-    sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
-    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')  # deprecated
-    Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
-    NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
+    sampling_t = Parameters.Control.sampling_t
+    N_avg = Parameters.Instrument.N_avg     # deprecated
+    Irange = Parameters.Instrument.Irange
+    NPLC = Parameters.Instrument.NPLC
 
-    INPUTS = BaseProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC']
+    INPUTS = ChipProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
-    def get_keithley_time(self):
-        return float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
-
-    def update_parameters(self):
+    def pre_startup(self):
         vg = str(self.vg)
-        assert vg.endswith(' V'), "Gate voltage must be in Volts"
-        vg = vg[:-2].replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20):.2f}")
-        float_vg = float(eval(vg))
-        assert -100 <= float_vg <= 100, "Gate voltage must be between -100 and 100 V"
-        self.vg = float_vg
-        self._parameters['vg'] = FloatParameter('VG', units='V', default=float_vg)
-        self.refresh_parameters()
+        if vg.endswith(' V'):
+            vg = vg[:-2]
+        if 'DP' in vg:
+            vg = vg.replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20):.2f}")
+
+        self._parameters['vg'] = Parameters.Control.vg
+        self._parameters['vg'].value = float(eval(vg))
+        self.vg = self._parameters['vg'].value
 
     def startup(self):
-        log.info("Setting up instruments")
-        try:
-            self.meter = Keithley2450(config['Adapters']['keithley2450'])
-            self.tenma_neg = TENMA(config['Adapters']['tenma_neg'])
-            self.tenma_pos = TENMA(config['Adapters']['tenma_pos'])
-            self.tenma_laser = TENMA(config['Adapters']['tenma_laser'])
-        except Exception as e:
-            log.error(f"Could not connect to instruments: {e}")
-            raise
+        self.connect_instruments()
+
+        if self.chained_exec and self.__class__.startup_executed:
+            log.info("Skipping startup")
+            self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
+            return
 
         # Keithley 2450 meter
         self.meter.reset()
-        self.meter.write(':TRACe:MAKE "IVBuffer", 100000')
-        # self.meter.use_front_terminals()
+        self.meter.make_buffer()
         self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
 
         # TENMA sources
@@ -76,14 +71,15 @@ class It(BaseProcedure):
         self.meter.enable_source()
         time.sleep(0.5)
         self.tenma_neg.output = True
-        time.sleep(1.)
         self.tenma_pos.output = True
-        time.sleep(1.)
         self.tenma_laser.output = True
         time.sleep(1.)
 
+        self.__class__.startup_executed = True
+
     def execute(self):
         log.info("Starting the measurement")
+        self.meter.clear_buffer()
 
         self.meter.source_voltage = self.vds
         if self.vg >= 0:
@@ -93,7 +89,7 @@ class It(BaseProcedure):
 
 
         def measuring_loop(t_end: float, laser_v: float):
-            keithley_time = self.get_keithley_time()
+            keithley_time = self.meter.get_time()
             while keithley_time < t_end:
                 if self.should_stop():
                     log.warning('Measurement aborted')
@@ -101,7 +97,7 @@ class It(BaseProcedure):
 
                 self.emit('progress', 100 * keithley_time / (self.laser_T * 3/2))
 
-                keithley_time = self.get_keithley_time()
+                keithley_time = self.meter.get_time()
                 current = self.meter.current
 
                 self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, current, laser_v])))
@@ -113,23 +109,3 @@ class It(BaseProcedure):
         measuring_loop(self.laser_T, self.laser_v)
         self.tenma_laser.voltage = 0.
         measuring_loop(self.laser_T * 3/2, 0.)
-
-
-    def shutdown(self):
-        if not hasattr(self, 'meter'):
-            log.info("No instruments to shutdown.")
-            return
-
-        for freq, t in SONGS['triad']:
-            self.meter.beep(freq, t)
-            time.sleep(t)
-
-        self.meter.shutdown()
-        self.tenma_neg.shutdown()
-        self.tenma_pos.shutdown()
-        self.tenma_laser.shutdown()
-        log.info("Instruments shutdown.")
-
-        send_telegram_alert(
-            f"Finished It measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
-        )

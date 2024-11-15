@@ -1,9 +1,8 @@
-import sys
 import argparse
 
 from .display import MainWindow, ExperimentWindow, display_window
 from .procedures import *
-from .cli import setup_adapters, console, find_dp_script
+from .cli import setup_adapters, console, find_dp_script, get_updates
 
 Sequences = {
     MainSequence: 'Sequence',
@@ -14,6 +13,9 @@ Experiments = {
     IVg: 'I vs Vg',
     It: 'I vs t',
     ItVg: 'I vs t (Vg)',
+    ITt: 'I,T vs t',
+    IVgT: 'I,T vs Vg',
+    Tt: 'T vs t',
     Pt: 'P vs t',
     LaserCalibration: 'Calibrate Laser',
 }
@@ -22,6 +24,7 @@ Scripts = {
     setup_adapters.setup: 'Set up Adapters',
     console.main: 'Console',
     find_dp_script.main: 'Find Dirac Point',
+    get_updates.main: 'Get Updates',
 }
 
 def main():

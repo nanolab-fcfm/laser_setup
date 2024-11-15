@@ -13,7 +13,7 @@ import logging
 from pymeasure.experiment.config import get_config, set_mpl_rcparams
 from pymeasure.log import setup_logging
 
-__version__ = '0.3.0-alpha'
+__version__ = '0.4.0-alpha'
 
 # Load the config files
 _default_config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'default_config.ini'))
