@@ -114,21 +114,29 @@ def send_telegram_alert(message: str):
         log.info(f"Sent '{message}' to {chat}.")
 
 
-def read_pymeasure(file_path):
-    data = pd.read_csv(file_path, comment="#")
+def read_file_parameters(file_path: str) -> Dict[str, str]:
+    """Reads the parameters from a PyMeasure data file."""
     parameters = {}
     with open(file_path, 'r') as file:
         for line in file:
-            if line.startswith('#Parameters:'):
-                break
-        for line in file:
             line = line.strip()
             if not line or line.startswith('#Data:'):
-                break
+                break           # Stop reading after the data starts
+
             if ':' in line:
+                if any(map(line.startswith, ('#Parameters:', '#Metadata:'))):
+                    continue    # Skip these lines
+
                 key, value = map(str.strip, line.split(':', 1))
                 key = key.lstrip('#\t')
                 parameters[key] = value
+    return parameters
+
+
+def read_pymeasure(file_path: str, comment='#') -> Tuple[Dict, pd.DataFrame]:
+    """Reads the parameters and data from a PyMeasure data file."""
+    parameters = read_file_parameters(file_path)
+    data = pd.read_csv(file_path, comment=comment)
     return parameters, data
 
 
