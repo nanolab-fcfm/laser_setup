@@ -80,7 +80,7 @@ class InstrumentManager:
                     else:
                         help_str += f"    {name} (control): {attr.__doc__} \n"
 
-                    help_str += f"\tfget: '{attr.fget.__defaults__[0]}', fset: '{attr.fset.__defaults__[0]}', values={attr.fget.__defaults__[1]}\n\n"
+                    help_str += 12*" " + f"fget: '{attr.fget.__defaults__[0]}', fset: '{attr.fset.__defaults__[0]}', values={attr.fget.__defaults__[1]}\n\n"
 
             except Exception:
                 continue
