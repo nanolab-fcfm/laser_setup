@@ -13,6 +13,7 @@ from ..utils import remove_empty_data
 from ..procedures import MetaProcedure, Experiments, Sequences
 from ..instruments import InstrumentManager, Instruments
 from .Qt import QtGui, QtWidgets, QtCore
+from .widgets import SQLiteWidget
 from .experiment_window import ExperimentWindow, MetaProcedureWindow
 
 log = logging.getLogger(__name__)
@@ -66,9 +67,12 @@ class MainWindow(QtWidgets.QMainWindow):
             action.setStatusTip(doc)
             script_menu.addAction(action)
 
+        view_menu = menu.addMenu('&View')
+        view_menu.addAction('Parameter Database', partial(self.open_database, 'parameters.db'))
+
         help_menu = menu.addMenu('&Help')
         help_menu.setToolTipsVisible(True)
-        # Add a qtextedit with the README.md file
+
         instrument_help = help_menu.addMenu('Instruments')
         for cls, name in Instruments:
             action = QtGui.QAction(name, self)
@@ -78,7 +82,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status_bar = self.statusBar()
         self.status_bar.showMessage('Ready', 3000)
 
-        self.gridx = max(len(Experiments), len(Scripts), 3)
         self.windows = {}
 
         # Experiment Buttons
@@ -95,14 +98,14 @@ class MainWindow(QtWidgets.QMainWindow):
         except FileNotFoundError:
             readme_text = metadata('laser_setup').get('Description')
         readme.setMarkdown(readme_text)
-        self._layout.addWidget(readme, 1, 0, 1, self.gridx)
+        self._layout.addWidget(readme)
 
         # Reload window button
         self.reload = QtWidgets.QPushButton('Reload')
         self.reload.clicked.connect(
             lambda: os.execl(sys.executable, sys.executable, '.', *sys.argv[1:])
         )
-        self._layout.addWidget(self.reload, 0, self.gridx-1)
+        self.status_bar.addPermanentWidget(self.reload)
 
     def open_sequence(self, cls: Type[MetaProcedure]):
         # Get the index of the title from the transpose. This turned out ugly.
@@ -181,6 +184,16 @@ class MainWindow(QtWidgets.QMainWindow):
         text_window.setLayout(text_layout)
         text_window.exec()
 
+    def open_database(self, db_name: str):
+        sqlite_widget = SQLiteWidget(
+            config['Filename']['directory'] + '/' + db_name, parent=self
+        )
+        window = QtWidgets.QMainWindow(parent=self)
+        window.setCentralWidget(sqlite_widget)
+        window.resize(640, 480)
+        window.setWindowTitle(db_name)
+        window.show()
+
 
 def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     """Displays the window for the given class. Allows for the
@@ -244,8 +257,3 @@ def get_dark_palette():
     palette.setColor(ColorRole.HighlightedText, QtGui.QColor(240, 240, 240))
 
     return palette
-
-
-def standard_icon(icon: str):
-    """Returns the standard icon for the given name."""
-    return QtWidgets.QApplication.style().standardIcon(getattr(QtWidgets.QStyle.StandardPixmap, icon))
