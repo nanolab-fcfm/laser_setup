@@ -9,7 +9,7 @@ from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
 from .. import config
 from .widgets import TextWidget, ProgressBar
-from ..procedures import MetaProcedure, BaseProcedure, ChipProcedure
+from ..procedures import BaseProcedure, ChipProcedure
 
 log = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ class ExperimentWindow(ManagedWindow):
         super().closeEvent(event)
 
 
-class MetaProcedureWindow(QtWidgets.QMainWindow):
+class SequenceWindow(QtWidgets.QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
     """
@@ -102,15 +102,15 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
     status_labels = []
     inputs_ignored = ['show_more', 'chained_exec']
 
-    def __init__(self, cls: Type[MetaProcedure], title: str = '', **kwargs):
+    def __init__(self, procedure_list: list[Type[Procedure]], title: str = '', **kwargs):
         super().__init__(**kwargs)
-        self.cls = cls
+        self.procedure_list = procedure_list
 
-        self.resize(200*(len(cls.procedures)+1), 480)
-        self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in cls.procedures))})")
+        self.resize(200*(len(procedure_list)+1), 480)
+        self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in procedure_list))})")
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(self._get_procedure_vlayout(cls))
+        layout.addLayout(self._get_procedure_vlayout(title))
 
         base_inputs = [i for i in ChipProcedure.INPUTS if i not in self.inputs_ignored]
 
@@ -118,8 +118,8 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
-        for i, proc in enumerate(cls.procedures):
-            layout.addLayout(self._get_procedure_vlayout(proc))
+        for i, proc in enumerate(procedure_list):
+            layout.addLayout(self._get_procedure_vlayout(proc.__name__))
             proc_inputs = list(proc.INPUTS)
             for input in base_inputs:
                 try:
@@ -155,10 +155,10 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
 
         self.setCentralWidget(container)
 
-    def _get_procedure_vlayout(self, proc: Type[Procedure]):
+    def _get_procedure_vlayout(self, class_name: str):
         vlayout = QtWidgets.QVBoxLayout()
         vlayout.setSpacing(0)
-        vlayout.addWidget(QtWidgets.QLabel(proc.__name__ + '\n→'))
+        vlayout.addWidget(QtWidgets.QLabel(class_name + '\n→'))
         self.status_labels.append(QtWidgets.QLabel(self))
         pixmap = QtGui.QPixmap(20, 20)
         pixmap.fill(QtGui.QColor('white'))
@@ -177,13 +177,13 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
     def queue(self):
         log.info("Queueing the procedures.")
         self.set_status(-1, 'yellow')()
-        for i in range(len(self.cls.procedures)):
+        for i in range(len(self.procedure_list)):
             self.set_status(i, 'white')()
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
         base_parameters = inputs[0].get_procedure()._parameters
         base_parameters = {k: v for k, v in base_parameters.items() if k not in self.inputs_ignored}
-        for i, proc in enumerate(self.cls.procedures):
+        for i, proc in enumerate(self.procedure_list):
             # Spawn the corresponding ExperimentWindow and queue it
             if proc.__name__ == 'Wait':
                 wait_time = inputs[i+1].get_procedure().wait_time
@@ -226,7 +226,7 @@ class MetaProcedureWindow(QtWidgets.QMainWindow):
             if self.aborted:
                 break
 
-        self.cls.instruments.shutdown_all()
+        BaseProcedure.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
         if not self.aborted: log.info("Sequence finished.")
         self.set_status(-1, 'red' if self.aborted else 'green')()

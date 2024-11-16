@@ -10,11 +10,11 @@ from pymeasure.experiment import Procedure
 from .. import config, config_path, _config_file_used
 from ..cli import Scripts, parameters_to_db
 from ..utils import remove_empty_data
-from ..procedures import MetaProcedure, Experiments, Sequences
+from ..procedures import Experiments, from_str
 from ..instruments import InstrumentManager, Instruments
 from .Qt import QtGui, QtWidgets, QtCore
 from .widgets import SQLiteWidget
-from .experiment_window import ExperimentWindow, MetaProcedureWindow
+from .experiment_window import ExperimentWindow, SequenceWindow
 
 log = logging.getLogger(__name__)
 
@@ -48,10 +48,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         sequence_menu = menu.addMenu('Se&quences')
         sequence_menu.setToolTipsVisible(True)
-        for cls, name in Sequences:
+        for name, list_str in config.items('Sequences'):
             action = QtGui.QAction(name, self)
-            doc = cls.__doc__.replace('    ', '').strip()
-            action.triggered.connect(partial(self.open_sequence, cls))
+            doc = list_str
+            action.triggered.connect(partial(self.open_sequence, name, from_str(list_str)))
             action.setToolTip(doc)
             action.setStatusTip(doc)
             sequence_menu.addAction(action)
@@ -107,14 +107,13 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         self.status_bar.addPermanentWidget(self.reload)
 
-    def open_sequence(self, cls: Type[MetaProcedure]):
-        # Get the index of the title from the transpose. This turned out ugly.
-        title = Sequences[list(zip(*Sequences))[0].index(cls)][1]
-        self.windows[cls] = MetaProcedureWindow(cls, title=title, parent=self)
-        self.windows[cls].show()
+    def open_sequence(self, name: str, procedure_list: list[Type[Procedure]]):
+        self.windows[name] = SequenceWindow(procedure_list, title=name, parent=self)
+        self.windows[name].show()
         self.suggest_reload()
 
     def open_app(self, cls: Type[Procedure]):
+        # Get the index of the title from the transpose. This turned out ugly.
         title = Experiments[list(zip(*Experiments))[0].index(cls)][1]
         self.windows[cls] = ExperimentWindow(cls, title=title, parent=self)
         self.windows[cls].show()

@@ -8,3 +8,5 @@ Scripts: list[tuple[Callable, str]] = [
     (get_updates.main, 'Get Updates'),
     (parameters_to_db.create_db, 'Parameters to Database'),
 ]
+
+script_list = [func.__module__.split('.')[-1] for func, desc in Scripts]

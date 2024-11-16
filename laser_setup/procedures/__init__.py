@@ -11,14 +11,6 @@ from .IVgT import IVgT
 from .Wait import Wait
 from .LaserCalibration import LaserCalibration
 
-# The sequence classes need to be imported last
-from .Sequence import MetaProcedure, MainSequence
-
-
-Sequences: list[tuple[MetaProcedure, str]] = [
-    (MainSequence, 'Sequence'),
-]
-
 Experiments: list[tuple[Procedure, str]] = [
     (IV, 'I vs V'),
     (IVg, 'I vs Vg'),
@@ -30,3 +22,10 @@ Experiments: list[tuple[Procedure, str]] = [
     (Pt, 'P vs t'),
     (LaserCalibration, 'Calibrate Laser'),
 ]
+
+experiment_list = [cls.__name__ for cls, desc in Experiments]
+
+
+def from_str(s: str) -> list[Procedure] | Procedure:
+    """Evaluates a string and returns the output"""
+    return eval(s)

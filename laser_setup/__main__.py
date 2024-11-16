@@ -1,14 +1,11 @@
 import argparse
 
 from .display import MainWindow, ExperimentWindow, display_window
-from .cli import Scripts
-from .procedures import Experiments
+from .cli import Scripts, script_list
+from .procedures import Experiments, experiment_list
 
 
 def main():
-    experiment_list = [cls.__name__ for cls, desc in Experiments]
-    script_list = [func.__module__.split('.')[-1] for func, desc in Scripts]
-
     parser = argparse.ArgumentParser(description='Laser Setup')
     parser.add_argument('procedure', nargs='?', help='Procedure to run', choices=experiment_list + script_list)
     parser.add_argument('-d', '--debug', action='store_true', default=False, help='Enable debug mode')
