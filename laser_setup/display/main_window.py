@@ -8,7 +8,7 @@ from typing import Type
 from pymeasure.experiment import Procedure
 
 from .. import config, config_path, _config_file_used
-from ..cli import Scripts
+from ..cli import Scripts, parameters_to_db
 from ..utils import remove_empty_data
 from ..procedures import MetaProcedure, Experiments, Sequences
 from ..instruments import InstrumentManager, Instruments
@@ -185,9 +185,16 @@ class MainWindow(QtWidgets.QMainWindow):
         text_window.exec()
 
     def open_database(self, db_name: str):
-        sqlite_widget = SQLiteWidget(
-            config['Filename']['directory'] + '/' + db_name, parent=self
-        )
+        path = config['Filename']['directory'] + '/' + db_name
+        if not os.path.exists(path):
+            ans = self.question_box(
+                'Database not found', f'Database {path} not found. Create new database?'
+            )
+            if not ans:
+                return
+            parameters_to_db.create_db(parent=self)
+
+        sqlite_widget = SQLiteWidget(path, parent=self)
         window = QtWidgets.QMainWindow(parent=self)
         window.setCentralWidget(sqlite_widget)
         window.resize(640, 480)

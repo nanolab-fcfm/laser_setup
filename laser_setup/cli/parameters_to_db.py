@@ -1,12 +1,14 @@
 import sqlite3
 import os
 import re
+import logging
 from glob import glob
 from typing import Dict, Set
 
 from .. import config
 from ..utils import read_file_parameters
 
+log = logging.getLogger(__name__)
 csv_files = glob(config['Filename']['directory'] + '/**/*.csv', recursive=True)
 all_params: Dict[str, Set[str]] = {}
 
@@ -65,6 +67,7 @@ def create_db(parent=None):
     new_db = config['Filename']['directory'] + '/parameters.db'
     if os.path.exists(new_db):
         if os.path.exists(new_db + '.bak'):
+            log.debug(f'Removing old backup file {new_db}.bak')
             os.remove(new_db + '.bak')
 
         os.rename(new_db, new_db + '.bak')
