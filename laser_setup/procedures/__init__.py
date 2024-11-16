@@ -1,4 +1,4 @@
-from .BaseProcedure import BaseProcedure, ChipProcedure
+from .BaseProcedure import BaseProcedure, ChipProcedure, Procedure
 from .FakeProcedure import FakeProcedure
 from .IVg import IVg
 from .It import It
@@ -15,11 +15,11 @@ from .LaserCalibration import LaserCalibration
 from .Sequence import MetaProcedure, MainSequence
 
 
-Sequences = [
+Sequences: list[tuple[MetaProcedure, str]] = [
     (MainSequence, 'Sequence'),
 ]
 
-Experiments =[
+Experiments: list[tuple[Procedure, str]] = [
     (IV, 'I vs V'),
     (IVg, 'I vs Vg'),
     (It, 'I vs t'),
