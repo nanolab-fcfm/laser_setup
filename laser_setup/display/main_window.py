@@ -8,8 +8,10 @@ from typing import Type
 from pymeasure.experiment import Procedure
 
 from .. import config, config_path, _config_file_used
+from ..cli import Scripts
 from ..utils import remove_empty_data
-from ..procedures import MetaProcedure
+from ..procedures import MetaProcedure, Experiments, Sequences
+from ..instruments import InstrumentManager, Instruments
 from .Qt import QtGui, QtWidgets, QtCore
 from .experiment_window import ExperimentWindow, MetaProcedureWindow
 
@@ -20,13 +22,7 @@ class MainWindow(QtWidgets.QMainWindow):
     """The main window for program. It contains buttons to open
     the experiment windows, sequence windows, and run scripts.
     """
-    def __init__(
-            self,
-            sequences: dict[str, Type[MetaProcedure]],
-            experiments: dict[str, Type[Procedure]],
-            scripts: dict[str, callable],
-            **kwargs
-        ):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.setWindowTitle('Laser Setup')
         self.setWindowIcon(
@@ -40,37 +36,49 @@ class MainWindow(QtWidgets.QMainWindow):
         settings_menu.addAction('Edit settings', self.edit_settings)
 
         procedure_menu = menu.addMenu('&Procedures')
-        for cls, name in experiments.items():
+        procedure_menu.setToolTipsVisible(True)
+        for cls, name in Experiments:
             action = QtGui.QAction(name, self)
+            doc = cls.__doc__.replace('    ', '').strip()
             action.triggered.connect(partial(self.open_app, cls))
-            action.setToolTip(cls.__doc__)
-            action.setStatusTip(cls.__doc__.replace('    ', ''))
+            action.setToolTip(doc)
+            action.setStatusTip(doc)
             procedure_menu.addAction(action)
 
         sequence_menu = menu.addMenu('Se&quences')
-        for cls, name in sequences.items():
+        sequence_menu.setToolTipsVisible(True)
+        for cls, name in Sequences:
             action = QtGui.QAction(name, self)
+            doc = cls.__doc__.replace('    ', '').strip()
             action.triggered.connect(partial(self.open_sequence, cls))
-            action.setToolTip(cls.__doc__)
-            action.setStatusTip(cls.__doc__.replace('    ', ''))
+            action.setToolTip(doc)
+            action.setStatusTip(doc)
             sequence_menu.addAction(action)
 
         script_menu = menu.addMenu('&Scripts')
-        for f, name in scripts.items():
+        script_menu.setToolTipsVisible(True)
+        for f, name in Scripts:
             action = QtGui.QAction(name, self)
             doc = sys.modules[f.__module__].__doc__ or ''
+            doc = doc.replace('    ', '').strip()
             action.triggered.connect(partial(self.run_script, f))
             action.setToolTip(doc)
-            action.setStatusTip(doc.replace('    ', ''))
+            action.setStatusTip(doc)
             script_menu.addAction(action)
+
+        help_menu = menu.addMenu('&Help')
+        help_menu.setToolTipsVisible(True)
+        # Add a qtextedit with the README.md file
+        instrument_help = help_menu.addMenu('Instruments')
+        for cls, name in Instruments:
+            action = QtGui.QAction(name, self)
+            action.triggered.connect(partial(self.text_window, name, InstrumentManager.help(cls, return_str=True)))
+            instrument_help.addAction(action)
 
         self.status_bar = self.statusBar()
         self.status_bar.showMessage('Ready', 3000)
 
-        self.sequences = sequences
-        self.experiments = experiments
-        self.scripts = scripts
-        self.gridx = max(len(experiments), len(scripts), 3)
+        self.gridx = max(len(Experiments), len(Scripts), 3)
         self.windows = {}
 
         # Experiment Buttons
@@ -97,12 +105,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self._layout.addWidget(self.reload, 0, self.gridx-1)
 
     def open_sequence(self, cls: Type[MetaProcedure]):
-        self.windows[cls] = MetaProcedureWindow(cls, title=self.sequences[cls], parent=self)
+        # Get the index of the title from the transpose. This turned out ugly.
+        title = Sequences[list(zip(*Sequences))[0].index(cls)][1]
+        self.windows[cls] = MetaProcedureWindow(cls, title=title, parent=self)
         self.windows[cls].show()
         self.suggest_reload()
 
     def open_app(self, cls: Type[Procedure]):
-        self.windows[cls] = ExperimentWindow(cls, title=self.experiments[cls], parent=self)
+        title = Experiments[list(zip(*Experiments))[0].index(cls)][1]
+        self.windows[cls] = ExperimentWindow(cls, title=title, parent=self)
         self.windows[cls].show()
 
     def run_script(self, f: callable):
@@ -156,6 +167,19 @@ class MainWindow(QtWidgets.QMainWindow):
         buttons = QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
         reply = QtWidgets.QMessageBox.question(self, title, text, buttons)
         return reply == QtWidgets.QMessageBox.StandardButton.Yes
+
+    def text_window(self, title: str, text: str):
+        """Displays a text window with the given title and text. adds a scroll bar"""
+        text_window = QtWidgets.QDialog()
+        text_window.setWindowTitle(title)
+        text_window.resize(640, 480)
+
+        text_layout = QtWidgets.QVBoxLayout(text_window)
+        text_edit = QtWidgets.QTextEdit(text_window)
+        text_edit.setPlainText(text)
+        text_layout.addWidget(text_edit)
+        text_window.setLayout(text_layout)
+        text_window.exec()
 
 
 def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):

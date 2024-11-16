@@ -13,3 +13,20 @@ from .LaserCalibration import LaserCalibration
 
 # The sequence classes need to be imported last
 from .Sequence import MetaProcedure, MainSequence
+
+
+Sequences = [
+    (MainSequence, 'Sequence'),
+]
+
+Experiments =[
+    (IV, 'I vs V'),
+    (IVg, 'I vs Vg'),
+    (It, 'I vs t'),
+    (ItVg, 'I vs t (Vg)'),
+    (ITt, 'I,T vs t'),
+    (IVgT, 'I,T vs Vg'),
+    (Tt, 'T vs t'),
+    (Pt, 'P vs t'),
+    (LaserCalibration, 'Calibrate Laser'),
+]
