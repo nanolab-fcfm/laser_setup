@@ -110,8 +110,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Reload window button
         self.reload = QtWidgets.QPushButton('Reload')
         self.reload.clicked.connect(
-            lambda: os.execl(sys.executable, sys.executable, '.', *sys.argv[1:])
-        )
+            lambda: os.execl(sys.executable, sys.executable, '-m', 'laser_setup', *sys.argv[1:])
+        )   # TODO: fix bug where the terminal misbehaves after reload
         self.status_bar.addPermanentWidget(self.reload)
 
     def open_sequence(self, name: str, procedure_list: list[Type[Procedure]]):
