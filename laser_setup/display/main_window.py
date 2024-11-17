@@ -51,7 +51,9 @@ class MainWindow(QtWidgets.QMainWindow):
         for name, list_str in config.items('Sequences'):
             action = QtGui.QAction(name, self)
             doc = list_str
-            action.triggered.connect(partial(self.open_sequence, name, from_str(list_str)))
+            action.triggered.connect(partial(
+                self.open_sequence, name, from_str(list_str)
+            ))
             action.setToolTip(doc)
             action.setStatusTip(doc)
             sequence_menu.addAction(action)
@@ -68,7 +70,9 @@ class MainWindow(QtWidgets.QMainWindow):
             script_menu.addAction(action)
 
         view_menu = menu.addMenu('&View')
-        view_menu.addAction('Parameter Database', partial(self.open_database, 'parameters.db'))
+        view_menu.addAction(
+            'Parameter Database', partial(self.open_database, 'parameters.db')
+        )
 
         help_menu = menu.addMenu('&Help')
         help_menu.setToolTipsVisible(True)
@@ -76,19 +80,22 @@ class MainWindow(QtWidgets.QMainWindow):
         instrument_help = help_menu.addMenu('Instruments')
         for cls, name in Instruments:
             action = QtGui.QAction(name, self)
-            action.triggered.connect(partial(self.text_window, name, InstrumentManager.help(cls, return_str=True)))
+            action.triggered.connect(partial(
+                self.text_window, name, InstrumentManager.help(cls, return_str=True)
+            ))
             instrument_help.addAction(action)
 
         self.status_bar = self.statusBar()
         self.status_bar.showMessage('Ready', 3000)
 
-        self.windows = {}
+        self.windows: dict[str|Type[Procedure], QtWidgets.QMainWindow] = {}
 
         # Experiment Buttons
         self._layout = QtWidgets.QGridLayout(self.centralWidget())
 
         # README Widget
-        readme = QtWidgets.QTextEdit(readOnly=True)
+        readme = QtWidgets.QTextBrowser(parent=self)
+        readme.setOpenExternalLinks(True)
         readme.setStyleSheet("""
             font-size: 12pt;
         """)
