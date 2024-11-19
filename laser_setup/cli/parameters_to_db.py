@@ -79,7 +79,11 @@ def create_db(parent=None):
             else:
                 print(f'Processing database ({i+1}/{len(csv_files)})', end='\r')
 
-            add_to_parameters_db(csv_file, conn)
+            try:
+                add_to_parameters_db(csv_file, conn)
+            except Exception as e:
+                log.error(f"Error reading file {csv_file}: {e}. Skipping.")
+                continue
 
         if parent is not None:
             parent.status_bar.showMessage('Done', 3000)
