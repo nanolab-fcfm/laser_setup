@@ -46,6 +46,9 @@ class ExperimentWindow(ManagedWindow):
             self.plot_widget.plot_frame.plot_widget.setBackground('k')
 
         self.setWindowTitle(title)
+        self.setWindowIcon(
+            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon)
+        )
 
         if issubclass(self.procedure_class, BaseProcedure):
             self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
