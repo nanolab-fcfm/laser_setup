@@ -7,6 +7,7 @@ from .IV import IV
 from .Pt import Pt
 from .Tt import Tt
 from .ITt import ITt
+from .IVgT import IVgT
 from .Wait import Wait
 from .LaserCalibration import LaserCalibration
 

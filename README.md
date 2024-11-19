@@ -4,7 +4,8 @@ Experimental setup for Laser, I-V and Transfer Curve measurements.
 
 ## Usage
 This project allows for the communication between the computer and the instruments used in the experimental setup, as well as the control of the instruments. So far, the following instruments are supported:
-- Keithley 2450 SourceMeter ([Reference Manual](https://docs.rs-online.com/6c14/A700000007066480.pdf)) (Requires [NI-VISA](https://www.ni.com/en-us/support/downloads/drivers/download.ni-visa.html) installed)
+- Keithley 2450 SourceMeter ([Reference Manual](https://download.tek.com/manual/2450-901-01_D_May_2015_Ref.pdf)) (Requires [NI-VISA](https://www.ni.com/en-us/support/downloads/drivers/download.ni-visa.html) installed)
+- Keithley 6517B Electrometer ([Reference Manual](https://download.tek.com/manual/6517B-901-01D_Feb_2016.pdf) (Also requires NI-VISA))
 - TENMA Power Supply
 - Thorlabs PM100D Power Meter ([Reference Manual](https://www.thorlabs.com/drawings/bb953791e3c90bd7-987A9A0B-9650-5B7A-6479A1E42E4265C8/PM100D-Manual.pdf))
 - Bentham TLS120Xe Light Source ([Reference Manual](https://www.bentham.co.uk/fileadmin/uploads/bentham/Components/Tunable%20Light%20Sources/TLS120Xe/TLS120Xe_CommunicationManual.pdf))
@@ -14,7 +15,7 @@ As well as all instruments available in the [PyMeasure library](https://pymeasur
 The main window of the program can be run by executing either of the following commands:
 
 ```bash
-laser_setup     # Only after installing the package
+laser_setup
 ```
 
 ```python
@@ -47,6 +48,12 @@ Finally, upgrade pip and install this package and its required:
 ```python
 python -m pip install --upgrade pip
 pip install .
+```
+
+Alternatively, you can install the package directly from the repository:
+
+```bash
+pip install git+https://github.com/nanolab-fcfm/laser_setup.git
 ```
 
 This will create an entry point for the program, which can be run by executing:
@@ -102,6 +109,20 @@ python -m Scripts.find_calibration_voltage <desired powers>
 ```
 
 
+## Procedures
+A list of all available Procedures and their parameters. To maximize functionality, all user-written procedures should be subclasses of `BaseProcedure`, which is a subclass of `Procedure` from PyMeasure. Procedures inherit the following from their parent class:
+- Parameters (`pymeasure.experiment.Parameter` type)
+- INPUTS (Inputs to display in the GUI)
+- DATA_COLUMNS (Columns to display in the GUI and save to file)
+- `startup`, `execute` and `shutdown` methods
+
+
+## Procedure Sequence
+A series of procedures can be run in sequence for a single chip by using the `MetaProcedure` class. This class allows for the execution of a series of procedures, and the saving of the data to the respective files. The `MetaProcedure` class is a subclass of `BaseProcedure`.
+
+To run a sequence of procedures, create a new class that inherits from `MetaProcedure`, and define the `procedures` attribute as a list of procedures to run. The `procedures` attribute should be a list of `BaseProcedure` subclasses, uninitialized. The parameters of each procedure are then set by running the `display_window` function.
+
+
 ## Testing
 This project uses [PyTest](https://docs.pytest.org/en/stable/) for testing.
 To run the tests, use the following command:
@@ -113,148 +134,3 @@ Tests are stored in the `tests` folder, and are named `test_<module_test>.py`. Y
 ```
 python -m tests.<test_name>
 ```
-
-
-## Procedures
-A list of all available Procedures and their parameters. All procedures are subclasses of `BaseProcedure`, which is a subclass of `Procedure` from PyMeasure. Procedures inherit the following from their parent class:
-- Parameters (`pymeasure.experiment.Parameter` type)
-- INPUTS (Inputs to display in the GUI)
-- DATA_COLUMNS (Columns to display in the GUI and save to file)
-- `startup`, `execute` and `shutdown` methods
-
-
-### BaseProcedure
-
-The base class for all procedures involving a chip.
-
-#### Parameters
-| Name       | Ext. Name   | Default | Units | Choices |
-|------------|-------------|---------|-------|---------------|
-|`procedure_version`| Procedure version|'1.0.0'|       |          |
-| `chip_group`|Chip group name|       |       |['Margarita', 'Miguel', 'Pepe (no ALD)', 'Unbonded', '8']|
-|`chip_number`| Chip number| 1       |       |          |
-| `sample`   | Sample      |         |       |['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']|
-| `info`     | Information | 'None'  |       |          |
-
-#### INPUTS
-['chip_group', 'chip_number', 'sample', 'info']
-
-
-### IVgBaseProcedure(BaseProcedure)
-
-#### Parameters
-| Name       | Ext. Name   | Default | Units | Choices |
-|------------|-------------|---------|-------|---------|
-| `vds`      | VDS         | 0.075   | 'V'   |          |
-| `vg_start` | VG start    | -35.    | 'V'   |          |
-| `vg_end`   | VG end      | 35.     | 'V'   |          |
-| `laser_toggle`|Laser toggle| False |       |          |
-| `laser_wl` |Laser wavelength|      | 'nm'  |[0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]|
-| `laser_v`  |Laser voltage| 0.      | 'V'   |          |
-| `N_avg`    | N_avg       | 2       |       |          |
-| `vg_step`  | VG step     | 0.2     | 'V'   |          |
-| `step_time`| Step time   | 0.01    | 's'   |          |
-| `Irange`   | Irange      | 0.001   | 'A'   |          |
-
-#### INPUTS
-['vds', 'vg_start', 'vg_end', 'laser_toggle', 'laser_wl', 'laser_v', 'N_avg', 'vg_step', 'step_time']
-
-#### DATA_COLUMNS
-['Vg (V)', 'I (A)']
-
-#### Execute
-`pass`
-
-
-### ItBaseProcedure(BaseProcedure)
-
-#### Parameters
-| Name       | Ext. Name   | Default | Units | Choices |
-|------------|-------------|---------|-------|---------------|
-| `laser_wl` |Laser wavelength|      | 'nm'  |[0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]|
-| `laser_T`  | Laser ON+OFF period | 120. | 's'   |         |
-| `laser_v`  | Laser voltage       | 0.   | 'V'   |         |
-| `vds`      | VDS                 | 0.075| 'V'   |         |
-| `vg`       | VG                  | 0.   | 'V'   |         |
-| `sampling_t`| Sampling time (excluding Keithley)| 0.   | 's'   |          |
-| `N_avg`    | N_avg               | 2    |       |         |
-| `Irange`   | Irange              | 0.001| 'A'   |         |
-
-#### INPUTS
-['laser_wl', 'laser_T', 'laser_v', 'vds', 'vg', 'sampling_t', 'N_avg']
-
-#### DATA_COLUMNS
-['t (s)', 'I (A)', 'VL (V)']
-
-#### Execute
-`pass`
-
-
-### IVg(IVgBaseProcedure)
-
-#### Instruments
-- Keithley 2450 (Control: `vds`, Measure: 'I (A)')
-- TENMA (Control: `vg` (Positive))
-- TENMA (Control: `vg` (Negative))
-- TENMA (Control: `laser_V` (Positive), used if `laser_toggle` is True)
-
-#### Execute
-Perform I-V Measurement over a range of Gate Voltages
-
-
-### It(ItBaseProcedure)
-
-#### Instruments
-- Keithley 2450 (Control: `vds`, Measure: ['t (s)', 'I (A)'])
-- TENMA (Control: `vg` (Positive))
-- TENMA (Control: `vg` (Negative))
-- TENMA (Control: `laser_V` (Positive))
-
-#### Execute
-Perform I-t Measurement over time, turning the laser on at $t = 0$ and off at $t =$ `laser_T` $/2$.
-
-
-### LaserCalibration
-
-#### Parameters
-| Name       | Ext. Name   | Default | Units | Choices |
-|------------|-------------|---------|-------|---------------|
-| `laser_wl` |Laser wavelength|      | 'nm'  |[0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]|
-| `fiber`    | Optical fiber |    |       |['F1 (M92L02)', 'F2 (M92L02)', 'F3 (M96L02)', 'F4 (M96L02)']|
-| `vl_start` | Laser voltage end | 0.   | 'V'   |         |
-| `vl_end`   | Laser voltage end | 5.   | 'V'   |         |
-| `vl_step`  | Laser voltage step | 0.1   | 'V'   |         |
-| `step_time`| Step time   | 2.      | 's'   |         |
-| `N_avg`    | N_avg       | 2       |       |         |
-
-#### Metadata
-| Name       | Ext. Name   | fget |
-|------------|-------------|---------|
-|  `sensor`  | Sensor model | 'power_meter.sensor_name' |
-
-### PtBaseProcedure(Procedure)
-
-#### Parameters
-| Name       | Ext. Name   | Default | Units | Choices |
-|------------|-------------|---------|-------|---------------|
-| `laser_wl` |Laser wavelength|      | 'nm'  |[0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]|
-| `laser_T`  | Laser ON+OFF period | 20. | 's'   |         |
-| `laser_v`  | Laser voltage       | 0.   | 'V'   |         |
-| `sampling_t`| Sampling time (excluding Keithley)| 0.   | 's'   |          |
-| `N_avg`    | N_avg               | 2    |       |         |
-| `Irange`   | Irange              | 0.001| 'A'   |         |
-
-#### INPUTS
-['show_more', 'info', 'laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t']
-
-#### DATA_COLUMNS
-['t (s)', 'P (W)', 'VL (V)']
-
-#### Execute
-`pass`
-
-
-## Procedure Sequence
-A series of procedures can be run in sequence for a single chip by using the `MetaProcedure` class. This class allows for the execution of a series of procedures, and the saving of the data to the respective files. The `MetaProcedure` class is a subclass of `BaseProcedure`.
-
-To run a sequence of procedures, create a new class that inherits from `MetaProcedure`, and define the `procedures` attribute as a list of procedures to run. The `procedures` attribute should be a list of `BaseProcedure` subclasses, uninitialized. The parameters of each procedure are then set by running the `display_window` function.

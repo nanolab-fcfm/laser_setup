@@ -33,25 +33,34 @@ class ProgressBar(QtWidgets.QDialog):
         self._layout.addWidget(self.progress)
         self.setLayout(self._layout)
         self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.update_progress)
+        self.timer.timeout.connect(self._update_progress)
 
-    def start(self, wait_time, fps=30):
+    def start(self, wait_time: float, fps: float = 30., decimals: int = 0):
         self.wait_time = wait_time
-        self.fps = fps
-        self.frames = int(self.fps * wait_time)
-        self.i = 0
-        self.progress.setRange(0, self.frames)
+        self.frame_interval = 1 / fps
+        self.total_frames = int(fps * wait_time)
+        self.start_time = time.perf_counter()
+        self.progress.setRange(0, self.total_frames)
         self.show()
-        self.timer.start(max(1, round(1000/self.fps)))
+        self.timer.start(max(1, round(1000 / fps)))
+        self.d = decimals
 
-    def update_progress(self):
-        self.i += 1
-        self.progress.setValue(self.i)
-        self.progress.setFormat(f"{self.i/self.fps:.0f} / {self.wait_time:.0f} s")
-        self.progress.repaint()
-        if self.i >= self.frames:
+    def _update_progress(self):
+        elapsed_time = time.perf_counter() - self.start_time
+        current_frame = int(elapsed_time / self.frame_interval)
+
+        if current_frame >= self.total_frames:
+            self.progress.setValue(self.total_frames)
+            self.progress.setFormat(
+                f"{self.wait_time:.{self.d}f} / {self.wait_time:.{self.d}f} s"
+            )
             self.timer.stop()
             self.close()
+        else:
+            self.progress.setValue(current_frame)
+            self.progress.setFormat(
+                f"{elapsed_time:.{self.d}f} / {self.wait_time:.{self.d}f} s"
+            )
 
 
 class TextWidget(TabWidget, QtWidgets.QWidget):
@@ -547,4 +556,3 @@ def get_dark_palette():
     palette.setColor(ColorRole.HighlightedText, QtGui.QColor(240, 240, 240))
 
     return palette
-

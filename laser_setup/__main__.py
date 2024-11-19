@@ -14,6 +14,7 @@ Experiments = {
     It: 'I vs t',
     ItVg: 'I vs t (Vg)',
     ITt: 'I,T vs t',
+    IVgT: 'I,T vs Vg',
     Tt: 'T vs t',
     Pt: 'P vs t',
     LaserCalibration: 'Calibrate Laser',
