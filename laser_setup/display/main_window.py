@@ -9,10 +9,10 @@ from pymeasure.experiment import Procedure
 
 from .. import config, config_path, _config_file_used
 from ..cli import Scripts, parameters_to_db
-from ..utils import remove_empty_data
+from ..utils import remove_empty_data, get_status_message
 from ..procedures import Experiments, from_str
 from ..instruments import InstrumentManager, Instruments
-from .Qt import QtGui, QtWidgets, QtCore
+from .Qt import QtGui, QtWidgets, QtCore, Worker
 from .widgets import SQLiteWidget
 from .experiment_window import ExperimentWindow, SequenceWindow
 
@@ -86,7 +86,11 @@ class MainWindow(QtWidgets.QMainWindow):
             instrument_help.addAction(action)
 
         self.status_bar = self.statusBar()
-        self.status_bar.showMessage('Ready', 3000)
+
+        thread = QtCore.QThread(parent=self)
+        worker = Worker(get_status_message, thread)
+        worker.finished.connect(lambda msg: self.status_bar.showMessage(msg, 3000))
+        thread.start()
 
         self.windows: dict[str|Type[Procedure], QtWidgets.QMainWindow] = {}
 
@@ -206,6 +210,14 @@ class MainWindow(QtWidgets.QMainWindow):
         window.resize(640, 480)
         window.setWindowTitle(db_name)
         window.show()
+
+    def closeEvent(self, event):
+        """Ensures all running threads are properly stopped."""
+        for child in self.findChildren(QtCore.QThread):
+            if child.isRunning():
+                child.quit()
+                child.wait()
+        super().closeEvent(event)
 
 
 def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):

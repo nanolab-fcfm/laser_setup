@@ -20,7 +20,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -36,6 +35,9 @@ license = {text = "MIT License"}
 
 [project.scripts]
 laser_setup = "laser_setup.__main__:main"
+
+[project.gui-scripts]
+laser_setup_gui = "laser_setup.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["laser_setup*"]

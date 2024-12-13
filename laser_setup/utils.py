@@ -114,6 +114,17 @@ def send_telegram_alert(message: str):
         log.info(f"Sent '{message}' to {chat}.")
 
 
+def get_status_message(timeout: float = .5) -> str:
+    """Gets a status message from somewhere :)"""
+    try:
+        res = requests.get("https://api.benbriel.me/nanolab", timeout=timeout)
+        message = res.json()['message']
+        return message
+
+    except:
+        return 'Ready'
+
+
 def read_file_parameters(file_path: str) -> Dict[str, str]:
     """Reads the parameters from a PyMeasure data file."""
     parameters = {}
