@@ -1,6 +1,7 @@
 import time
 import logging
 from typing import Type
+from functools import partial
 
 from pymeasure.experiment import unique_filename, Results, Procedure
 from pymeasure.display.widgets import InputsWidget, PlotFrame
@@ -100,12 +101,22 @@ class ExperimentWindow(ManagedWindow):
 class SequenceWindow(QtWidgets.QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
-    """
-    aborted: bool = False
-    status_labels = []
-    inputs_ignored = ['show_more', 'chained_exec']
+    The CommonProcedure class attribute is used to group parameters that are
+    common to all procedures in the sequence. To avoid this behavior for a
+    specific parameter, add it to the inputs_ignored list.
 
-    def __init__(self, procedure_list: list[Type[Procedure]], title: str = '', **kwargs):
+    :attr abort_timeout: float: Timeout for the abort message box.
+    :attr inputs_ignored: list[str]: List of inputs to ignore when grouping parameters.
+    :attr CommonProcedure: type[BaseProcedure]: Class to group common parameters.
+    """
+    abort_timeout: float = 30
+    inputs_ignored = ['show_more', 'chained_exec']
+    CommonProcedure: type[BaseProcedure] = ChipProcedure
+
+    status_labels = []
+    aborted: bool = False
+
+    def __init__(self, procedure_list: list[Type[BaseProcedure]], title: str = '', **kwargs):
         super().__init__(**kwargs)
         self.procedure_list = procedure_list
 
@@ -115,9 +126,9 @@ class SequenceWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(self._get_procedure_vlayout(title))
 
-        base_inputs = [i for i in ChipProcedure.INPUTS if i not in self.inputs_ignored]
+        base_inputs = [i for i in self.CommonProcedure.INPUTS if i not in self.inputs_ignored]
 
-        widget = InputsWidget(ChipProcedure, inputs=base_inputs)
+        widget = InputsWidget(self.CommonProcedure, inputs=base_inputs)
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
@@ -171,17 +182,15 @@ class SequenceWindow(QtWidgets.QMainWindow):
         return vlayout
 
     def set_status(self, index: int, color: str):
-        def func():
-            pixmap = QtGui.QPixmap(20, 20)
-            pixmap.fill(QtGui.QColor(color))
-            self.status_labels[index + 1].setPixmap(pixmap)
-        return func
+        pixmap = QtGui.QPixmap(20, 20)
+        pixmap.fill(QtGui.QColor(color))
+        self.status_labels[index + 1].setPixmap(pixmap)
 
     def queue(self):
         log.info("Queueing the procedures.")
-        self.set_status(-1, 'yellow')()
+        self.set_status(-1, 'yellow')
         for i in range(len(self.procedure_list)):
-            self.set_status(i, 'white')()
+            self.set_status(i, 'white')
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
         base_parameters = inputs[0].get_procedure()._parameters
@@ -190,12 +199,13 @@ class SequenceWindow(QtWidgets.QMainWindow):
             # Spawn the corresponding ExperimentWindow and queue it
             if proc.__name__ == 'Wait':
                 wait_time = inputs[i+1].get_procedure().wait_time
-                self.set_status(i, 'yellow')()
+                self.set_status(i, 'yellow')
                 self.wait(wait_time)
-                self.set_status(i, 'green')()
+                self.set_status(i, 'green')
                 continue
 
-            window = ExperimentWindow(proc, title=proc.__name__)
+            window_name = getattr(proc, 'name', proc.__name__)
+            window = ExperimentWindow(proc, title=window_name)
             procedure_parameters = inputs[i+1].get_procedure()._parameters
             parameters = procedure_parameters | base_parameters
             window.set_parameters(parameters)
@@ -209,14 +219,14 @@ class SequenceWindow(QtWidgets.QMainWindow):
             window.queue_button.click()
 
             # Update the status label
-            window.manager.running.connect(self.set_status(i, 'yellow'))
-            window.manager.finished.connect(self.set_status(i, 'green'))
-            window.manager.failed.connect(self.set_status(i, 'red'))
-            window.manager.aborted.connect(self.set_status(i, 'red'))
+            window.manager.running.connect(partial(self.set_status, i, 'yellow'))
+            window.manager.finished.connect(partial(self.set_status, i, 'green'))
+            window.manager.failed.connect(partial(self.set_status, i, 'red'))
+            window.manager.aborted.connect(partial(self.set_status, i, 'red'))
 
             # Window managing
-            window.manager.aborted.connect(self.aborted_procedure(window))
-            window.manager.failed.connect(self.failed_procedure(window))
+            window.manager.aborted.connect(partial(self.aborted_procedure, window))
+            window.manager.failed.connect(partial(self.failed_procedure, window))
             window.manager.finished.connect(window.close)
 
             # Non-blocking wait for the procedure to finish
@@ -229,53 +239,47 @@ class SequenceWindow(QtWidgets.QMainWindow):
             if self.aborted:
                 break
 
-        BaseProcedure.instruments.shutdown_all()
+        self.CommonProcedure.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
         if not self.aborted: log.info("Sequence finished.")
-        self.set_status(-1, 'red' if self.aborted else 'green')()
+        self.set_status(-1, 'red' if self.aborted else 'green')
         self.aborted = False
 
     @QtCore.pyqtSlot()
     def aborted_procedure(self, window: ExperimentWindow, close_window=True):
-        def func():
-            timeout = 30
-            t_text = lambda t: f'Abort (continuing in {t} s)'
-            t_iter = iter(range(timeout-1, -1, -1))
+        t_text = lambda t: f'Abort (continuing in {t} s)'
+        t_iter = iter(range(self.abort_timeout-1, -1, -1))
 
-            window.abort_button.setEnabled(False)
+        window.abort_button.setEnabled(False)
 
-            reply = QtWidgets.QMessageBox(self)
-            reply.setWindowTitle(t_text(timeout))
-            reply.setText('This experiment was aborted. Do you want to abort the rest of the sequence?')
-            reply.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            reply.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-            reply.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
-            reply.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+        reply = QtWidgets.QMessageBox(self)
+        reply.setWindowTitle(t_text(self.abort_timeout))
+        reply.setText('This experiment was aborted. Do you want to abort the rest of the sequence?')
+        reply.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+        reply.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        reply.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
+        reply.setWindowModality(QtCore.Qt.WindowModality.NonModal)
 
-            # Create a QTimer to update the title every second
-            timer = QtCore.QTimer()
-            timer.timeout.connect(lambda: reply.setWindowTitle(t_text(next(t_iter))))
-            timer.start(1000)
+        # Create a QTimer to update the title every second
+        timer = QtCore.QTimer()
+        timer.timeout.connect(lambda: reply.setWindowTitle(t_text(next(t_iter))))
+        timer.start(1000)
 
-            # Close the message box after timeout
-            QtCore.QTimer.singleShot(timeout*1000, reply.close)
+        # Close the message box after timeout
+        QtCore.QTimer.singleShot(self.abort_timeout*1000, reply.close)
 
-            result = reply.exec()
-            if result == QtWidgets.QMessageBox.StandardButton.Yes:
-                log.warning("Sequence aborted.")
-                self.aborted = True
+        result = reply.exec()
+        if result == QtWidgets.QMessageBox.StandardButton.Yes:
+            log.warning("Sequence aborted.")
+            self.aborted = True
 
-            if close_window:
-                window.close()
-
-        return func
+        if close_window:
+            window.close()
 
     @QtCore.pyqtSlot()
     def failed_procedure(self, window: ExperimentWindow):
-        def func():
-            log.error(f"Procedure {window.cls.__name__} failed to execute")
-            self.aborted_procedure(window, close_window=False)()
-        return func
+        log.error(f"Procedure {window.cls.__name__} failed to execute")
+        self.aborted_procedure(window, close_window=False)
 
     def wait(self, wait_time: float, progress_bar: bool = True):
         """Waits for a given amount of time. Creates a progress bar."""
