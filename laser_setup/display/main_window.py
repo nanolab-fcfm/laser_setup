@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 from functools import partial
+from pathlib import Path
 from importlib.metadata import metadata
 from typing import Type
 
@@ -142,14 +143,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 ['Create new config', 'Use default config'], 'Select an option:')
 
             if choice == 'Create new config':
-                os.makedirs(os.path.dirname(config_path), exist_ok=True)
+                config_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(config_path, 'w') as f:
                     config.write(f)
 
             elif choice == 'Use default config':
                 return
 
-        os.startfile(config_path.replace('/', '\\'))
+        os.startfile(config_path)
         self.suggest_reload()
 
     def suggest_reload(self):
@@ -195,16 +196,16 @@ class MainWindow(QtWidgets.QMainWindow):
         text_window.exec()
 
     def open_database(self, db_name: str):
-        path = config['Filename']['directory'] + '/' + db_name
-        if not os.path.exists(path):
+        db_path = Path(config['Filename']['directory']) / db_name
+        if not db_path.exists():
             ans = self.question_box(
-                'Database not found', f'Database {path} not found. Create new database?'
+                'Database not found', f'Database {db_path} not found. Create new database?'
             )
             if not ans:
                 return
             parameters_to_db.create_db(parent=self)
 
-        sqlite_widget = SQLiteWidget(path, parent=self)
+        sqlite_widget = SQLiteWidget(db_path, parent=self)
         window = QtWidgets.QMainWindow(parent=self)
         window.setCentralWidget(sqlite_widget)
         window.resize(640, 480)
