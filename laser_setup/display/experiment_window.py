@@ -5,6 +5,7 @@ from functools import partial
 
 from pymeasure.experiment import unique_filename, Results, Procedure
 from pymeasure.display.widgets import InputsWidget, PlotFrame
+from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindow
 from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
@@ -21,15 +22,18 @@ class ExperimentWindow(ManagedWindow):
     from the GUI, by queuing it in the manager. It also allows for existing
     data to be loaded and displayed.
     """
+    inputs_in_scrollarea: bool = True
+    enable_file_input: bool = False     # File Input incompatible with PyQt6
+    dock_plot_number: int = 2
+
     def __init__(self, cls: Type[Procedure], title: str = '', **kwargs):
         self.cls = cls
-        sequencer_kwargs = dict(
-            sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
-            sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
-            # sequence_file = f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt' if hasattr(cls, 'SEQUENCER_INPUTS') else None,
-        )
+
         if bool(eval(config['GUI']['dark_mode'])):
             PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
+
+        if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
+            raise AttributeError(f"Procedure {cls.__name__} must define DATA_COLUMNS with at least 2 columns.")
 
         super().__init__(
             procedure_class=cls,
@@ -37,28 +41,43 @@ class ExperimentWindow(ManagedWindow):
             displays=getattr(cls, 'INPUTS', []),
             x_axis=cls.DATA_COLUMNS[0],
             y_axis=cls.DATA_COLUMNS[1],
-            inputs_in_scrollarea=True,
-            enable_file_input=False,        # File Input incompatible with PyQt6
-            **sequencer_kwargs,
+            inputs_in_scrollarea=self.inputs_in_scrollarea,
+            enable_file_input=self.enable_file_input,
+            sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
+            sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
+            sequence_file = config.get('Procedures', 'sequence_file', fallback=None),
             **kwargs
         )
-        if bool(eval(config['GUI']['dark_mode'])):
-            self.plot_widget.plot_frame.setStyleSheet('background-color: black;')
-            self.plot_widget.plot_frame.plot_widget.setBackground('k')
 
         self.setWindowTitle(title)
         self.setWindowIcon(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon)
         )
 
+        # Add a shutdown button if the procedure is a BaseProcedure
         if issubclass(self.procedure_class, BaseProcedure):
             self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
             self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
+            self.shutdown_button.setToolTip('Shutdown all instruments')
             self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
 
-        widget = TextWidget('Information', parent=self, file=config['GUI']['info_file'])
-        self.widget_list += (widget,)
-        self.tabs.addTab(widget, widget.name)
+        self.dock_widget = DockWidget(
+            'Dock',
+            cls,
+            parent=self,
+            x_axis_labels=[cls.DATA_COLUMNS[0],],
+            y_axis_labels=cls.DATA_COLUMNS[1:self.dock_plot_number+1],
+        )
+        self.text_widget = TextWidget('Information', parent=self, file=config['GUI']['info_file'])
+
+        if bool(eval(config['GUI']['dark_mode'])):
+            for plot_widget in (self.plot_widget, *self.dock_widget.plot_frames):
+                plot_widget.plot_frame.setStyleSheet('background-color: black;')
+                plot_widget.plot_frame.plot_widget.setBackground('k')
+
+        self.widget_list += (self.text_widget, self.dock_widget)
+        self.tabs.addTab(self.text_widget, self.text_widget.name)
+        self.tabs.addTab(self.dock_widget, self.dock_widget.name)
 
     def queue(self, procedure: Type[Procedure] = None):
         if procedure is None:
