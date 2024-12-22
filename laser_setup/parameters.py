@@ -3,6 +3,7 @@ Parameters should be defined here and imported in the procedures.
 """
 import copy
 import time
+from dataclasses import dataclass, asdict
 import configparser
 
 from pymeasure.experiment import IntegerParameter, Parameter, BooleanParameter, ListParameter, FloatParameter, Metadata
@@ -27,6 +28,12 @@ class ParameterProvider:
             return copy.deepcopy(attr)
 
         return attr
+
+    def __getitem__(self, name: str):
+        return getattr(self, name.replace(' ', '_'))
+
+    def __setitem__(self, name: str, value: any):
+        setattr(self, name, value)
 
 
 class BaseParameters(ParameterProvider):
@@ -95,10 +102,31 @@ class ControlParameters(ParameterProvider):
     vl_step = FloatParameter('Laser voltage step', units='V', default=0.1)
 
 
-class Parameters:
+class Parameters(ParameterProvider):
     """Class to define all the parameters for the laser setup."""
     Base = BaseParameters()
     Chip = ChipParameters()
     Laser = LaserParameters()
     Instrument = InstrumentParameters()
     Control = ControlParameters()
+
+
+@dataclass
+class BaseParameters2(ParameterProvider):
+    # Procedure version. When modified, increment
+    # <parameter name>.<parameter property>.<procedure startup/shutdown>
+    procedure_version: Parameter
+    show_more: BooleanParameter
+    info: Parameter
+
+    # Chained Execution
+    chained_exec: BooleanParameter
+
+    # Metadata
+    start_time: Metadata
+
+
+@dataclass
+class Parameters2(ParameterProvider):
+    """Class to define all the parameters for the laser setup."""
+    Base: BaseParameters2
