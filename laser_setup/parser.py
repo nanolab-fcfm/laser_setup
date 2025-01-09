@@ -1,12 +1,6 @@
 """Module to parse configuration files"""
 import yaml
 from pathlib import Path
-from functools import partial
-from typing import TypeVar
-
-from pymeasure.experiment import Parameter, FloatParameter, IntegerParameter, BooleanParameter, ListParameter, Metadata
-
-AnyParameter = TypeVar('AnyParameter', bound=Parameter)
 
 default_config_path = Path(__file__).parent / 'default_config.yml'
 
@@ -69,53 +63,3 @@ def save_yaml(
     file_path.parent.mkdir(parents=True, exist_ok=True)
     with open(file_path, mode) as file:
         yaml.dump(dictionary, file, Dumper=dumper, sort_keys=sort_keys, **kwargs)
-
-
-class ParameterParser:
-    """Class to parse parameters from a YAML file."""
-    parameter_tag = '!Parameter'
-    bool_tag = '!BooleanParameter'
-    int_tag = '!IntegerParameter'
-    float_tag = '!FloatParameter'
-    list_tag = '!ListParameter'
-    metadata_tag = '!Metadata'
-
-    def get_loader(self):
-        """Returns a YAML loader with the custom constructors."""
-        loader = yaml.SafeLoader
-        loader.add_constructor(self.parameter_tag, partial(self.parameter_constructor, Parameter))
-        loader.add_constructor(self.bool_tag, partial(self.parameter_constructor, BooleanParameter))
-        loader.add_constructor(self.int_tag, partial(self.parameter_constructor, IntegerParameter))
-        loader.add_constructor(self.float_tag, partial(self.parameter_constructor, FloatParameter))
-        loader.add_constructor(self.list_tag, partial(self.parameter_constructor, ListParameter))
-        loader.add_constructor(self.metadata_tag, partial(self.parameter_constructor, Metadata))
-
-        return loader
-
-    @staticmethod
-    def parameter_constructor(
-        param_cls: type[AnyParameter],
-        loader: yaml.SafeLoader,
-        node: yaml.nodes.MappingNode
-    ) -> Parameter:
-        data = loader.construct_mapping(node, deep=True)
-        data.pop('description', None)   # description not implemented yet
-        data.pop('hidden', None)        # hidden not implemented yet
-
-        return param_cls(**data)
-
-    def read(self, file_path: str|Path) -> dict:
-        """Read a YAML file with parameters and return them as a dictionary.
-
-        :param file_path: Path to the YAML file with the parameters.
-        :return: Dictionary with the parameters.
-        """
-        loader = self.get_loader()
-        return load_yaml(file_path, loader)
-
-
-if __name__ == '__main__':
-    parser = ParameterParser()
-    parameters = parser.read('config/parameters.yml')
-    print(parameters)
-    breakpoint()
