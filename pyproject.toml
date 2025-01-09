@@ -13,6 +13,7 @@ dependencies = [
     'matplotlib',
     'pymeasure>=0.14.0,<0.15',
     'PyQt6>=6.1.0',
+    'PyYAML',
     'Requests',
     'scipy',
 ]
