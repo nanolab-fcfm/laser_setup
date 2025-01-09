@@ -42,7 +42,7 @@ Adapters:
 
 GUI:
   # PyQt GUI style. Options vary with OS. Examples: windows11, Fusion (Recommended). Use 'default' for the system's default
-  style: default
+  style: Fusion
 
   # toggle dark mode. If False, the computer's theme will be used
   dark_mode: true
@@ -92,5 +92,6 @@ Logging:
   file_level: INFO
 
 matplotlib.rcParams:
-  axes.grid: true
-  figure.autolayout: true
+  # Matplotlib configuration, parsed by PyMeasure. All values must be strings
+  axes.grid: "True"
+  figure.autolayout: "True"

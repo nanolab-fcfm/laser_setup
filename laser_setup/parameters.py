@@ -89,6 +89,8 @@ class ParameterParser:
 
 
 parser = ParameterParser()
-Parameters = ParameterProvider(**parser.read('laser_setup/parameters.yml'))
-# Parameters = parser.read(config.get('General', 'parameter_file'))
-breakpoint()
+Parameters = ParameterProvider(**parser.read(config['General']['parameter_file']))
+
+import configparser
+overrides = configparser.ConfigParser()
+overrides.read('config/parameters.ini')

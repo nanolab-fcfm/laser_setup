@@ -29,7 +29,7 @@ class ExperimentWindow(ManagedWindow):
     def __init__(self, cls: Type[Procedure], title: str = '', **kwargs):
         self.cls = cls
 
-        if bool(eval(config['GUI']['dark_mode'])):
+        if bool(config['GUI']['dark_mode']):
             PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
 
         if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
@@ -45,7 +45,7 @@ class ExperimentWindow(ManagedWindow):
             enable_file_input=self.enable_file_input,
             sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
             sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
-            sequence_file = config.get('Procedures', 'sequence_file', fallback=None),
+            sequence_file = config.get('Procedures', {}).get('sequence_file'),
             **kwargs
         )
 
@@ -61,17 +61,14 @@ class ExperimentWindow(ManagedWindow):
             self.shutdown_button.setToolTip('Shutdown all instruments')
             self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
 
-        self.dock_widget = DockWidget(
-            'Dock',
-            cls,
-            parent=self,
+        self.text_widget = TextWidget('Information', parent=self, file=config['GUI']['info_file'])
+        self.dock_widget = DockWidget('Dock', cls, parent=self,
             x_axis_labels=[cls.DATA_COLUMNS[0],],
             y_axis_labels=cls.DATA_COLUMNS[1:self.dock_plot_number+1],
         )
-        self.text_widget = TextWidget('Information', parent=self, file=config['GUI']['info_file'])
-
-        if bool(eval(config['GUI']['dark_mode'])):
+        if bool(config['GUI']['dark_mode']):
             for plot_widget in (self.plot_widget, *self.dock_widget.plot_frames):
+                plot_widget.setAutoFillBackground(True)
                 plot_widget.plot_frame.setStyleSheet('background-color: black;')
                 plot_widget.plot_frame.plot_widget.setBackground('k')
 
@@ -98,13 +95,12 @@ class ExperimentWindow(ManagedWindow):
 
         self.manager.queue(experiment)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent):
         if self.manager.is_running():
             reply = QtWidgets.QMessageBox.question(self, 'Message',
-                        'Do you want to close the window? This will abort the current experiment.',
-                        QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
-                    )
-
+                'Do you want to close the window? This will abort the current experiment.',
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+            )
             if reply == QtWidgets.QMessageBox.StandardButton.No:
                 event.ignore()
                 return

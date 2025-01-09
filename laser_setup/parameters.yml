@@ -45,7 +45,7 @@ Base:
 
 
 Chip:
-  chip_group:
+  chip_group: !ListParameter
     default: other
     name: Chip group name
     # description: "Chip group name"

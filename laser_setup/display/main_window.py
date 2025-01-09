@@ -8,7 +8,7 @@ from typing import Type
 
 from pymeasure.experiment import Procedure
 
-from .. import config, config_path, _config_file_used
+from .. import config, config_path, default_config_path
 from ..cli import Scripts, parameters_to_db
 from ..utils import remove_empty_data, get_status_message
 from ..procedures import Experiments, from_str
@@ -49,11 +49,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         sequence_menu = menu.addMenu('Se&quences')
         sequence_menu.setToolTipsVisible(True)
-        for name, list_str in config.items('Sequences'):
+        for name, list_str in config['Sequences'].items():
             action = QtGui.QAction(name, self)
-            doc = list_str
+            doc = str(list_str).replace("'", "").replace('"', '')
             action.triggered.connect(partial(
-                self.open_sequence, name, from_str(list_str)
+                self.open_sequence, name, list(map(from_str, list_str))
             ))
             action.setToolTip(doc)
             action.setStatusTip(doc)
@@ -138,7 +138,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.suggest_reload()
 
     def edit_settings(self):
-        if _config_file_used != config_path:
+        if config_path == default_config_path:
             choice = self.select_from_list('No config file found',
                 ['Create new config', 'Use default config'], 'Select an option:')
 
@@ -231,7 +231,7 @@ def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     """
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle(config['GUI']['style'])    # Get available styles with QtWidgets.QStyleFactory.keys()
-    if bool(eval(config['GUI']['dark_mode'])):
+    if bool(config['GUI']['dark_mode']):
         app.setPalette(get_dark_palette())
     QtCore.QLocale.setDefault(QtCore.QLocale(
         QtCore.QLocale.Language.English,
