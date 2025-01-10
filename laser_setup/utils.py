@@ -193,7 +193,7 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     # return round(np.mean(df["Vg (V)"].values[indices_smallest_four]), 2)
     data_total = get_data_files()
     data_sorted = sorted(data_total, key=sort_by_creation_date)
-    data_files = [d for d in data_sorted if 'IVg' in d][-1:-max_files-1:-1]
+    data_files = [d for d in data_sorted if 'IVg' in str(d)][-1:-max_files-1:-1]
     for file in data_files:
         data = read_pymeasure(file)
         if data[0]['Chip group name'] == chip_group and data[0]['Chip number'] == str(chip_number) and data[0]['Sample'] == sample:
