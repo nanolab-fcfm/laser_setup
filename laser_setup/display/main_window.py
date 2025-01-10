@@ -276,6 +276,9 @@ def get_dark_palette():
     # Set the alternate background color
     palette.setColor(ColorRole.AlternateBase, QtGui.QColor(45, 45, 45))
 
+    # Set the link color
+    palette.setColor(ColorRole.Link, QtGui.QColor(42, 130, 218))
+
     # Set the highlight color
     palette.setColor(ColorRole.Highlight, QtGui.QColor(42, 130, 218))
 
