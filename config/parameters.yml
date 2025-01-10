@@ -13,7 +13,6 @@
 #    choices: [choice1, choice2] (optional).    # Dropdown list of choices for ListParameter, ignored for other types
 #    group_by: parameter_name (optional).       # Show and hide parameters based on the boolean value of another parameter
 #    decimals: number_of_decimals (optional).   # Number of decimals to use
-#    hidden: true (optional).                   # Hide the parameter from the GUI
 
 Base:
   procedure_version: !Parameter
@@ -21,7 +20,6 @@ Base:
     default: 1.5.0
     name: Procedure version
     description: "Procedure version, used for compatibility checks"
-    hidden: true
 
   show_more: !BooleanParameter
     default: false
@@ -100,7 +98,6 @@ Instrument:
     name: N_avg
     description: Number of averages per measurement
     group_by: show_more
-    hidden: true
 
   Irange: !FloatParameter
     default: 0.001
