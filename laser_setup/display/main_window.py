@@ -14,7 +14,7 @@ from ..utils import remove_empty_data, get_status_message
 from ..procedures import Experiments, from_str
 from ..instruments import InstrumentManager, Instruments
 from .Qt import QtGui, QtWidgets, QtCore, Worker
-from .widgets import SQLiteWidget
+from .widgets import SQLiteWidget, LogsWidget
 from .experiment_window import ExperimentWindow, SequenceWindow
 
 log = logging.getLogger(__name__)
@@ -45,6 +45,7 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(partial(self.open_app, cls))
             action.setToolTip(doc)
             action.setStatusTip(doc)
+            action.setShortcut(f'Ctrl+{len(procedure_menu.actions()) + 1}')
             procedure_menu.addAction(action)
 
         sequence_menu = menu.addMenu('Se&quences')
@@ -57,6 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ))
             action.setToolTip(doc)
             action.setStatusTip(doc)
+            action.setShortcut(f'Ctrl+Shift+{len(sequence_menu.actions()) + 1}')
             sequence_menu.addAction(action)
 
         script_menu = menu.addMenu('&Scripts')
@@ -68,6 +70,7 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(partial(self.run_script, f))
             action.setToolTip(doc)
             action.setStatusTip(doc)
+            action.setShortcut(f'Alt+{len(script_menu.actions()) + 1}')
             script_menu.addAction(action)
 
         view_menu = menu.addMenu('&View')
@@ -75,6 +78,18 @@ class MainWindow(QtWidgets.QMainWindow):
             'Parameter Database', partial(self.open_database, 'parameters.db')
         )
 
+        # Logs
+        self.log_widget = LogsWidget('Logs', parent=self)
+        self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
+
+        self.log = logging.getLogger('laser_setup')
+        self.log.setLevel(config['Logging']['console_level'])
+        self.log.addHandler(self.log_widget.handler)
+
+        log_action = view_menu.addAction('Logs', self.log_widget.show)
+        log_action.setShortcut('Ctrl+L')
+
+        # Help
         help_menu = menu.addMenu('&Help')
         help_menu.setToolTipsVisible(True)
 
@@ -117,6 +132,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reload.clicked.connect(
             lambda: os.execl(sys.executable, sys.executable, '-m', 'laser_setup', *sys.argv[1:])
         )   # TODO: fix bug where the terminal misbehaves after reload
+        self.reload.setShortcut('Ctrl+R')
         self.status_bar.addPermanentWidget(self.reload)
 
     def open_sequence(self, name: str, procedure_list: list[Type[Procedure]]):

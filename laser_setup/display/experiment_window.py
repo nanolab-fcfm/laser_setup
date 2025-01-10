@@ -109,7 +109,7 @@ class ExperimentWindow(ManagedWindow):
             if issubclass(self.procedure_class, BaseProcedure):
                 self.procedure_class.instruments.shutdown_all()
             time.sleep(0.5)
-        self.log_widget._blink_qtimer.stop()
+        self.log_widget._blinking_stop(self.log_widget.tab_index)
         super().closeEvent(event)
 
 
