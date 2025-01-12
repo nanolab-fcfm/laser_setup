@@ -153,7 +153,8 @@ class InstrumentManager:
             return
 
         try:
-            self.instances[name].shutdown()
+            if not isinstance(self.instances[name].adapter, FakeAdapter):
+                self.instances[name].shutdown()
             del self.instances[name]
             log.debug(f"Instrument '{name}' was shut down.")
         except Exception as e:

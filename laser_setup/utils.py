@@ -131,19 +131,19 @@ def get_status_message(timeout: float = .5) -> str:
 def read_file_parameters(file_path: str) -> Dict[str, str]:
     """Reads the parameters from a PyMeasure data file."""
     parameters = {}
-    with open(file_path, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if not line or line.startswith('#Data:'):
-                break           # Stop reading after the data starts
+    file = Path(file_path).read_text().splitlines()
+    for line in file:
+        line = line.strip()
+        if not line or line.startswith('#Data:'):
+            break           # Stop reading after the data starts
 
-            if ':' in line:
-                if any(map(line.startswith, ('#Parameters:', '#Metadata:'))):
-                    continue    # Skip these lines
+        if ':' in line:
+            if line.startswith(('#Parameters:', '#Metadata:')):
+                continue    # Skip these lines
 
-                key, value = map(str.strip, line.split(':', 1))
-                key = key.lstrip('#\t')
-                parameters[key] = value
+            key, value = map(str.strip, line.split(':', 1))
+            key = key.lstrip('#\t')
+            parameters[key] = value
     return parameters
 
 
