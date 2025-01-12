@@ -1,7 +1,6 @@
 # Extra
 dev/
 video/
-img/
 config/*
 !config/parameters.yml
 !config/procedures.yml

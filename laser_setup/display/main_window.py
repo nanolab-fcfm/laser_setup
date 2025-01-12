@@ -246,14 +246,22 @@ def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     :param args: The arguments to pass to the window class.
     """
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle(config['GUI']['style'])    # Get available styles with QtWidgets.QStyleFactory.keys()
+    pixmap = QtGui.QPixmap(config['GUI']['splash_image'])
+    pixmap = pixmap.scaledToHeight(480)
+    splash = QtWidgets.QSplashScreen(pixmap)
+    splash.show()
+
+    # Get available styles with QtWidgets.QStyleFactory.keys()
+    app.setStyle(config['GUI']['style'])
     if bool(config['GUI']['dark_mode']):
         app.setPalette(get_dark_palette())
     QtCore.QLocale.setDefault(QtCore.QLocale(
         QtCore.QLocale.Language.English,
         QtCore.QLocale.Country.UnitedStates
     ))
+
     window = Window(*args, **kwargs)
+    splash.finish(window)
     window.show()
     app.exec()
     remove_empty_data()
