@@ -6,6 +6,7 @@ from importlib import import_module
 from typing import TYPE_CHECKING
 
 from pyqtgraph.Qt import QT_LIB
+from pyqtgraph.console import ConsoleWidget
 from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
 
 
@@ -39,6 +40,7 @@ class Worker(QtCore.QObject):
             thread.started.connect(self.run)
             thread.finished.connect(self.deleteLater)
             thread.finished.connect(thread.deleteLater)
+            self.finished.connect(thread.quit)
 
     def run(self):
         result = self.func(**self.kwargs)

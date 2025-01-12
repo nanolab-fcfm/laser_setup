@@ -10,10 +10,11 @@ from pymeasure.experiment import Procedure
 
 from .. import config, config_path, default_config_path
 from ..cli import Scripts, parameters_to_db
+from ..parser import save_yaml
 from ..utils import remove_empty_data, get_status_message
 from ..procedures import Experiments, from_str
 from ..instruments import InstrumentManager, Instruments
-from .Qt import QtGui, QtWidgets, QtCore, Worker
+from .Qt import QtGui, QtWidgets, QtCore, Worker, ConsoleWidget
 from .widgets import SQLiteWidget, LogsWidget
 from .experiment_window import ExperimentWindow, SequenceWindow
 
@@ -34,8 +35,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(QtWidgets.QWidget())
 
         menu = self.menuBar()
-        settings_menu = menu.addMenu('&Settings')
-        settings_menu.addAction('Edit settings', self.edit_settings)
 
         procedure_menu = menu.addMenu('&Procedures')
         procedure_menu.setToolTipsVisible(True)
@@ -78,7 +77,6 @@ class MainWindow(QtWidgets.QMainWindow):
             'Parameter Database', partial(self.open_database, 'parameters.db')
         )
 
-        # Logs
         self.log_widget = LogsWidget('Logs', parent=self)
         self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
 
@@ -87,7 +85,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log.addHandler(self.log_widget.handler)
 
         log_action = view_menu.addAction('Logs', self.log_widget.show)
-        log_action.setShortcut('Ctrl+L')
+        log_action.setShortcut('Ctrl+Shift+L')
+
+        console_action = view_menu.addAction('Console', self.open_console)
+        console_action.setShortcut('Ctrl+Shift+C')
+
+        settings_menu = menu.addMenu('&Settings')
+        settings_menu.addAction('Edit settings', self.edit_settings)
 
         # Help
         help_menu = menu.addMenu('&Help')
@@ -109,8 +113,6 @@ class MainWindow(QtWidgets.QMainWindow):
         thread.start()
 
         self.windows: dict[str|Type[Procedure], QtWidgets.QMainWindow] = {}
-
-        # Experiment Buttons
         self._layout = QtWidgets.QGridLayout(self.centralWidget())
 
         # README Widget
@@ -136,35 +138,45 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status_bar.addPermanentWidget(self.reload)
 
     def open_sequence(self, name: str, procedure_list: list[Type[Procedure]]):
-        self.windows[name] = SequenceWindow(procedure_list, title=name, parent=self)
-        self.windows[name].show()
-        self.suggest_reload()
+        window = SequenceWindow(procedure_list, title=name, parent=self)
+        window.show()
 
     def open_app(self, cls: Type[Procedure]):
         # Get the index of the title from the transpose. This turned out ugly.
         title = Experiments[list(zip(*Experiments))[0].index(cls)][1]
-        self.windows[cls] = ExperimentWindow(cls, title=title, parent=self)
-        self.windows[cls].show()
+        window = ExperimentWindow(cls, title=title)
+        window.show()
 
     def run_script(self, f: callable):
+        """Runs the given script function in the main thread."""
         try:
             f(parent=self)
         except TypeError:
             f()
         self.suggest_reload()
 
+    def open_widget(self, widget: QtWidgets.QWidget, title: str):
+        """Opens a widget in a new window."""
+        widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
+        widget.setWindowTitle(title)
+        widget.resize(640, 480)
+        widget.show()
+
     def edit_settings(self):
+        global config_path
         if config_path == default_config_path:
-            choice = self.select_from_list('No config file found',
-                ['Create new config', 'Use default config'], 'Select an option:')
-
-            if choice == 'Create new config':
+            create_config = self.question_box(
+                'Create new config?',
+                'No custom configuration found. Create new config file?'
+            )
+            if create_config:
+                config_path = Path(config['General']['global_config_file'])
                 config_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(config_path, 'w') as f:
-                    config.write(f)
+                save_yaml(config, config_path)
+                log.info(f'Created new config file at {config_path}')
 
-            elif choice == 'Use default config':
-                return
+            else:
+                log.warning('Cannot edit settings without a custom config file.')
 
         os.startfile(config_path)
         self.suggest_reload()
@@ -174,18 +186,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reload.setText('Reload to apply changes')
 
     def error_dialog(self, message:str):
-        error_dialog = QtWidgets.QMessageBox()
-        error_dialog.setWindowTitle("Error")
+        error_dialog = QtWidgets.QMessageBox(parent=self)
         error_dialog.setText(f"An error occurred:\n{message}\nPlease reload the program.")
         error_dialog.setIcon(QtWidgets.QMessageBox.Icon.Critical)
+        self.open_widget(error_dialog, 'Error')
         error_dialog.exec()
         self.reload.click()
-
-    def lock_window(self, msg: str = ''):
-        self.setEnabled(False)
-        self.lock_msg = msg
-        self.locked = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Icon.Information, 'Locked', msg)
-        self.locked.exec()
 
     def select_from_list(self, title: str, items: list[str], label: str = '') -> str:
         item, ok = QtWidgets.QInputDialog.getItem(self, title, label, items, 0, False)
@@ -200,16 +206,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def text_window(self, title: str, text: str):
         """Displays a text window with the given title and text. adds a scroll bar"""
-        text_window = QtWidgets.QDialog()
-        text_window.setWindowTitle(title)
-        text_window.resize(640, 480)
-
-        text_layout = QtWidgets.QVBoxLayout(text_window)
-        text_edit = QtWidgets.QTextEdit(text_window)
+        text_edit = QtWidgets.QTextEdit(parent=self)
         text_edit.setPlainText(text)
-        text_layout.addWidget(text_edit)
-        text_window.setLayout(text_layout)
-        text_window.exec()
+        self.open_widget(text_edit, title)
+
+    def open_console(self):
+        """Opens an interactive console. Loads common modules and instruments."""
+        from ..instruments import FakeAdapter
+        instruments = InstrumentManager()
+
+        header = "Interactive console. To instantiate an instrument, use the 'instruments.connect' method.\n"
+        if '-d' in sys.argv or '--debug' in sys.argv:
+            header += "\nDebug mode (the InstrumentManager will use a FakeAdapter if it can't connect to an instrument).\n"
+
+        self.console_widget = ConsoleWidget(
+            namespace=globals() | locals(), text=header, parent=self
+        )
+        self.open_widget(self.console_widget, 'Console')
+
 
     def open_database(self, db_name: str):
         db_path = Path(config['Filename']['directory']) / db_name
@@ -221,12 +235,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
             parameters_to_db.create_db(parent=self)
 
-        sqlite_widget = SQLiteWidget(db_path, parent=self)
-        window = QtWidgets.QMainWindow(parent=self)
-        window.setCentralWidget(sqlite_widget)
-        window.resize(640, 480)
-        window.setWindowTitle(db_name)
-        window.show()
+        db_widget = SQLiteWidget(db_path.as_posix(), parent=self)
+        db_widget.closeEvent = lambda _: db_widget.con.close()
+        self.open_widget(db_widget, db_name)
 
     def closeEvent(self, event):
         """Ensures all running threads are properly stopped."""
