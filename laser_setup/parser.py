@@ -1,10 +1,15 @@
 """Module to parse configuration files"""
+import os
 import yaml
 from pathlib import Path
 from functools import partial
 from collections.abc import Mapping
 
 default_config_path = Path(__file__).parent / 'default_config.yml'
+default_config_lookup: list[tuple[str, str]] = [
+    ('General', 'global_config_file'),
+    ('General', 'local_config_file')
+]
 
 
 class YAMLParser:
@@ -59,36 +64,55 @@ def merge_dicts(dict1: dict, dict2: dict) -> dict:
     return dict1
 
 
-def load_yaml(file_path: str|Path, Loader: yaml.SafeLoader = yaml.SafeLoader) -> dict:
+def safeget(dic: dict, *keys, default: any = None) -> any:
+    """Safely get a value from a dictionary with a list of keys.
+
+    :param dic: Dictionary to get the value from.
+    :param keys: List of keys to traverse the dictionary.
+    :param default: Default value to return if a key is not found.
+    :return: Value of the last key in the list.
+    """
+    for key in keys:
+        if not isinstance(dic, dict) or key not in dic:
+            return default
+        dic = dic[key]
+    return dic
+
+
+def load_yaml(file_path: str|Path, loader: yaml.SafeLoader = yaml.SafeLoader) -> dict:
     """Load a YAML file and return its contents as a dictionary.
 
     :param file_path: Path to the YAML file.
     :return: Dictionary with the contents of the YAML file.
     """
-    with open(file_path, 'r') as file:
-        return yaml.load(file, Loader=Loader)
+    file_path = Path(file_path)
+    return yaml.load(file_path.read_text(), Loader=loader)
 
 
 def load_config(
-    keys: list[str] = ['global_config_file', 'local_config_file']
+    config_env: str = 'CONFIG',
+    lookup: list[tuple[str, str]] = default_config_lookup
 ) -> tuple[dict, Path]:
     """Load the configuration files appropiately. By default, it loads the
     files in the following order:
     1. Default configuration file.
     2. Global configuration file (if it exists), with its path defined in the
-    default config.
+    default config, and overwritten with the environment variable `config_env`.
     3. Local configuration file (if it exists), with its path defined in the
     global config.
 
-    :keys list[str]: List of keys to look for in the configuration
+    :param config_env: Environment variable to look for the global configuration file.
+    :param lookup: List of tuples with the keys to look for the configuration files.
     :return: Tuple with the parsed configuration and the last file used.
     """
     config = load_yaml(default_config_path)
     config_file_used = default_config_path
 
-    for config_key in keys:
-        config_path = config.get('General', {}).get(config_key)
-        if config_path:
+    if config_env_path := os.getenv(config_env):
+        config[lookup[0][0]][lookup[0][1]] = config_env_path
+
+    for section, key in lookup:
+        if config_path := safeget(config, section, key):
             config_path = Path(config_path)
             if config_path.exists():
                 config = merge_dicts(config, load_yaml(config_path))
@@ -97,14 +121,9 @@ def load_config(
     return config, config_file_used
 
 
-def save_yaml(
-    dictionary: dict,
-    file_path: str|Path,
-    dumper: yaml.SafeDumper = yaml.SafeDumper,
-    mode: str = 'w',
-    sort_keys: bool = False,
-    **kwargs
-):
+def save_yaml(dictionary: dict, file_path: str|Path,
+              dumper: yaml.SafeDumper = yaml.SafeDumper, mode: str = 'w',
+              sort_keys: bool = False, **kwargs):
     """Save a dictionary to a YAML file.
 
     :param dictionary: Dictionary to save.
@@ -115,5 +134,5 @@ def save_yaml(
     """
     file_path = Path(file_path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(file_path, mode) as file:
-        yaml.dump(dictionary, file, Dumper=dumper, sort_keys=sort_keys, **kwargs)
+    yaml.dump(dictionary, file_path.read_text(), Dumper=dumper,
+              mode=mode, sort_keys=sort_keys, **kwargs)
