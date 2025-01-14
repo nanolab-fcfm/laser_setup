@@ -143,8 +143,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def open_app(self, cls: Type[Procedure]):
         # Get the index of the title from the transpose. This turned out ugly.
         title = Experiments[list(zip(*Experiments))[0].index(cls)][1]
-        window = ExperimentWindow(cls, title=title)
-        window.show()
+        self.windows[cls] = ExperimentWindow(cls, title=title)
+        self.windows[cls].show()
 
     def run_script(self, f: callable):
         """Runs the given script function in the main thread."""
@@ -162,6 +162,7 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.show()
 
     def edit_settings(self):
+        save_path = Path(config['_session']['save_path'])
         if config['_session']['config_path_used'] == default_config_path:
             create_config = self.question_box(
                 'Create new config?',
@@ -171,13 +172,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 log.warning('Cannot edit settings without a custom config file.')
                 return
 
-            _save_path = Path(config['_session']['save_path'])
-            _save_path.parent.mkdir(parents=True, exist_ok=True)
+            save_path.parent.mkdir(parents=True, exist_ok=True)
 
-            save_path = QtWidgets.QFileDialog.getSaveFileName(
-                self, 'Save config file', str(_save_path), 'YAML files (*.yml)'
+            _save_path = QtWidgets.QFileDialog.getSaveFileName(
+                self, 'Save config file', str(save_path), 'YAML files (*.yml)'
             )[0]
-            save_path = Path(save_path)
+            save_path = Path(_save_path)
             text = default_config_path.read_text()
             save_path.write_text(text)
             log.info(f'Created new config file at {save_path}')

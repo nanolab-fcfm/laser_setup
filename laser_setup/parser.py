@@ -124,7 +124,7 @@ def load_config(
 
 
 def save_yaml(dictionary: dict, file_path: str|Path,
-              dumper: yaml.SafeDumper = yaml.SafeDumper, mode: str = 'w',
+              dumper: yaml.SafeDumper = yaml.SafeDumper,
               sort_keys: bool = False, **kwargs):
     """Save a dictionary to a YAML file.
 
@@ -137,5 +137,7 @@ def save_yaml(dictionary: dict, file_path: str|Path,
     file_path = Path(file_path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
     dictionary.pop('_session', None)
-    yaml.dump(dictionary, file_path.read_text(), Dumper=dumper,
-              mode=mode, sort_keys=sort_keys, **kwargs)
+    yaml_str = yaml.dump(
+        dictionary, Dumper=dumper, sort_keys=sort_keys, **kwargs
+    )
+    file_path.write_text(yaml_str)
