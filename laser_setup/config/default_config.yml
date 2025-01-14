@@ -1,6 +1,7 @@
-# Default configuration file for the program.
-# You shouldn't edit this file. Instead, override it by creating a file at
-# global_config_file and/or local_config_file.
+# Configuration template. Sets the default configuration.
+# Read the comments for each section, as they will dissapear when the global
+# config is updated. You can copy this file somewhere else and use it as a
+# reference to create your own configuration file.
 
 General:
   # Global configuration file. Overrides this file. If not found, it will be skipped

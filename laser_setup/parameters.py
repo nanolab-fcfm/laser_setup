@@ -9,7 +9,7 @@ import yaml
 from pymeasure.experiment import IntegerParameter, Parameter, BooleanParameter, ListParameter, FloatParameter, Metadata
 
 from . import config
-from .parser import YAMLParser
+from .parser import YAMLParser, merge_dicts
 
 AnyParameter = TypeVar('AnyParameter', bound=Parameter)
 
@@ -71,4 +71,7 @@ Parameters = ParameterProvider(
     **parser.read(config['General']['parameters_file'], {})
 )
 
-procedure_config = parser.read(config['General']['procedure_config_file'], {})
+procedure_config = parser.read(Path(__file__).parent / 'config' / 'procedures.yml', {})
+procedure_config = merge_dicts(procedure_config,
+    parser.read(config['General']['procedure_config_file'], {})
+)

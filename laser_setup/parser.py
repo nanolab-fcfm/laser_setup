@@ -21,7 +21,13 @@ class YAMLParser:
         """Returns a YAML loader with custom constructors for defined tags."""
         for tag, cls in self.tag_dict.items():
             self.loader.add_constructor(tag, partial(self.get_constructor, cls))
+        self.loader.add_constructor('!include', self.include_constructor)
         return self.loader
+
+    def include_constructor(self, loader, node: yaml.nodes.ScalarNode) -> str:
+        """Constructor for the `!include` YAML tag."""
+        file_path = Path(node.value)
+        return self.read(file_path, {})
 
     @staticmethod
     def get_constructor(
@@ -86,7 +92,7 @@ def load_yaml(file_path: str|Path, loader: yaml.SafeLoader = yaml.SafeLoader) ->
     :return: Dictionary with the contents of the YAML file.
     """
     file_path = Path(file_path)
-    return yaml.load(file_path.read_text(), Loader=loader)
+    return yaml.load(file_path.read_text(), Loader=loader) or {}
 
 
 def load_config(
@@ -111,11 +117,13 @@ def load_config(
     if config_env_path := os.getenv(config_env):
         config[lookup[0][0]][lookup[0][1]] = config_env_path
 
+    parser = YAMLParser()
     for section, key in lookup:
         if config_path := safeget(config, section, key):
             config_path = Path(config_path)
             if config_path.exists():
-                config = merge_dicts(config, load_yaml(config_path))
+                _yaml = parser.read(config_path, {})
+                config = merge_dicts(config, _yaml)
                 config_path_used = config_path
 
     config['_session'] = {'config_path_used': config_path_used}

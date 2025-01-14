@@ -11,6 +11,7 @@ from pymeasure.experiment import Procedure
 from .. import config, default_config_path
 from ..cli import Scripts, parameters_to_db
 from ..instruments import InstrumentManager, Instruments
+from ..parser import load_yaml, save_yaml
 from ..procedures import Experiments, from_str
 from ..utils import get_status_message, remove_empty_data
 from .experiment_window import ExperimentWindow, SequenceWindow
@@ -90,7 +91,8 @@ class MainWindow(QtWidgets.QMainWindow):
         console_action.setShortcut('Ctrl+Shift+C')
 
         settings_menu = menu.addMenu('&Settings')
-        settings_menu.addAction('Edit settings', self.edit_settings)
+        settings_menu.addAction('Edit config', self.edit_config)
+        settings_menu.addAction('Load config', self.load_config)
 
         # Help
         help_menu = menu.addMenu('&Help')
@@ -161,7 +163,7 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.resize(640, 480)
         widget.show()
 
-    def edit_settings(self):
+    def edit_config(self):
         save_path = Path(config['_session']['save_path'])
         if config['_session']['config_path_used'] == default_config_path:
             create_config = self.question_box(
@@ -184,6 +186,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
         os.startfile(save_path)
         self.suggest_reload()
+
+    def load_config(self):
+        load_path = Path(config['General']['local_config_file'])
+        _load_path = QtWidgets.QFileDialog.getOpenFileName(
+            self, 'Open config file', str(load_path), 'YAML files (*.yml)',
+        )[0]
+        load_path = Path(_load_path)
+        if not load_path.exists():
+            log.warning(f'Config file {load_path} not found.')
+            return
+
+        global_config_path = Path(config['General']['global_config_file'])
+        _yaml = load_yaml(global_config_path)
+        _yaml['General']['local_config_file'] = load_path.as_posix()
+        save_yaml(_yaml, global_config_path)
+        log.info(f'Switched to config file {load_path}')
+
+        self.reload.click()
 
     def suggest_reload(self):
         self.reload.setStyleSheet('background-color: red;')
@@ -325,3 +345,7 @@ def get_dark_palette():
     palette.setColor(ColorRole.HighlightedText, QtGui.QColor(240, 240, 240))
 
     return palette
+
+
+def main():
+    display_window(MainWindow)
