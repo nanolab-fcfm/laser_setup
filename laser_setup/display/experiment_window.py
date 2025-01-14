@@ -1,17 +1,17 @@
-import time
 import logging
-from typing import Type
+import time
 from functools import partial
+from typing import Type
 
-from pymeasure.experiment import unique_filename, Results, Procedure
 from pymeasure.display.widgets import InputsWidget, PlotFrame
 from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindow
-from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
+from pymeasure.experiment import Procedure, Results, unique_filename
 
 from .. import config
-from .widgets import TextWidget, ProgressBar
 from ..procedures import BaseProcedure, ChipProcedure
+from .Qt import QtCore, QtGui, QtWidgets
+from .widgets import ProgressBar, TextWidget
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class ExperimentWindow(ManagedWindow):
     data to be loaded and displayed.
     """
     inputs_in_scrollarea: bool = True
-    enable_file_input: bool = False     # File Input incompatible with PyQt6
+    enable_file_input: bool = False
     dock_plot_number: int = 2
 
     def __init__(self, cls: Type[Procedure], title: str = '', **kwargs):
@@ -261,7 +261,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         self.set_status(-1, 'red' if self.aborted else 'green')
         self.aborted = False
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def aborted_procedure(self, window: ExperimentWindow, close_window=True):
         t_text = lambda t: f'Abort (continuing in {t} s)'
         t_iter = iter(range(self.abort_timeout-1, -1, -1))
@@ -292,7 +292,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         if close_window:
             window.close()
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def failed_procedure(self, window: ExperimentWindow):
         log.error(f"Procedure {window.cls.__name__} failed to execute")
         self.aborted_procedure(window, close_window=False)

@@ -13,6 +13,7 @@ dependencies = [
     'pymeasure>=0.14.0,<0.15',
     'PyQt6>=6.1.0',
     'PyYAML',
+    'qtpy',
     'Requests',
     'scipy',
 ]
@@ -43,7 +44,7 @@ laser_setup_gui = "laser_setup.__main__:main"
 include = ["laser_setup*"]
 
 [tool.setuptools.package-data]
-laser_setup = ["*.yml"]
+laser_setup = ["config/*.yml"]
 
 [tool.setuptools.dynamic]
 version = {attr = "laser_setup.__version__"}
