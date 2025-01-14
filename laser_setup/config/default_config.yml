@@ -7,16 +7,13 @@ General:
   global_config_file: ./config/config.yml
 
   # Local configuration file. Overrides global_config. If not found, it will be skipped
-  local_config_file: ./config/local_config.yml
+  local_config_file: ./config/config.yml
 
   # Parameters file. Useful for Procedures that share the same parameters
   parameters_file: ./config/parameters.yml
 
   # Procedure configuration. Overrides the parameter defaults if given.
   procedure_config_file: ./config/procedures.yml
-
-  # Data directory
-  data_directory: &data_directory ./data
 
 
 ############################################
@@ -79,7 +76,7 @@ Telegram:
 Filename:
   # Configure the data filenames. With this config,
   # a file would be created at ./data/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
-  directory: *data_directory
+  directory: ./data
 
   # File prefix. Leave empty to use the procedure class name instead
   prefix:

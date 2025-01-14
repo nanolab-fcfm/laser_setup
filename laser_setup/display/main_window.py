@@ -1,22 +1,21 @@
+import logging
 import os
 import sys
-import logging
 from functools import partial
-from pathlib import Path
 from importlib.metadata import metadata
+from pathlib import Path
 from typing import Type
 
 from pymeasure.experiment import Procedure
 
-from .. import config, config_path, default_config_path
+from .. import config, default_config_path
 from ..cli import Scripts, parameters_to_db
-from ..parser import save_yaml
-from ..utils import remove_empty_data, get_status_message
-from ..procedures import Experiments, from_str
 from ..instruments import InstrumentManager, Instruments
-from .Qt import QtGui, QtWidgets, QtCore, Worker, ConsoleWidget
-from .widgets import SQLiteWidget, LogsWidget
+from ..procedures import Experiments, from_str
+from ..utils import get_status_message, remove_empty_data
 from .experiment_window import ExperimentWindow, SequenceWindow
+from .Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
+from .widgets import LogsWidget, SQLiteWidget
 
 log = logging.getLogger(__name__)
 
@@ -163,22 +162,27 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.show()
 
     def edit_settings(self):
-        global config_path
-        if config_path == default_config_path:
+        if config['_session']['config_path_used'] == default_config_path:
             create_config = self.question_box(
                 'Create new config?',
                 'No custom configuration found. Create new config file?'
             )
-            if create_config:
-                config_path = Path(config['General']['global_config_file'])
-                config_path.parent.mkdir(parents=True, exist_ok=True)
-                save_yaml(config, config_path)
-                log.info(f'Created new config file at {config_path}')
-
-            else:
+            if not create_config:
                 log.warning('Cannot edit settings without a custom config file.')
+                return
 
-        os.startfile(config_path)
+            _save_path = Path(config['_session']['save_path'])
+            _save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            save_path = QtWidgets.QFileDialog.getSaveFileName(
+                self, 'Save config file', str(_save_path), 'YAML files (*.yml)'
+            )[0]
+            save_path = Path(save_path)
+            text = default_config_path.read_text()
+            save_path.write_text(text)
+            log.info(f'Created new config file at {save_path}')
+
+        os.startfile(save_path)
         self.suggest_reload()
 
     def suggest_reload(self):

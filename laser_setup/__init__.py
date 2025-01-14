@@ -19,7 +19,7 @@ from .parser import load_config, default_config_path
 __version__ = '0.5.0-alpha'
 
 # Read the configuration files
-config, config_path = load_config()
+config = load_config()
 
 # Setup logging
 log = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ if config.get('Logging', {}).get('filename'):
 
 setup_logging(log, **config.get('Logging', {}))
 
-log.info(f"Using config file: {config_path}")
+log.info(f"Using config file: {config['_session']['config_path_used']}")
 
 # Setup matplotlib.rcParams from config
 set_mpl_rcparams(SimpleNamespace(_sections=config))

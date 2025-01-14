@@ -2,6 +2,7 @@
 Parameters should be defined here and imported in the procedures.
 """
 import copy
+from pathlib import Path
 from typing import TypeVar
 
 import yaml
@@ -65,6 +66,9 @@ class ParameterParser(YAMLParser):
 
 
 parser = ParameterParser()
-Parameters = ParameterProvider(**parser.read(config['General']['parameters_file'], {}))
+Parameters = ParameterProvider(
+    **parser.read(Path(__file__).parent / 'config' / 'parameters.yml'),
+    **parser.read(config['General']['parameters_file'], {})
+)
 
 procedure_config = parser.read(config['General']['procedure_config_file'], {})

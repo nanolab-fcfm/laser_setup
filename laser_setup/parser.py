@@ -5,7 +5,7 @@ from pathlib import Path
 from functools import partial
 from collections.abc import Mapping
 
-default_config_path = Path(__file__).parent / 'default_config.yml'
+default_config_path = Path(__file__).parent / 'config' / 'default_config.yml'
 default_config_lookup: list[tuple[str, str]] = [
     ('General', 'global_config_file'),
     ('General', 'local_config_file')
@@ -92,7 +92,7 @@ def load_yaml(file_path: str|Path, loader: yaml.SafeLoader = yaml.SafeLoader) ->
 def load_config(
     config_env: str = 'CONFIG',
     lookup: list[tuple[str, str]] = default_config_lookup
-) -> tuple[dict, Path]:
+) -> dict:
     """Load the configuration files appropiately. By default, it loads the
     files in the following order:
     1. Default configuration file.
@@ -106,7 +106,7 @@ def load_config(
     :return: Tuple with the parsed configuration and the last file used.
     """
     config = load_yaml(default_config_path)
-    config_file_used = default_config_path
+    config_path_used = default_config_path
 
     if config_env_path := os.getenv(config_env):
         config[lookup[0][0]][lookup[0][1]] = config_env_path
@@ -116,9 +116,11 @@ def load_config(
             config_path = Path(config_path)
             if config_path.exists():
                 config = merge_dicts(config, load_yaml(config_path))
-                config_file_used = config_path
+                config_path_used = config_path
 
-    return config, config_file_used
+    config['_session'] = {'config_path_used': config_path_used}
+    config['_session']['save_path'] = config_path
+    return config
 
 
 def save_yaml(dictionary: dict, file_path: str|Path,
@@ -134,5 +136,6 @@ def save_yaml(dictionary: dict, file_path: str|Path,
     """
     file_path = Path(file_path)
     file_path.parent.mkdir(parents=True, exist_ok=True)
+    dictionary.pop('_session', None)
     yaml.dump(dictionary, file_path.read_text(), Dumper=dumper,
               mode=mode, sort_keys=sort_keys, **kwargs)
