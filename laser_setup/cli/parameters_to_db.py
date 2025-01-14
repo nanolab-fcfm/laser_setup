@@ -8,7 +8,6 @@ from .. import config
 from ..utils import read_file_parameters, get_data_files
 
 log = logging.getLogger(__name__)
-csv_files = get_data_files()
 all_params: Dict[str, Set[str]] = {}
 
 def create_table_if_not_exists(cursor: sqlite3.Cursor, table_name: str, columns: set):
@@ -64,6 +63,7 @@ def add_to_parameters_db(csv_file: Path, conn: sqlite3.Connection):
 
 
 def create_db(parent=None):
+    csv_files = get_data_files()
     new_db = Path(config['Filename']['directory']) / 'parameters.db'
     if new_db.exists():
         new_db_bak = Path(f'{new_db}.bak')
