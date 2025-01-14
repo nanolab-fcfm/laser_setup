@@ -10,6 +10,7 @@ log = logging.getLogger(__name__)
 
 class FakeProcedure(BaseProcedure):
     """A fake procedure for testing purposes."""
+    name = 'Fake Procedure'
     fake_parameter = FloatParameter('Fake parameter', units='V', default=1., group_by='show_more')
     total_time = FloatParameter('Total time', units='s', default=10.)
     INPUTS = BaseProcedure.INPUTS + ['total_time', 'fake_parameter']

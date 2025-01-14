@@ -16,6 +16,8 @@ class Pt(BaseProcedure):
     Basic procedure for measuring light power over time with a Thorlabs
     Powermeter and one laser controlled by a TENMA Power Supply.
     """
+    name = 'P vs t'
+
     power_meter: ThorlabsPM100USB = PendingInstrument(ThorlabsPM100USB, config['Adapters']['power_meter'])
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
 

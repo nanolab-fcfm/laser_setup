@@ -49,7 +49,7 @@ class ExperimentWindow(ManagedWindow):
             **kwargs
         )
 
-        self.setWindowTitle(title)
+        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
         self.setWindowIcon(
             self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon)
         )

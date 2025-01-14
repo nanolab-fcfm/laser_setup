@@ -17,6 +17,8 @@ class IVg(ChipProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources.
     """
+    name = 'I vs Vg'
+
     meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
     tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
     tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])

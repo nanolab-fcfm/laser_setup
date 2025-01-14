@@ -14,6 +14,8 @@ class IV(ChipProcedure):
     """Measures an IV with a Keithley 2450. The source drain voltage is
     controlled by the same instrument.
     """
+    name = 'I vs V'
+
     meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
     tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
     tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])

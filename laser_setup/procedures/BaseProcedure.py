@@ -38,6 +38,7 @@ class BaseProcedure(Procedure, metaclass=BaseProcedureMeta):
     """Base procedure for all measurements. It defines basic
     parameters that have to be present in all procedures.
     """
+    name: str = None
     # Instrument Manager
     instruments = InstrumentManager()
 
