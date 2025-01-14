@@ -312,38 +312,23 @@ def display_experiment(cls: Type[Procedure], title: str = ''):
 
 def get_dark_palette():
     palette = QtGui.QPalette()
-    ColorRole = QtGui.QPalette.ColorRole
+    palette_dict = {
+        'Window': (50, 50, 50),
+        'WindowText': (200, 200, 200),
+        'Text': (200, 200, 200),
+        'Button': (30, 30, 30),
+        'ButtonText': (200, 200, 200),
+        'Base': (35, 35, 35),
+        'AlternateBase': (45, 45, 45),
+        'Link': (42, 130, 218),
+        'Highlight': (42, 130, 218),
+        'HighlightedText': (240, 240, 240),
+    }
 
-    # Set the background color
-    palette.setColor(ColorRole.Window, QtGui.QColor(50, 50, 50))
-
-    # Set the title text color
-    palette.setColor(ColorRole.WindowText, QtGui.QColor(200, 200, 200))
-
-    # Set the input text color
-    palette.setColor(ColorRole.Text, QtGui.QColor(200, 200, 200))
-
-    # Set the button color
-    palette.setColor(ColorRole.Button, QtGui.QColor(30, 30, 30))
-
-    # Set the button text color
-    palette.setColor(ColorRole.ButtonText, QtGui.QColor(200, 200, 200))
-
-    # Set the base color
-    palette.setColor(ColorRole.Base, QtGui.QColor(35, 35, 35))
-
-    # Set the alternate background color
-    palette.setColor(ColorRole.AlternateBase, QtGui.QColor(45, 45, 45))
-
-    # Set the link color
-    palette.setColor(ColorRole.Link, QtGui.QColor(42, 130, 218))
-
-    # Set the highlight color
-    palette.setColor(ColorRole.Highlight, QtGui.QColor(42, 130, 218))
-
-    # Set the highlighted text color
-    palette.setColor(ColorRole.HighlightedText, QtGui.QColor(240, 240, 240))
-
+    for role, color in palette_dict.items():
+        palette.setColor(
+            getattr(QtGui.QPalette.ColorRole, role), QtGui.QColor(*color)
+        )
     return palette
 
 
