@@ -1,0 +1,207 @@
+# Default procedure parameter configuration file
+# To create a new parameter, copy the following snippet, uncomment and modify or delete the values as needed
+
+#Category:
+#  parameter_name: !ParameterType               # PyMeasure parameter type, choose from !Parameter, !BooleanParameter, !IntegerParameter, !FloatParameter, !ListParameter, !Metadata
+#    fget: function_name (optional).            # If type is Metadata, the function or attribute to get the value from
+#    default: default_value
+#    name: Parameter name                       # Name to be displayed in the GUI and stored in the data file
+#    description: "Parameter description." (optional)
+#    units: units (optional)
+#    minimum: minimum_value (optional)
+#    maximum: maximum_value (optional)
+#    choices: [choice1, choice2] (optional).    # Dropdown list of choices for ListParameter, ignored for other types
+#    group_by: parameter_name (optional).       # Show and hide parameters based on the boolean value of another parameter
+#    decimals: number_of_decimals (optional).   # Number of decimals to use
+
+Base:
+  procedure_version: !Parameter
+    # When modified, increment <parameter name>.<parameter property>.<procedure startup/shutdown>
+    default: 1.5.0
+    name: Procedure version
+    description: "Procedure version, used for compatibility checks"
+
+  show_more: !BooleanParameter
+    default: false
+    name: Show more
+    description: "Show more information"
+
+  info: !Parameter
+    default: None
+    name: Information
+    description: "Information about the procedure"
+
+  chained_exec: !BooleanParameter
+    default: false
+    name: Chained execution
+    description: "Execute multiple procedures of the same type in sequence, skipping shutdown and startup"
+
+  start_time: !Metadata
+    fget: time.time
+    name: Start time
+    description: "Start time of the procedure"
+
+
+Chip:
+  chip_group: !ListParameter
+    default: other
+    name: Chip group name
+    # description: "Chip group name"
+    choices: [other, Coni, Fiona, Margarita, Miguel, "Pepe (no ALD)", Unbonded, "8", Box1, Rosita]
+
+  chip_number: !IntegerParameter
+    default: 1
+    name: Chip number
+    minimum: 1
+
+  sample: !ListParameter
+    default: other
+    name: Sample
+    choices: [other, A, B, C, D, E, F, G, H, I, J]
+
+
+Laser:
+  laser_toggle: !BooleanParameter
+    default: false
+    name: Laser toggle
+
+  laser_wl: !ListParameter
+    default: 0
+    name: Laser wavelength
+    units: nm
+    choices: [0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]
+
+  laser_v: !FloatParameter
+    default: 0.
+    name: Laser voltage
+    units: V
+
+  laser_T: !FloatParameter
+    default: 120.
+    name: Laser ON+OFF period
+    units: s
+
+  burn_in_t: !FloatParameter
+    default: 60.
+    name: Burn-in time
+    units: s
+
+  fiber: !ListParameter
+    default: other
+    name: Optical fiber
+    choices: [other, "F1 (M92L02)", "F2 (M92L02)", "F3 (M96L02)", "F4 (M96L02)"]
+
+
+Instrument:
+  N_avg: !IntegerParameter
+    default: 2
+    name: N_avg
+    description: Number of averages per measurement
+    group_by: show_more
+
+  Irange: !FloatParameter
+    default: 0.001
+    name: Irange
+    description: Current range
+    units: A
+    minimum: 0
+    maximum: 0.105
+    group_by: show_more
+
+  NPLC: !FloatParameter
+    default: 1.0
+    name: NPLC
+    description: Number of power line cycles
+    minimum: 0.01
+    maximum: 10
+    group_by: show_more
+
+  sensor: !Metadata
+    fget: power_meter.sensor_name
+    name: Sensor model
+
+
+Control:
+  sampling_t: !FloatParameter
+    default: 0.
+    name: Sampling time (excluding Keithley)
+    units: s
+    group_by: show_more
+
+  vds: !FloatParameter
+    default: 0.075
+    name: VDS
+    units: V
+    decimals: 10
+
+  vg: !FloatParameter
+    default: 0.
+    name: VG
+    units: V
+    minimum: -100.
+    maximum: 100.
+
+  vg_dynamic: !Parameter
+    default: "DP + 0. V"
+    name: VG
+    description: "Dynamically evaluated VG value. Use 'DP' for the sample's previously measured Dirac Point."
+
+  # Voltage ramps
+  step_time: !FloatParameter
+    default: 0.01
+    name: Step time
+    units: s
+    group_by: show_more
+
+  vg_start: !FloatParameter
+    default: -35.
+    name: VG start
+    description: "Initial Gate voltage"
+    units: V
+
+  vg_end: !FloatParameter
+    default: 35.
+    name: VG end
+    description: "Final Gate voltage"
+    units: V
+
+  vg_step: !FloatParameter
+    default: 0.2
+    name: VG step
+    description: "Gate voltage step"
+    units: V
+    group_by: show_more
+
+  vsd_start: !FloatParameter
+    default: -1.
+    name: VSD start
+    description: "Initial Source-Drain voltage"
+    units: V
+
+  vsd_end: !FloatParameter
+    default: 1.
+    name: VSD end
+    description: "Final Source-Drain voltage"
+    units: V
+
+  vsd_step: !FloatParameter
+    default: 0.01
+    name: VSD step
+    description: "Source-Drain voltage step"
+    units: V
+    group_by: show_more
+
+  vl_start: !FloatParameter
+    default: 0.
+    name: Laser voltage start
+    units: V
+
+  vl_end: !FloatParameter
+    default: 5.
+    name: Laser voltage end
+    units: V
+
+  vl_step: !FloatParameter
+    default: 0.1
+    name: Laser voltage step
+    units: V

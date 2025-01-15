@@ -1,0 +1,111 @@
+# Configuration template. Sets the default configuration.
+# Read the comments for each section, as they will dissapear when the global
+# config is updated. You can copy this file somewhere else and use it as a
+# reference to create your own configuration file.
+
+General:
+  # Global configuration file. Overrides this file. If not found, it will be skipped
+  global_config_file: ./config/config.yml
+
+  # Local configuration file. Overrides global_config. If not found, it will be skipped
+  local_config_file: ./config/config.yml
+
+  # Parameters file. Useful for Procedures that share the same parameters
+  parameters_file: ./config/parameters.yml
+
+  # Procedure configuration. Overrides the parameter defaults if given.
+  procedure_config_file: ./config/procedures.yml
+
+  # Data directory. Where the data will be saved
+  data_dir: ./data
+
+  # Database location, relative to the data directory
+  database: database.db
+
+
+############################################
+# Adapter configuration
+############################################
+
+Adapters:
+  # Keithley 2450 USB Device Port
+  keithley2450: USB0::0x05E6::0x2450::04448997::0::INSTR
+
+  # Negative Voltage TENMA
+  tenma_neg: COM9
+
+  # Positive Voltage TENMA
+  tenma_pos: COM3
+
+  # Laser controller TENMA
+  tenma_laser: COM4
+
+  # Power meter
+  power_meter: COM7
+
+  # Temperature sensor
+  pt100_port: COM6
+
+
+GUI:
+  # PyQt GUI style. Options vary with OS. Examples: windows11, Fusion (Recommended). Use 'default' for the system's default
+  style: Fusion
+
+  # toggle dark mode. If False, the computer's theme will be used
+  dark_mode: true
+
+  # Splash screen image. Leave empty to disable
+  splash_image: ./assets/img/nanolab_logo.png
+
+  # File to open in the Info tab
+  info_file: ./docs/led_protocol.md
+
+  MainWindow:
+    # README file to open in the main window
+    readme_file: ./README.md
+
+    title: Laser Setup
+
+
+Sequences:
+  # List of Procedures to run sequentially. Each Procedure must be defined in the procedures module.
+  MainSequence: [IVg, It, IVg, Wait, IVg]
+  TestSequence: [FakeProcedure, Wait]
+
+
+Telegram:
+  # Telegram bot token
+  token: <token_id>
+
+  # Chat IDs for the Telegram bot to send messages to
+  name: <chat_id>
+  name2: <chat_id_2>
+
+
+############################################
+# PyMeasure configuration
+############################################
+
+Filename:
+  # Configure the data filenames. With this config,
+  # a file would be created at config['General']['data']/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
+  # File prefix. Leave empty to use the procedure class name instead
+  prefix: ''
+
+  suffix: ''
+  ext: csv
+  dated_folder: true
+  index: true
+  datetimeformat: "%Y-%m-%d"
+
+Logging:
+  # Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  console: true
+  console_level: INFO
+  filename: ./log/std.log
+  file_level: INFO
+
+matplotlib.rcParams:
+  # Matplotlib configuration, parsed by PyMeasure. All values must be strings
+  axes.grid: "True"
+  figure.autolayout: "True"

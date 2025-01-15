@@ -15,6 +15,8 @@ class LaserCalibration(BaseProcedure):
     """Uses the Power Meter to calculate the effective power of the laser
     at a given voltage.
     """
+    name = 'Laser Calibration'
+
     show_more = None
     info = None
 

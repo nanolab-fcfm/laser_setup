@@ -24,7 +24,7 @@ class PendingInstrument(Instrument):
     """
     def __init__(
         self,
-        cls: AnyInstrument = Instrument,
+        cls: type[AnyInstrument] = Instrument,
         adapter: str = None,
         name: str = None,
         includeSCPI=False,
@@ -55,13 +55,13 @@ class InstrumentManager:
     """
     def __init__(self):
         super().__init__()
-        self.instances: Dict[str, AnyInstrument] = {}
+        self.instances: Dict[str, type[AnyInstrument]] = {}
 
     def __repr__(self) -> str:
         return f"InstrumentManager({self.instances})"
 
     @staticmethod
-    def help(cls: AnyInstrument, return_str = False) -> str:
+    def help(cls: type[AnyInstrument], return_str = False) -> str:
         """Returns all available controls and measurements for the given
         instrument class. For each control and measurement, it shows the
         description, command sent to the instrument, and the values that
@@ -89,7 +89,7 @@ class InstrumentManager:
 
 
     @staticmethod
-    def setup_adapter(cls: AnyInstrument, adapter: str, **kwargs) -> AnyInstrument:
+    def setup_adapter(cls: type[AnyInstrument], adapter: str, **kwargs) -> AnyInstrument:
         """Sets up the adapter for the given instrument class. If the setup fails,
         it raises an exception, unless debug mode is enabled (-d flag), in which
         case it replaces the adapter with a FakeAdapter. Returns the instrument
@@ -112,8 +112,8 @@ class InstrumentManager:
         return instrument
 
     def connect(
-        self, cls: AnyInstrument, adapter: str = None, name: str = None, **kwargs
-    ) -> AnyInstrument | None:
+        self, cls: type[AnyInstrument], adapter: str = None, name: str = None, **kwargs
+    ) -> AnyInstrument:
         """Connects to an instrument and saves it in the dictionary.
 
         :param cls: The instrument class to set up.
@@ -153,7 +153,8 @@ class InstrumentManager:
             return
 
         try:
-            self.instances[name].shutdown()
+            if not isinstance(self.instances[name].adapter, FakeAdapter):
+                self.instances[name].shutdown()
             del self.instances[name]
             log.debug(f"Instrument '{name}' was shut down.")
         except Exception as e:

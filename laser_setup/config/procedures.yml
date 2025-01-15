@@ -1,0 +1,12 @@
+It:
+  #INPUTS: ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC']
+
+  update_parameters:
+    laser_T:
+      value: 120.
+    vg:
+      value: DP + 0. V
+
+Pt:
+  update_parameters:
+    laser_T: 120.

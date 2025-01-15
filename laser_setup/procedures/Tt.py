@@ -12,6 +12,7 @@ log = logging.getLogger(__name__)
 class Tt(ChipProcedure):
     """Measures temperature over time using a PT100 sensor connected via
     Arduino."""
+    name = 'T vs t'
     # Instrument
     temperature_sensor: PT100SerialSensor = PendingInstrument(
         PT100SerialSensor, config['Adapters']['pt100_port'], includeSCPI=False

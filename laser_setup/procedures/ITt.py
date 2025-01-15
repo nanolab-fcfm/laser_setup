@@ -14,6 +14,7 @@ class ITt(It):
     TENMA source. The plate and ambient temperatures are measured using a
     PT100 sensor
     """
+    name = 'I,T vs t'
     # Instruments
     meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
     tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])

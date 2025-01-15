@@ -2,6 +2,7 @@
 This Script is used to find the dirac point from the selected IVg curve.
 """
 import os
+import warnings
 from datetime import datetime
 
 from ..utils import read_pymeasure, find_dp
@@ -13,6 +14,13 @@ except ImportError:
 
 
 def main():
+    """Find Dirac Point"""
+    warnings.warn(
+        "This script is deprecated and will not be updated. Use the 'find_dp' function from 'utils.py' instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+
     current_datetime = datetime.now()
     todays_date = f"{current_datetime.year}-{current_datetime.month}-{current_datetime.day}"
     data_path = f"{os.getcwd()}/data/"

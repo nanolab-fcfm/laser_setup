@@ -1,18 +1,44 @@
+import time
 import logging
 
 from pymeasure.experiment import Procedure
 
 from ..utils import send_telegram_alert
 from ..instruments import InstrumentManager, PendingInstrument
-from ..parameters import Parameters, overrides
+from ..parameters import Parameters, procedure_config
 
 log = logging.getLogger(__name__)
 
 
-class BaseProcedure(Procedure):
+class BaseProcedureMeta(type):
+    """Metaclass for BaseProcedure. It is used to set attributes
+    and the default values of `Parameters` in the class definition.
+    """
+    def __new__(cls: type, name: str, bases: tuple, dct: dict):
+        procedure_dict: dict = procedure_config.get(name, {})
+
+        for key, value in procedure_dict.pop('update_parameters', {}).items():
+            if key not in dct:
+                continue
+
+            if not isinstance(value, dict):
+                value = {'value': value}
+
+            for k, v in value.items():
+                try:
+                    setattr(dct[key], k, v)
+                except AttributeError:
+                    log.error(f"Error updating parameter {key} in {name}")
+
+        dct.update(procedure_dict)
+        return super().__new__(cls, name, bases, dct)
+
+
+class BaseProcedure(Procedure, metaclass=BaseProcedureMeta):
     """Base procedure for all measurements. It defines basic
     parameters that have to be present in all procedures.
     """
+    name: str = None
     # Instrument Manager
     instruments = InstrumentManager()
 
@@ -26,24 +52,10 @@ class BaseProcedure(Procedure):
 
     # Metadata
     start_time = Parameters.Base.start_time
+    # Access to time module as attribute for Metadata.fget
+    time = time
 
     INPUTS = ['show_more', 'chained_exec', 'info']
-
-    def update_parameters(self):
-        """Function to update the parameters after the initialization,
-        but before startup. It is useful for creating dynamic parameters that
-        depend on others, can only be determined after initialization, or
-        change type. At the BaseProcedure level, it sets the parameters
-        from the overrides file.
-        """
-        cls_name = self.__class__.__name__
-        lower_params = {key.lower(): key for key in self._parameters.keys()}
-        if overrides.has_section(cls_name):
-            for key, value in overrides[cls_name].items():
-                if key in lower_params:
-                    key = lower_params[key]
-                    self._parameters[key].value = value
-                    setattr(self, key, self._parameters[key].value)
 
     def connect_instruments(self):
         """Takes all PendingInstruments and connects them to the
@@ -63,10 +75,6 @@ class BaseProcedure(Procedure):
 
         self.instruments.shutdown_all()
         self.__class__.startup_executed = False
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.update_parameters()
 
 
 class ChipProcedure(BaseProcedure):

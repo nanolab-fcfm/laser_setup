@@ -1,14 +1,11 @@
-from typing import Dict, List, Tuple
-from glob import glob
-import datetime
 import logging
-import os
+from pathlib import Path
+import datetime
+from typing import Dict, List, Tuple
 
 import numpy as np
 import requests
 import pandas as pd
-from scipy.stats import linregress
-from scipy.signal import find_peaks
 
 from . import config
 
@@ -57,13 +54,17 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
     return V
 
 
+def get_data_files(pattern: str = '*.csv') -> List[Path]:
+    data_path = Path(config['General']['data_dir'])
+    return list(data_path.rglob(pattern))
+
+
 def remove_empty_data(days: int = 2):
     """This function removes all the empty files in the data folder,
     up to a certain number of days back. Empty files are considered files with
     only the header and no data.
     """
-    DataDir = config['Filename']['directory']
-    data = glob(DataDir + '/**/*.csv', recursive=True)
+    data = get_data_files()
     try:
         data = [file for file in data if (datetime.datetime.now() - sort_by_creation_date(file)[0]).days <= days]
     except:
@@ -73,7 +74,7 @@ def remove_empty_data(days: int = 2):
             nonheader = [l for l in f.readlines() if not l.startswith('#')]
 
         if len(nonheader) == 1:
-            os.remove(file)
+            file.unlink()
 
     log.info('Empty files removed')
 
@@ -88,7 +89,7 @@ def send_telegram_alert(message: str):
         log.error("No internet connection. Cannot send Telegram message.")
         return
 
-    if 'TOKEN' not in config['Telegram']:
+    if 'token' not in config['Telegram']:
         log.error("Telegram token not specified in config.")
         return
 
@@ -128,19 +129,19 @@ def get_status_message(timeout: float = .5) -> str:
 def read_file_parameters(file_path: str) -> Dict[str, str]:
     """Reads the parameters from a PyMeasure data file."""
     parameters = {}
-    with open(file_path, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if not line or line.startswith('#Data:'):
-                break           # Stop reading after the data starts
+    file = Path(file_path).read_text().splitlines()
+    for line in file:
+        line = line.strip()
+        if not line or line.startswith('#Data:'):
+            break           # Stop reading after the data starts
 
-            if ':' in line:
-                if any(map(line.startswith, ('#Parameters:', '#Metadata:'))):
-                    continue    # Skip these lines
+        if ':' in line:
+            if line.startswith(('#Parameters:', '#Metadata:')):
+                continue    # Skip these lines
 
-                key, value = map(str.strip, line.split(':', 1))
-                key = key.lstrip('#\t')
-                parameters[key] = value
+            key, value = map(str.strip, line.split(':', 1))
+            key = key.lstrip('#\t')
+            parameters[key] = value
     return parameters
 
 
@@ -152,6 +153,7 @@ def read_pymeasure(file_path: str, comment='#') -> Tuple[Dict, pd.DataFrame]:
 
 
 def find_dp(data: Tuple[Dict, pd.DataFrame]) -> float:
+    from scipy.signal import find_peaks
     df = data[1]
     R = 1 / df['I (A)']
     peaks, _ = find_peaks(R)
@@ -165,7 +167,7 @@ def sort_by_creation_date(filename: str) -> List[str]:
     :param pattern: The pattern to look for files
     :return: A list of file paths sorted by creation date
     """
-    filename = os.path.basename(filename)
+    filename = Path(filename).name
     date_part, number_part = filename.split('_')
     date = datetime.datetime.strptime(date_part[-10:], '%Y-%m-%d')
     number = int(number_part.split('.')[0])
@@ -188,10 +190,9 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     # diff = np.abs(df.diff()["I (A)"].values)
     # indices_smallest_four = np.argpartition(diff, 4)[:4]
     # return round(np.mean(df["Vg (V)"].values[indices_smallest_four]), 2)
-    DataDir = config['Filename']['directory']
-    data_total = glob(DataDir + '/**/*.csv', recursive=True)
+    data_total = get_data_files()
     data_sorted = sorted(data_total, key=sort_by_creation_date)
-    data_files = [d for d in data_sorted if 'IVg' in d][-1:-max_files-1:-1]
+    data_files = [d for d in data_sorted if 'IVg' in str(d)][-1:-max_files-1:-1]
     for file in data_files:
         data = read_pymeasure(file)
         if data[0]['Chip group name'] == chip_group and data[0]['Chip number'] == str(chip_number) and data[0]['Sample'] == sample:
@@ -210,8 +211,7 @@ def rename_data_value(original: str, replace: str):
     """Takes all .csv files in data/**/*.csv, checks for
     headers and replaces all strings matching original with replace
     """
-    DataDir = config['Filename']['directory']
-    data_total = glob(DataDir + '/**/*.csv', recursive=True)
+    data_total = get_data_files()
     for file in data_total:
         with open(file, 'r+') as f:
             lines = f.readlines()
@@ -238,7 +238,7 @@ def get_timestamp(file):
 
 def sort_by_creation_date_calibration(pattern):
     # Get a list of file paths that match the specified pattern
-    file_paths = glob(pattern)
+    file_paths = list(Path.cwd().glob(pattern))
 
     # exclude calibration files
     file_paths = [path for path in file_paths if "Calibration" not in path]
@@ -380,6 +380,7 @@ def make_data_summary(experiments):
 
 
 def get_current_from_Vg(data, vg):
+    from scipy.stats import linregress
     # we first check if the value exists
     df = data[1]
     if vg in df["Vg (V)"]:
@@ -424,6 +425,6 @@ def get_date_time_from_timestamp_unix(timestamp_unix):
     return year, month, day, hour, minute, second
 
 
-def load_sorted_data(path_folder):
-    data = sort_by_creation_date_calibration(os.path.join(path_folder, "*.csv"))
+def load_sorted_data(folder: str):
+    data = sort_by_creation_date_calibration(Path(folder) / "*.csv")
     return [read_pymeasure(path) for path in data]

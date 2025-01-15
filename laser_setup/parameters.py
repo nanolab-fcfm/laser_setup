@@ -2,15 +2,19 @@
 Parameters should be defined here and imported in the procedures.
 """
 import copy
-import time
-import configparser
+from pathlib import Path
+from typing import TypeVar
 
-from pymeasure.experiment import IntegerParameter, Parameter, BooleanParameter, ListParameter, FloatParameter, Metadata
+import yaml
+from pymeasure.experiment import (BooleanParameter, FloatParameter,
+                                  IntegerParameter, ListParameter, Metadata,
+                                  Parameter)
 
 from . import config
+from .instruments import PendingInstrument
+from .parser import YAMLParser, merge_dicts
 
-overrides = configparser.ConfigParser()
-overrides.read(config.get('Procedures', 'parameter_file'))
+AnyParameter = TypeVar('AnyParameter', bound=Parameter)
 
 
 class ParameterProvider:
@@ -18,8 +22,14 @@ class ParameterProvider:
     accessed, a copy of the parameter is returned to avoid
     modifying the original parameter.
     """
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            if isinstance(v, dict):
+                v = ParameterProvider(**v)
+
+            setattr(self, k.replace(' ', '_'), v)
+
     def __getattribute__(self, name):
-        # Use super to get the attribute
         attr = super().__getattribute__(name)
 
         # Check if the attribute is a Parameter or Metadata instance
@@ -28,77 +38,44 @@ class ParameterProvider:
 
         return attr
 
+    def __getitem__(self, name: str):
+        return getattr(self, name.replace(' ', '_'))
 
-class BaseParameters(ParameterProvider):
-    # Procedure version. When modified, increment
-    # <parameter name>.<parameter property>.<procedure startup/shutdown>
-    procedure_version = Parameter('Procedure version', default='1.5.0')
-    show_more = BooleanParameter('Show more', default=False)
-    info = Parameter('Information', default='None')
-
-    # Chained Execution
-    chained_exec = BooleanParameter('Chained execution', default=False)
-
-    # Metadata
-    start_time = Metadata('Start time', fget=time.time)
+    def __setitem__(self, name: str, value: any):
+        setattr(self, name, value)
 
 
-class ChipParameters(ParameterProvider):
-    chip_names = list(eval(config['Chip']['names'])) + ['other']
-    samples = list(eval(config['Chip']['samples'])) + ['other']
+class ParameterParser(YAMLParser):
+    """Class to parse parameters from a YAML file."""
+    tag_dict = {
+        '!Parameter': Parameter,
+        '!BooleanParameter': BooleanParameter,
+        '!IntegerParameter': IntegerParameter,
+        '!FloatParameter': FloatParameter,
+        '!ListParameter': ListParameter,
+        '!Metadata': Metadata,
+        '!PendingInstrument': PendingInstrument
+    }
 
-    chip_group = ListParameter('Chip group name', choices=chip_names, default='other')
-    chip_number = IntegerParameter('Chip number', default=1, minimum=1)
-    sample = ListParameter('Sample', choices=samples, default='other')
+    @staticmethod
+    def get_constructor(
+        param_cls: type[AnyParameter],
+        loader: type[yaml.SafeLoader],
+        node: yaml.nodes.MappingNode
+    ) -> Parameter:
+        data: dict = loader.construct_mapping(node, deep=True)
+        data.pop('description', None)   # description not implemented yet
 
-
-class LaserParameters(ParameterProvider):
-    wavelengths = list(eval(config['Laser']['wavelengths']))
-    fibers = list(eval(config['Laser']['fibers']))
-
-    laser_toggle = BooleanParameter('Laser toggle', default=False)
-    laser_wl = ListParameter('Laser wavelength', units='nm', choices=wavelengths)
-    laser_v = FloatParameter('Laser voltage', units='V', default=0.)
-    laser_T = FloatParameter('Laser ON+OFF period', units='s', default=120.)
-    burn_in_t = FloatParameter('Burn-in time', units='s', default=60.)
-
-    fiber = ListParameter('Optical fiber', choices=fibers)
-
-
-class InstrumentParameters(ParameterProvider):
-    N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')  # deprecated
-    Irange = FloatParameter('Irange', units='A', default=0.001, minimum=0, maximum=0.105, group_by='show_more')
-    NPLC = FloatParameter('NPLC', default=1.0, minimum=0.01, maximum=10, group_by='show_more')
-
-    sensor = Metadata('Sensor model', fget='power_meter.sensor_name')
+        return param_cls(**data)
 
 
-class ControlParameters(ParameterProvider):
-    sampling_t = FloatParameter('Sampling time (excluding Keithley)', units='s', default=0., group_by='show_more')
-    vds = FloatParameter('VDS', units='V', default=0.075, decimals=10)
-    vg = FloatParameter('VG', units='V', default=0., minimum=-100., maximum=100.)
-    vg_dynamic = Parameter('VG', default='DP + 0. V')
+parser = ParameterParser()
+Parameters = ParameterProvider(
+    **parser.read(Path(__file__).parent / 'config' / 'parameters.yml'),
+    **parser.read(config['General']['parameters_file'], {})
+)
 
-    # Voltage ramps
-    step_time = FloatParameter('Step time', units='s', default=0.01, group_by='show_more')
-
-    vg_start = FloatParameter('VG start', units='V', default=-35.)
-    vg_end = FloatParameter('VG end', units='V', default=35.)
-    vg_step = FloatParameter('VG step', units='V', default=0.2, group_by='show_more')
-
-    vsd_start = FloatParameter('VSD start', units='V', default=-1.)
-    vsd_end = FloatParameter('VSD end', units='V', default=1.)
-    vsd_step = FloatParameter('VSD step', units='V', default=0.01, group_by='show_more')
-
-    vl_start = FloatParameter('Laser voltage start', units='V', default=0.)
-    vl_end = FloatParameter('Laser voltage end', units='V', default=5.)
-    vl_step = FloatParameter('Laser voltage step', units='V', default=0.1)
-
-
-class Parameters:
-    """Class to define all the parameters for the laser setup."""
-    Base = BaseParameters()
-    Chip = ChipParameters()
-    Laser = LaserParameters()
-    Instrument = InstrumentParameters()
-    Control = ControlParameters()
+procedure_config = parser.read(Path(__file__).parent / 'config' / 'procedures.yml', {})
+procedure_config = merge_dicts(procedure_config,
+    parser.read(config['General']['procedure_config_file'], {})
+)

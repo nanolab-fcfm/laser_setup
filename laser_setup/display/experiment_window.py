@@ -1,90 +1,118 @@
-import time
 import logging
+import time
+from functools import partial
 from typing import Type
 
-from pymeasure.experiment import unique_filename, Results, Procedure
-from pymeasure.display.widgets import InputsWidget, PlotFrame
-from pymeasure.display.windows import ManagedWindow
-from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
+from pymeasure.display.widgets import (InputsWidget, LogWidget, PlotFrame,
+                                       PlotWidget)
+from pymeasure.display.widgets.dock_widget import DockWidget
+from pymeasure.display.windows import ManagedWindowBase
+from pymeasure.experiment import Procedure, Results, unique_filename
 
 from .. import config
-from .widgets import TextWidget, ProgressBar
 from ..procedures import BaseProcedure, ChipProcedure
+from .Qt import QtCore, QtGui, QtWidgets
+from .widgets import ProgressBar, TextWidget
 
 log = logging.getLogger(__name__)
 
 
-class ExperimentWindow(ManagedWindow):
+class ExperimentWindow(ManagedWindowBase):
     """The main window for an experiment. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
     from the GUI, by queuing it in the manager. It also allows for existing
     data to be loaded and displayed.
     """
+    inputs_in_scrollarea: bool = True
+    enable_file_input: bool = False
+    dock_plot_number: int = 2
+    icon: str = None
+
     def __init__(self, cls: Type[Procedure], title: str = '', **kwargs):
         self.cls = cls
-        sequencer_kwargs = dict(
-            sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
-            sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
-            # sequence_file = f'sequences/{cls.SEQUENCER_INPUTS[0]}_sequence.txt' if hasattr(cls, 'SEQUENCER_INPUTS') else None,
-        )
-        if bool(eval(config['GUI']['dark_mode'])):
+
+        if bool(config['GUI']['dark_mode']):
             PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
+
+        if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
+            raise AttributeError(f"Procedure {cls.__name__} must define DATA_COLUMNS with at least 2 columns.")
+
+        self.x_axis = cls.DATA_COLUMNS[0]
+        self.y_axis = cls.DATA_COLUMNS[1]
+        self.log_widget = LogWidget("Experiment Log")
+        self.plot_widget = PlotWidget("Results Graph", cls.DATA_COLUMNS, self.x_axis,
+                                      self.y_axis)
+        self.plot_widget.setMinimumSize(100, 200)
+
+        self.text_widget = TextWidget('Information', file=config['GUI']['info_file'])
+        self.dock_widget = DockWidget('Dock', cls,
+            x_axis_labels=[self.x_axis,],
+            y_axis_labels=cls.DATA_COLUMNS[1:self.dock_plot_number+1],
+        )
+        if bool(config['GUI']['dark_mode']):
+            for plot_widget in (self.plot_widget, *self.dock_widget.plot_frames):
+                plot_widget.setAutoFillBackground(True)
+                plot_widget.plot_frame.setStyleSheet('background-color: black;')
+                plot_widget.plot_frame.plot_widget.setBackground('k')
+
+        widget_list = (self.plot_widget, self.log_widget, self.text_widget, self.dock_widget)
 
         super().__init__(
             procedure_class=cls,
+            widget_list=widget_list,
             inputs=getattr(cls, 'INPUTS', []),
             displays=getattr(cls, 'INPUTS', []),
-            x_axis=cls.DATA_COLUMNS[0],
-            y_axis=cls.DATA_COLUMNS[1],
-            inputs_in_scrollarea=True,
-            enable_file_input=False,        # File Input incompatible with PyQt6
-            **sequencer_kwargs,
+            inputs_in_scrollarea=self.inputs_in_scrollarea,
+            enable_file_input=self.enable_file_input,
+            sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
+            sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
+            sequence_file = getattr(cls, 'SEQUENCE_FILE', None),
             **kwargs
         )
-        if bool(eval(config['GUI']['dark_mode'])):
-            self.plot_widget.plot_frame.setStyleSheet('background-color: black;')
-            self.plot_widget.plot_frame.plot_widget.setBackground('k')
-
-        self.setWindowTitle(title)
+        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
         self.setWindowIcon(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon)
+            self.icon or self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
+            )
         )
-
+        # Add a shutdown all button if the procedure is a BaseProcedure
         if issubclass(self.procedure_class, BaseProcedure):
             self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
             self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
+            self.shutdown_button.setToolTip('Shutdown all instruments')
             self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
 
-        widget = TextWidget('Information', parent=self, file=config['GUI']['info_file'])
-        self.widget_list += (widget,)
-        self.tabs.addTab(widget, widget.name)
+        self.browser_widget.browser.measured_quantities.update([self.x_axis, self.y_axis])
+
+        self.log = logging.getLogger()
+        self.log.addHandler(self.log_widget.handler)
+        self.log.setLevel(config['Logging']['console_level'])
+        self.log.info(f"{self.__class__.__name__} connected to logging")
 
     def queue(self, procedure: Type[Procedure] = None):
         if procedure is None:
             procedure = self.make_procedure()
 
-        directory = config['Filename']['directory']
-        filename = unique_filename(
-            directory,
-            prefix=self.cls.__name__,
-            dated_folder=True,
-            )
+        filename_kwargs: dict = config['Filename'].copy()
+        prefix = filename_kwargs.pop('prefix', '') or procedure.__class__.__name__
+        filename = unique_filename(config['General']['data_dir'],
+                                   prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")
 
         if hasattr(procedure, 'pre_startup'):
             procedure.pre_startup()
+
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)
 
         self.manager.queue(experiment)
 
-    def closeEvent(self, event):
+    def closeEvent(self, event: QtGui.QCloseEvent):
         if self.manager.is_running():
             reply = QtWidgets.QMessageBox.question(self, 'Message',
-                        'Do you want to close the window? This will abort the current experiment.',
-                        QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
-                    )
-
+                'Do you want to close the window? This will abort the current experiment.',
+                QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+            )
             if reply == QtWidgets.QMessageBox.StandardButton.No:
                 event.ignore()
                 return
@@ -93,19 +121,33 @@ class ExperimentWindow(ManagedWindow):
             if issubclass(self.procedure_class, BaseProcedure):
                 self.procedure_class.instruments.shutdown_all()
             time.sleep(0.5)
-        self.log_widget._blink_qtimer.stop()
+
+        self.log_widget._blinking_stop(self.log_widget.tab_index)
+        if self.use_estimator:
+            self.estimator.update_thread.stop()
+
         super().closeEvent(event)
 
 
 class SequenceWindow(QtWidgets.QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
-    """
-    aborted: bool = False
-    status_labels = []
-    inputs_ignored = ['show_more', 'chained_exec']
+    The CommonProcedure class attribute is used to group parameters that are
+    common to all procedures in the sequence. To avoid this behavior for a
+    specific parameter, add it to the inputs_ignored list.
 
-    def __init__(self, procedure_list: list[Type[Procedure]], title: str = '', **kwargs):
+    :attr abort_timeout: float: Timeout for the abort message box.
+    :attr inputs_ignored: list[str]: List of inputs to ignore when grouping parameters.
+    :attr CommonProcedure: type[BaseProcedure]: Class to group common parameters.
+    """
+    abort_timeout: float = 30
+    inputs_ignored = ['show_more', 'chained_exec']
+    CommonProcedure: type[BaseProcedure] = ChipProcedure
+
+    status_labels = []
+    aborted: bool = False
+
+    def __init__(self, procedure_list: list[Type[BaseProcedure]], title: str = '', **kwargs):
         super().__init__(**kwargs)
         self.procedure_list = procedure_list
 
@@ -115,9 +157,9 @@ class SequenceWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(self._get_procedure_vlayout(title))
 
-        base_inputs = [i for i in ChipProcedure.INPUTS if i not in self.inputs_ignored]
+        base_inputs = [i for i in self.CommonProcedure.INPUTS if i not in self.inputs_ignored]
 
-        widget = InputsWidget(ChipProcedure, inputs=base_inputs)
+        widget = InputsWidget(self.CommonProcedure, inputs=base_inputs)
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
@@ -171,17 +213,15 @@ class SequenceWindow(QtWidgets.QMainWindow):
         return vlayout
 
     def set_status(self, index: int, color: str):
-        def func():
-            pixmap = QtGui.QPixmap(20, 20)
-            pixmap.fill(QtGui.QColor(color))
-            self.status_labels[index + 1].setPixmap(pixmap)
-        return func
+        pixmap = QtGui.QPixmap(20, 20)
+        pixmap.fill(QtGui.QColor(color))
+        self.status_labels[index + 1].setPixmap(pixmap)
 
     def queue(self):
         log.info("Queueing the procedures.")
-        self.set_status(-1, 'yellow')()
+        self.set_status(-1, 'yellow')
         for i in range(len(self.procedure_list)):
-            self.set_status(i, 'white')()
+            self.set_status(i, 'white')
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
         base_parameters = inputs[0].get_procedure()._parameters
@@ -190,12 +230,13 @@ class SequenceWindow(QtWidgets.QMainWindow):
             # Spawn the corresponding ExperimentWindow and queue it
             if proc.__name__ == 'Wait':
                 wait_time = inputs[i+1].get_procedure().wait_time
-                self.set_status(i, 'yellow')()
+                self.set_status(i, 'yellow')
                 self.wait(wait_time)
-                self.set_status(i, 'green')()
+                self.set_status(i, 'green')
                 continue
 
-            window = ExperimentWindow(proc, title=proc.__name__)
+            window_name = getattr(proc, 'name', proc.__name__)
+            window = ExperimentWindow(proc, title=window_name)
             procedure_parameters = inputs[i+1].get_procedure()._parameters
             parameters = procedure_parameters | base_parameters
             window.set_parameters(parameters)
@@ -209,14 +250,14 @@ class SequenceWindow(QtWidgets.QMainWindow):
             window.queue_button.click()
 
             # Update the status label
-            window.manager.running.connect(self.set_status(i, 'yellow'))
-            window.manager.finished.connect(self.set_status(i, 'green'))
-            window.manager.failed.connect(self.set_status(i, 'red'))
-            window.manager.aborted.connect(self.set_status(i, 'red'))
+            window.manager.running.connect(partial(self.set_status, i, 'yellow'))
+            window.manager.finished.connect(partial(self.set_status, i, 'green'))
+            window.manager.failed.connect(partial(self.set_status, i, 'red'))
+            window.manager.aborted.connect(partial(self.set_status, i, 'red'))
 
             # Window managing
-            window.manager.aborted.connect(self.aborted_procedure(window))
-            window.manager.failed.connect(self.failed_procedure(window))
+            window.manager.aborted.connect(partial(self.aborted_procedure, window))
+            window.manager.failed.connect(partial(self.failed_procedure, window))
             window.manager.finished.connect(window.close)
 
             # Non-blocking wait for the procedure to finish
@@ -229,53 +270,47 @@ class SequenceWindow(QtWidgets.QMainWindow):
             if self.aborted:
                 break
 
-        BaseProcedure.instruments.shutdown_all()
+        self.CommonProcedure.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
         if not self.aborted: log.info("Sequence finished.")
-        self.set_status(-1, 'red' if self.aborted else 'green')()
+        self.set_status(-1, 'red' if self.aborted else 'green')
         self.aborted = False
 
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def aborted_procedure(self, window: ExperimentWindow, close_window=True):
-        def func():
-            timeout = 30
-            t_text = lambda t: f'Abort (continuing in {t} s)'
-            t_iter = iter(range(timeout-1, -1, -1))
+        t_text = lambda t: f'Abort (continuing in {t} s)'
+        t_iter = iter(range(self.abort_timeout-1, -1, -1))
 
-            window.abort_button.setEnabled(False)
+        window.abort_button.setEnabled(False)
 
-            reply = QtWidgets.QMessageBox(self)
-            reply.setWindowTitle(t_text(timeout))
-            reply.setText('This experiment was aborted. Do you want to abort the rest of the sequence?')
-            reply.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-            reply.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-            reply.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
-            reply.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+        reply = QtWidgets.QMessageBox(self)
+        reply.setWindowTitle(t_text(self.abort_timeout))
+        reply.setText('This experiment was aborted. Do you want to abort the rest of the sequence?')
+        reply.setIcon(QtWidgets.QMessageBox.Icon.Warning)
+        reply.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        reply.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
+        reply.setWindowModality(QtCore.Qt.WindowModality.NonModal)
 
-            # Create a QTimer to update the title every second
-            timer = QtCore.QTimer()
-            timer.timeout.connect(lambda: reply.setWindowTitle(t_text(next(t_iter))))
-            timer.start(1000)
+        # Create a QTimer to update the title every second
+        timer = QtCore.QTimer()
+        timer.timeout.connect(lambda: reply.setWindowTitle(t_text(next(t_iter))))
+        timer.start(1000)
 
-            # Close the message box after timeout
-            QtCore.QTimer.singleShot(timeout*1000, reply.close)
+        # Close the message box after timeout
+        QtCore.QTimer.singleShot(self.abort_timeout*1000, reply.close)
 
-            result = reply.exec()
-            if result == QtWidgets.QMessageBox.StandardButton.Yes:
-                log.warning("Sequence aborted.")
-                self.aborted = True
+        result = reply.exec()
+        if result == QtWidgets.QMessageBox.StandardButton.Yes:
+            log.warning("Sequence aborted.")
+            self.aborted = True
 
-            if close_window:
-                window.close()
+        if close_window:
+            window.close()
 
-        return func
-
-    @QtCore.pyqtSlot()
+    @QtCore.Slot()
     def failed_procedure(self, window: ExperimentWindow):
-        def func():
-            log.error(f"Procedure {window.cls.__name__} failed to execute")
-            self.aborted_procedure(window, close_window=False)()
-        return func
+        log.error(f"Procedure {window.cls.__name__} failed to execute")
+        self.aborted_procedure(window, close_window=False)
 
     def wait(self, wait_time: float, progress_bar: bool = True):
         """Waits for a given amount of time. Creates a progress bar."""

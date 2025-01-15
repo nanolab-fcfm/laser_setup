@@ -7,32 +7,30 @@ experiment scripts.
 To overwrite the default config file, create a file called
 './config/config.ini'.
 """
-import os
 import logging
+from pathlib import Path
+from types import SimpleNamespace
 
-from pymeasure.experiment.config import get_config, set_mpl_rcparams
+from pymeasure.experiment.config import set_mpl_rcparams
 from pymeasure.log import setup_logging
+
+from .parser import load_config
 
 __version__ = '0.5.0-alpha'
 
-# Load the config files
-_default_config_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'default_config.ini'))
-config_path = './config/config.ini'
-
-# Read both the default and user-defined config files, overwriting the defaults
-config = get_config([_default_config_path, config_path])
+# Read the configuration files
+config = load_config()
 
 # Setup logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
-if config.has_option('Logging', 'filename'):
-    os.makedirs(os.path.dirname(config['Logging']['filename']), exist_ok=True)
+if config.get('Logging', {}).get('filename'):
+    Path(config['Logging']['filename']).parent.mkdir(parents=True, exist_ok=True)
 
-setup_logging(log, **config['Logging'] if config.has_section('Logging') else {})
+setup_logging(log, **config.get('Logging', {}))
 
-_config_file_used = config_path if os.path.exists(config_path) else _default_config_path
-log.info(f"Using config file: {_config_file_used}")
+log.info(f"Using config file: {config['_session']['config_path_used']}")
 
 # Setup matplotlib.rcParams from config
-set_mpl_rcparams(config)
+set_mpl_rcparams(SimpleNamespace(_sections=config))

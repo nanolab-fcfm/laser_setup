@@ -1,6 +1,8 @@
 import time
 
+from pymeasure.display.log import LogHandler
 from pymeasure.display.widgets import TabWidget
+from pymeasure.display.widgets.log_widget import HTMLFormatter
 from .Qt import QtWidgets, QtCore, QtSql
 
 
@@ -65,6 +67,29 @@ class TextWidget(TabWidget, QtWidgets.QWidget):
         vbox = QtWidgets.QVBoxLayout(self)
         vbox.setSpacing(0)
 
+        vbox.addWidget(self.view)
+        self.setLayout(vbox)
+
+
+class LogsWidget(QtWidgets.QWidget):
+    fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    datefmt = '%H:%M:%S %p'
+    def __init__(self, title="Logs", parent=None, **kwargs):
+        super().__init__(parent=parent, **kwargs)
+        self.setWindowTitle(title)
+        self.resize(640, 480)
+        self._setup_ui()
+        self._layout()
+
+    def _setup_ui(self):
+        self.view = QtWidgets.QPlainTextEdit(self, readOnly=True)
+        self.handler = LogHandler()
+        self.handler.setFormatter(HTMLFormatter(fmt=self.fmt, datefmt=self.datefmt))
+        self.handler.connect(self.view.appendHtml)
+
+    def _layout(self):
+        vbox = QtWidgets.QVBoxLayout(self)
+        vbox.setSpacing(0)
         vbox.addWidget(self.view)
         self.setLayout(vbox)
 

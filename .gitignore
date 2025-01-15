@@ -1,8 +1,9 @@
 # Extra
 dev/
 video/
-img/
-config/
+config/*
+!config/parameters.yml
+!config/procedures.yml
 data/
 
 # Byte-compiled / optimized / DLL files

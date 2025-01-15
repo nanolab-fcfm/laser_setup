@@ -17,6 +17,8 @@ class IVg(ChipProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources.
     """
+    name = 'I vs Vg'
+
     meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
     tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
     tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
@@ -127,19 +129,19 @@ class IVg(ChipProcedure):
         """Estimate the Dirac Point.
         """
         try:
-            data = np.array(self.__class__.DATA)
-            if data.size == 0:
-                raise ValueError("No data to analyze")
-
-            R = 1 / data[1]
+            x = np.array(self.__class__.DATA[0])
+            y = np.array(self.__class__.DATA[1])
+            if x.size == 0 or y.size == 0:
+                raise ValueError("Data is empty")
 
             # Find peaks in the resistance data
-            peaks, _ = find_peaks(R)
+            peaks, _ = find_peaks(1/y)
 
             estimates = [
-                ('Dirac Point', f"{data[0, peaks].mean():.1f}"),
+                ('Dirac Point', f"{x[peaks].mean():.1f}"),
             ]
             return estimates
 
-        except:
+        except Exception as e:
+            log.debug(e)
             return [('Dirac Point', 'None')]

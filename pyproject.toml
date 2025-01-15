@@ -9,10 +9,11 @@ requires-python = ">=3.9,<3.13"
 dependencies = [
     'bendev==0.3.1',
     'GitPython',
-    'ipython',
     'matplotlib',
     'pymeasure>=0.14.0,<0.15',
     'PyQt6>=6.1.0',
+    'PyYAML',
+    'qtpy',
     'Requests',
     'scipy',
 ]
@@ -43,7 +44,14 @@ laser_setup_gui = "laser_setup.__main__:main"
 include = ["laser_setup*"]
 
 [tool.setuptools.package-data]
-laser_setup = ["*.ini"]
+laser_setup = ["config/*.yml"]
 
 [tool.setuptools.dynamic]
 version = {attr = "laser_setup.__version__"}
+
+[dependency-groups]
+dev = [
+    "pymeasure[tests]>=0.14.0,<0.15",
+    "sphinx>=7.4.7",
+    "sphinx-rtd-theme>=3.0.2",
+]
