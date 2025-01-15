@@ -69,7 +69,7 @@ class ExperimentWindow(ManagedWindowBase):
             sequence_file = getattr(cls, 'SEQUENCE_FILE', None),
             **kwargs
         )
-        self.setWindowTitle(title or self.title or getattr(cls, 'name', cls.__name__))
+        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
         self.setWindowIcon(
             self.icon or self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
@@ -93,8 +93,10 @@ class ExperimentWindow(ManagedWindowBase):
         if procedure is None:
             procedure = self.make_procedure()
 
-        config['Filename']['prefix'] = config['Filename']['prefix'] or procedure.__class__.__name__
-        filename = unique_filename(config['General']['data_dir'], **config['Filename'])
+        filename_kwargs: dict = config['Filename'].copy()
+        prefix = filename_kwargs.pop('prefix', '') or procedure.__class__.__name__
+        filename = unique_filename(config['General']['data_dir'],
+                                   prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")
 
         if hasattr(procedure, 'pre_startup'):

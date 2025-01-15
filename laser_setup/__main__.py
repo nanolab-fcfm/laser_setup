@@ -14,6 +14,10 @@ def main():
 
     args = parser.parse_args()
 
+    if args.debug:
+        from .procedures import FakeProcedure
+        Experiments.append(FakeProcedure)
+
     if args.procedure is None:
         display_window(MainWindow)
 

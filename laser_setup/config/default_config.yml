@@ -90,9 +90,9 @@ Filename:
   # Configure the data filenames. With this config,
   # a file would be created at config['General']['data']/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
   # File prefix. Leave empty to use the procedure class name instead
-  prefix:
+  prefix: ''
 
-  suffix:
+  suffix: ''
   ext: csv
   dated_folder: true
   index: true
