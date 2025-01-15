@@ -15,8 +15,8 @@ def main():
     args = parser.parse_args()
 
     if args.debug:
-        from .procedures import FakeProcedure
-        Experiments.append(FakeProcedure)
+        from .procedures.FakeProcedure import FakeProcedure, FakeIVg
+        Experiments.extend([FakeProcedure, FakeIVg])
 
     if args.procedure is None:
         display_window(MainWindow)
