@@ -55,7 +55,7 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
 
 
 def get_data_files(pattern: str = '*.csv') -> List[Path]:
-    data_path = Path(config['Filename']['directory'])
+    data_path = Path(config['General']['data_dir'])
     return list(data_path.rglob(pattern))
 
 

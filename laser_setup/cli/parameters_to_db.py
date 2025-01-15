@@ -64,7 +64,7 @@ def add_to_parameters_db(csv_file: Path, conn: sqlite3.Connection):
 
 def create_db(parent=None):
     csv_files = get_data_files()
-    new_db = Path(config['Filename']['directory']) / 'parameters.db'
+    new_db = Path(config['General']['data_dir']) / config['General']['database']
     if new_db.exists():
         new_db_bak = Path(f'{new_db}.bak')
         if new_db_bak.exists():

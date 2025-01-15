@@ -88,7 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         view_menu = menu.addMenu('&View')
         view_menu.addAction(
-            'Parameter Database', partial(self.open_database, 'parameters.db')
+            'Parameter Database', partial(self.open_database, config['General']['database'])
         )
 
         self.log_widget = LogsWidget('Logs', parent=self)
@@ -261,7 +261,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def open_database(self, db_name: str):
-        db_path = Path(config['Filename']['directory']) / db_name
+        db_path = Path(config['General']['data_dir']) / db_name
         if not db_path.exists():
             ans = self.question_box(
                 'Database not found', f'Database {db_path} not found. Create new database?'

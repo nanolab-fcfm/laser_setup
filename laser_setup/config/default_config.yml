@@ -16,6 +16,12 @@ General:
   # Procedure configuration. Overrides the parameter defaults if given.
   procedure_config_file: ./config/procedures.yml
 
+  # Data directory. Where the data will be saved
+  data_dir: ./data
+
+  # Database location, relative to the data directory
+  database: database.db
+
 
 ############################################
 # Adapter configuration
@@ -82,9 +88,7 @@ Telegram:
 
 Filename:
   # Configure the data filenames. With this config,
-  # a file would be created at ./data/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
-  directory: ./data
-
+  # a file would be created at config['General']['data']/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
   # File prefix. Leave empty to use the procedure class name instead
   prefix:
 

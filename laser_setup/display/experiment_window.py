@@ -80,16 +80,12 @@ class ExperimentWindow(ManagedWindow):
         if procedure is None:
             procedure = self.make_procedure()
 
-        directory = config['Filename']['directory']
-        filename = unique_filename(
-            directory,
-            prefix=self.cls.__name__,
-            dated_folder=True,
-            )
+        filename = unique_filename(config['General']['data_dir'], **config['Filename'])
         log.info(f"Saving data to {filename}.")
 
         if hasattr(procedure, 'pre_startup'):
             procedure.pre_startup()
+
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)
 
