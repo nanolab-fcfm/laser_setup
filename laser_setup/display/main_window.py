@@ -4,7 +4,6 @@ import sys
 from functools import partial
 from importlib.metadata import metadata
 from pathlib import Path
-from typing import Type
 
 from pymeasure.experiment import Procedure
 
@@ -25,9 +24,9 @@ class MainWindow(QtWidgets.QMainWindow):
     """The main window for program. It contains buttons to open
     the experiment windows, sequence windows, and run scripts.
     """
-    procedures: list[Type[Procedure]] = [e[0] for e in Experiments]
-    sequences: list[tuple[str, list[Type[Procedure]]]] = list(config.get('Sequences', {}).items())
-    scripts: list[callable] = [s[0] for s in Scripts]
+    procedures: list[type[Procedure]] = Experiments
+    sequences: list[tuple[str, list[type[Procedure]]]] = list(config.get('Sequences', {}).items())
+    scripts: list[callable] = Scripts
     config = {
         'title': 'Main Window',
         'size': (640, 480),
@@ -47,7 +46,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(*self.config.get('size', {}))
         self.setCentralWidget(QtWidgets.QWidget(parent=self))
 
-        self.windows: dict[str|Type[Procedure], QtWidgets.QMainWindow] = {}
+        self.windows: dict[str|type[Procedure], QtWidgets.QMainWindow] = {}
         self._layout = QtWidgets.QGridLayout(self.centralWidget())
         menu = self.menuBar()
 
@@ -114,7 +113,8 @@ class MainWindow(QtWidgets.QMainWindow):
         help_menu.setToolTipsVisible(True)
 
         instrument_help = help_menu.addMenu('Instruments')
-        for cls, name in Instruments:
+        for cls in Instruments:
+            name = getattr(cls, 'name', cls.__name__)
             action = QtGui.QAction(name, self)
             action.triggered.connect(partial(
                 self.text_window, name, InstrumentManager.help(cls, return_str=True)
@@ -150,11 +150,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reload.setShortcut('Ctrl+R')
         self.status_bar.addPermanentWidget(self.reload)
 
-    def open_sequence(self, name: str, procedure_list: list[Type[Procedure]]):
+    def open_sequence(self, name: str, procedure_list: list[type[Procedure]]):
         window = SequenceWindow(procedure_list, title=name, parent=self)
         window.show()
 
-    def open_app(self, cls: Type[Procedure]):
+    def open_app(self, cls: type[Procedure]):
         self.windows[cls] = ExperimentWindow(cls)
         self.windows[cls].show()
 
@@ -203,8 +203,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self, 'Open config file', str(load_path), 'YAML files (*.yml)',
         )[0]
         load_path = Path(_load_path)
-        if not load_path.exists():
-            log.warning(f'Config file {load_path} not found.')
+        if not load_path.exists() or not load_path.is_file():
+            if str(load_path) != '.':
+                log.warning(f'Config file {load_path} not found.')
             return
 
         global_config_path = Path(config['General']['global_config_file'])
@@ -282,7 +283,7 @@ class MainWindow(QtWidgets.QMainWindow):
         super().closeEvent(event)
 
 
-def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
+def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
     """Displays the window for the given class. Allows for the
     window to be run from the GUI, by queuing it in the manager.
     It also allows for existing data to be loaded and displayed.
@@ -313,7 +314,7 @@ def display_window(Window: Type[QtWidgets.QMainWindow], *args, **kwargs):
     sys.exit()
 
 
-def display_experiment(cls: Type[Procedure], title: str = ''):
+def display_experiment(cls: type[Procedure], title: str = ''):
     """Wrapper around display_window for ExperimentWindow.
     TODO: Remove this function and use display_window directly.
     """

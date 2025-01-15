@@ -11,19 +11,10 @@ from .IVgT import IVgT
 from .Wait import Wait
 from .LaserCalibration import LaserCalibration
 
-Experiments: list[tuple[Procedure, str]] = [
-    (IV, 'I vs V'),
-    (IVg, 'I vs Vg'),
-    (It, 'I vs t'),
-    (ItVg, 'I vs t (Vg)'),
-    (ITt, 'I,T vs t'),
-    (IVgT, 'I,T vs Vg'),
-    (Tt, 'T vs t'),
-    (Pt, 'P vs t'),
-    (LaserCalibration, 'Calibrate Laser'),
-]
+Experiments: list[type[Procedure]] = [IV, IVg, It, ItVg, ITt, IVgT, Tt, Pt,
+                                      LaserCalibration]
 
-experiment_list = [cls.__name__ for cls, desc in Experiments]
+experiment_list = [cls.__name__ for cls in Experiments]
 
 
 def from_str(s: str) -> list[Procedure] | Procedure:

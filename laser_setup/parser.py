@@ -1,9 +1,10 @@
 """Module to parse configuration files"""
 import os
-import yaml
-from pathlib import Path
-from functools import partial
 from collections.abc import Mapping
+from functools import partial
+from pathlib import Path
+
+import yaml
 
 default_config_path = Path(__file__).parent / 'config' / 'default_config.yml'
 default_config_lookup: list[tuple[str, str]] = [
