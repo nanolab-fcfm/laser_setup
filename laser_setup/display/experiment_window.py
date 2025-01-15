@@ -3,9 +3,10 @@ import time
 from functools import partial
 from typing import Type
 
-from pymeasure.display.widgets import InputsWidget, PlotFrame
+from pymeasure.display.widgets import (InputsWidget, LogWidget, PlotFrame,
+                                       PlotWidget)
 from pymeasure.display.widgets.dock_widget import DockWidget
-from pymeasure.display.windows import ManagedWindow
+from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
 
 from .. import config
@@ -16,7 +17,7 @@ from .widgets import ProgressBar, TextWidget
 log = logging.getLogger(__name__)
 
 
-class ExperimentWindow(ManagedWindow):
+class ExperimentWindow(ManagedWindowBase):
     """The main window for an experiment. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
     from the GUI, by queuing it in the manager. It also allows for existing
@@ -25,6 +26,7 @@ class ExperimentWindow(ManagedWindow):
     inputs_in_scrollarea: bool = True
     enable_file_input: bool = False
     dock_plot_number: int = 2
+    icon: str = None
 
     def __init__(self, cls: Type[Procedure], title: str = '', **kwargs):
         self.cls = cls
@@ -35,35 +37,16 @@ class ExperimentWindow(ManagedWindow):
         if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
             raise AttributeError(f"Procedure {cls.__name__} must define DATA_COLUMNS with at least 2 columns.")
 
-        super().__init__(
-            procedure_class=cls,
-            inputs=getattr(cls, 'INPUTS', []),
-            displays=getattr(cls, 'INPUTS', []),
-            x_axis=cls.DATA_COLUMNS[0],
-            y_axis=cls.DATA_COLUMNS[1],
-            inputs_in_scrollarea=self.inputs_in_scrollarea,
-            enable_file_input=self.enable_file_input,
-            sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
-            sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
-            sequence_file = config.get('Procedures', {}).get('sequence_file'),
-            **kwargs
-        )
+        self.x_axis = cls.DATA_COLUMNS[0]
+        self.y_axis = cls.DATA_COLUMNS[1]
+        self.log_widget = LogWidget("Experiment Log")
+        self.plot_widget = PlotWidget("Results Graph", cls.DATA_COLUMNS, self.x_axis,
+                                      self.y_axis)
+        self.plot_widget.setMinimumSize(100, 200)
 
-        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
-        self.setWindowIcon(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon)
-        )
-
-        # Add a shutdown button if the procedure is a BaseProcedure
-        if issubclass(self.procedure_class, BaseProcedure):
-            self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
-            self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
-            self.shutdown_button.setToolTip('Shutdown all instruments')
-            self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
-
-        self.text_widget = TextWidget('Information', parent=self, file=config['GUI']['info_file'])
-        self.dock_widget = DockWidget('Dock', cls, parent=self,
-            x_axis_labels=[cls.DATA_COLUMNS[0],],
+        self.text_widget = TextWidget('Information', file=config['GUI']['info_file'])
+        self.dock_widget = DockWidget('Dock', cls,
+            x_axis_labels=[self.x_axis,],
             y_axis_labels=cls.DATA_COLUMNS[1:self.dock_plot_number+1],
         )
         if bool(config['GUI']['dark_mode']):
@@ -72,9 +55,39 @@ class ExperimentWindow(ManagedWindow):
                 plot_widget.plot_frame.setStyleSheet('background-color: black;')
                 plot_widget.plot_frame.plot_widget.setBackground('k')
 
-        self.widget_list += (self.text_widget, self.dock_widget)
-        self.tabs.addTab(self.text_widget, self.text_widget.name)
-        self.tabs.addTab(self.dock_widget, self.dock_widget.name)
+        widget_list = (self.plot_widget, self.log_widget, self.text_widget, self.dock_widget)
+
+        super().__init__(
+            procedure_class=cls,
+            widget_list=widget_list,
+            inputs=getattr(cls, 'INPUTS', []),
+            displays=getattr(cls, 'INPUTS', []),
+            inputs_in_scrollarea=self.inputs_in_scrollarea,
+            enable_file_input=self.enable_file_input,
+            sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
+            sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
+            sequence_file = getattr(cls, 'SEQUENCE_FILE', None),
+            **kwargs
+        )
+        self.setWindowTitle(title or self.title or getattr(cls, 'name', cls.__name__))
+        self.setWindowIcon(
+            self.icon or self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
+            )
+        )
+        # Add a shutdown all button if the procedure is a BaseProcedure
+        if issubclass(self.procedure_class, BaseProcedure):
+            self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
+            self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
+            self.shutdown_button.setToolTip('Shutdown all instruments')
+            self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
+
+        self.browser_widget.browser.measured_quantities.update([self.x_axis, self.y_axis])
+
+        self.log = logging.getLogger()
+        self.log.addHandler(self.log_widget.handler)
+        self.log.setLevel(config['Logging']['console_level'])
+        self.log.info(f"{self.__class__.__name__} connected to logging")
 
     def queue(self, procedure: Type[Procedure] = None):
         if procedure is None:

@@ -19,13 +19,11 @@ def main():
 
     elif args.procedure in experiment_list:
         idx = experiment_list.index(args.procedure)
-        display_window(
-            ExperimentWindow, Experiments[idx][0], title=Experiments[idx][1]
-        )
+        display_window(ExperimentWindow, Experiments[idx])
 
     elif args.procedure in script_list:
         idx = script_list.index(args.procedure)
-        Scripts[idx][0]()
+        Scripts[idx]()
 
     else:
         raise ValueError(f"Invalid argument: {args.procedure}")
