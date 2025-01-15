@@ -93,4 +93,5 @@ def create_db(parent=None):
 
 
 def main():
+    """Parameters to Database"""
     create_db(parent=None)

@@ -92,6 +92,7 @@ def setup(parent=None):
 
 
 def main():
+    """Set up Adapters"""
     setup(parent=None)
 
 

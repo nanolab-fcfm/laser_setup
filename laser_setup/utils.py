@@ -6,8 +6,6 @@ from typing import Dict, List, Tuple
 import numpy as np
 import requests
 import pandas as pd
-from scipy.stats import linregress
-from scipy.signal import find_peaks
 
 from . import config
 
@@ -155,6 +153,7 @@ def read_pymeasure(file_path: str, comment='#') -> Tuple[Dict, pd.DataFrame]:
 
 
 def find_dp(data: Tuple[Dict, pd.DataFrame]) -> float:
+    from scipy.signal import find_peaks
     df = data[1]
     R = 1 / df['I (A)']
     peaks, _ = find_peaks(R)
@@ -381,6 +380,7 @@ def make_data_summary(experiments):
 
 
 def get_current_from_Vg(data, vg):
+    from scipy.stats import linregress
     # we first check if the value exists
     df = data[1]
     if vg in df["Vg (V)"]:

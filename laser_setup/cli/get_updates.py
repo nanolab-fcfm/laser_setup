@@ -50,6 +50,7 @@ def get_updates(parent=None):
 
 
 def main(parent=None):
+    """Get updates"""
     get_updates(parent=parent)
 
 

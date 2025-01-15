@@ -2,8 +2,7 @@ import argparse
 
 from . import __version__
 from .cli import Scripts, script_list
-from .display import ExperimentWindow, display_window
-from .display.main_window import main as display_main
+from .display import ExperimentWindow, MainWindow, display_window
 from .procedures import Experiments, experiment_list
 
 
@@ -16,7 +15,7 @@ def main():
     args = parser.parse_args()
 
     if args.procedure is None:
-        display_main()
+        display_window(MainWindow)
 
     elif args.procedure in experiment_list:
         idx = experiment_list.index(args.procedure)

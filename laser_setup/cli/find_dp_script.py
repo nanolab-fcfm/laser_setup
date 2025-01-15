@@ -14,6 +14,7 @@ except ImportError:
 
 
 def main():
+    """Find Dirac Point"""
     warnings.warn(
         "This script is deprecated and will not be updated. Use the 'find_dp' function from 'utils.py' instead.",
         DeprecationWarning,
