@@ -6,9 +6,12 @@ from pathlib import Path
 from typing import TypeVar
 
 import yaml
-from pymeasure.experiment import IntegerParameter, Parameter, BooleanParameter, ListParameter, FloatParameter, Metadata
+from pymeasure.experiment import (BooleanParameter, FloatParameter,
+                                  IntegerParameter, ListParameter, Metadata,
+                                  Parameter)
 
 from . import config
+from .instruments import PendingInstrument
 from .parser import YAMLParser, merge_dicts
 
 AnyParameter = TypeVar('AnyParameter', bound=Parameter)
@@ -50,7 +53,8 @@ class ParameterParser(YAMLParser):
         '!IntegerParameter': IntegerParameter,
         '!FloatParameter': FloatParameter,
         '!ListParameter': ListParameter,
-        '!Metadata': Metadata
+        '!Metadata': Metadata,
+        '!PendingInstrument': PendingInstrument
     }
 
     @staticmethod

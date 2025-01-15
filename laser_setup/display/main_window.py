@@ -25,21 +25,36 @@ class MainWindow(QtWidgets.QMainWindow):
     """The main window for program. It contains buttons to open
     the experiment windows, sequence windows, and run scripts.
     """
+    procedures: list[Type[Procedure]] = [e[0] for e in Experiments]
+    sequences: list[tuple[str, list[Type[Procedure]]]] = list(config.get('Sequences', {}).items())
+    scripts: list[callable] = [s[0] for s in Scripts]
+    config = {
+        'title': 'Main Window',
+        'size': (640, 480),
+        'widget_size': (640, 480),
+        'icon': '',
+        'readme_file': 'README.md',
+    }
     def __init__(self, **kwargs):
+        self.config.update(config['GUI']['MainWindow'])
         super().__init__(**kwargs)
-        self.setWindowTitle('Laser Setup')
+        self.setWindowTitle(self.config.get('title'))
         self.setWindowIcon(
-            self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ComputerIcon)
+            self.config.get('icon') or self.style().standardIcon(
+                QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
+            )
         )
-        self.resize(640, 480)
-        self.setCentralWidget(QtWidgets.QWidget())
+        self.resize(*self.config.get('size', {}))
+        self.setCentralWidget(QtWidgets.QWidget(parent=self))
 
+        self.windows: dict[str|Type[Procedure], QtWidgets.QMainWindow] = {}
+        self._layout = QtWidgets.QGridLayout(self.centralWidget())
         menu = self.menuBar()
 
         procedure_menu = menu.addMenu('&Procedures')
         procedure_menu.setToolTipsVisible(True)
-        for cls, name in Experiments:
-            action = QtGui.QAction(name, self)
+        for cls in self.procedures:
+            action = QtGui.QAction(getattr(cls, 'name', cls.__name__), self)
             doc = cls.__doc__.replace('    ', '').strip()
             action.triggered.connect(partial(self.open_app, cls))
             action.setToolTip(doc)
@@ -49,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         sequence_menu = menu.addMenu('Se&quences')
         sequence_menu.setToolTipsVisible(True)
-        for name, list_str in config['Sequences'].items():
+        for name, list_str in self.sequences:
             action = QtGui.QAction(name, self)
             doc = str(list_str).replace("'", "").replace('"', '')
             action.triggered.connect(partial(
@@ -62,11 +77,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         script_menu = menu.addMenu('&Scripts')
         script_menu.setToolTipsVisible(True)
-        for f, name in Scripts:
-            action = QtGui.QAction(name, self)
-            doc = sys.modules[f.__module__].__doc__ or ''
+        for func in self.scripts:
+            action = QtGui.QAction(func.__doc__ or func.__module__, self)
+            doc = sys.modules[func.__module__].__doc__ or ''
             doc = doc.replace('    ', '').strip()
-            action.triggered.connect(partial(self.run_script, f))
+            action.triggered.connect(partial(self.run_script, func))
             action.setToolTip(doc)
             action.setStatusTip(doc)
             action.setShortcut(f'Alt+{len(script_menu.actions()) + 1}')
@@ -113,19 +128,16 @@ class MainWindow(QtWidgets.QMainWindow):
         worker.finished.connect(lambda msg: self.status_bar.showMessage(msg, 3000))
         thread.start()
 
-        self.windows: dict[str|Type[Procedure], QtWidgets.QMainWindow] = {}
-        self._layout = QtWidgets.QGridLayout(self.centralWidget())
-
         # README Widget
         readme = QtWidgets.QTextBrowser(parent=self)
         readme.setOpenExternalLinks(True)
         readme.setStyleSheet("""
             font-size: 12pt;
         """)
-        try:
-            with open('README.md') as f:
-                readme_text = f.read()
-        except FileNotFoundError:
+        readme_path = Path(self.config['readme_file'])
+        if readme_path.exists():
+            readme_text = readme_path.read_text()
+        else:
             readme_text = metadata('laser_setup').get('Description')
         readme.setMarkdown(readme_text)
         self._layout.addWidget(readme)
@@ -143,9 +155,7 @@ class MainWindow(QtWidgets.QMainWindow):
         window.show()
 
     def open_app(self, cls: Type[Procedure]):
-        # Get the index of the title from the transpose. This turned out ugly.
-        title = Experiments[list(zip(*Experiments))[0].index(cls)][1]
-        self.windows[cls] = ExperimentWindow(cls, title=title)
+        self.windows[cls] = ExperimentWindow(cls)
         self.windows[cls].show()
 
     def run_script(self, f: callable):
@@ -160,7 +170,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Opens a widget in a new window."""
         widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
         widget.setWindowTitle(title)
-        widget.resize(640, 480)
+        widget.resize(*self.config['widget_size'])
         widget.show()
 
     def edit_config(self):
