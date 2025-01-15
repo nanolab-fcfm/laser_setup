@@ -6,11 +6,18 @@ from pathlib import Path
 
 import yaml
 
-default_config_path = Path(__file__).parent / 'config' / 'default_config.yml'
-default_config_lookup: list[tuple[str, str]] = [
-    ('General', 'global_config_file'),
-    ('General', 'local_config_file')
-]
+
+class Paths:
+    """Enum with the default paths for the configuration files."""
+    default_config_lookup: list[tuple[str, str]] = [
+        ('General', 'global_config_file'),
+        ('General', 'local_config_file')
+    ]
+    _parent = Path(__file__).parent
+    allowed_files: str = 'YAML files (*.yml)'
+    default_config: Path = _parent / 'config' / 'default_config.yml'
+    default_parameters: Path = _parent / 'config' / 'parameters.yml'
+    default_procedures: Path = _parent / 'config' / 'procedures.yml'
 
 
 class YAMLParser:
@@ -98,7 +105,7 @@ def load_yaml(file_path: str|Path, loader: yaml.SafeLoader = yaml.SafeLoader) ->
 
 def load_config(
     config_env: str = 'CONFIG',
-    lookup: list[tuple[str, str]] = default_config_lookup
+    lookup: list[tuple[str, str]] = Paths.default_config_lookup
 ) -> dict:
     """Load the configuration files appropiately. By default, it loads the
     files in the following order:
@@ -112,8 +119,8 @@ def load_config(
     :param lookup: List of tuples with the keys to look for the configuration files.
     :return: Tuple with the parsed configuration and the last file used.
     """
-    config = load_yaml(default_config_path)
-    config_path_used = default_config_path
+    config = load_yaml(Paths.default_config)
+    config_path_used = Paths.default_config
 
     if config_env_path := os.getenv(config_env):
         config[lookup[0][0]][lookup[0][1]] = config_env_path

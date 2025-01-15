@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from pymeasure.experiment.config import set_mpl_rcparams
 from pymeasure.log import setup_logging
 
-from .parser import load_config, default_config_path
+from .parser import load_config
 
 __version__ = '0.5.0-alpha'
 

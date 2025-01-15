@@ -7,10 +7,10 @@ from pathlib import Path
 
 from pymeasure.experiment import Procedure
 
-from .. import config, default_config_path
+from .. import config
 from ..cli import Scripts, parameters_to_db
 from ..instruments import InstrumentManager, Instruments
-from ..parser import load_yaml, save_yaml
+from ..parser import Paths, load_yaml, save_yaml
 from ..procedures import Experiments, from_str
 from ..utils import get_status_message, remove_empty_data
 from .experiment_window import ExperimentWindow, SequenceWindow
@@ -175,7 +175,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def edit_config(self):
         save_path = Path(config['_session']['save_path'])
-        if config['_session']['config_path_used'] == default_config_path:
+        if config['_session']['config_path_used'] == Paths.default_config:
             create_config = self.question_box(
                 'Create new config?',
                 'No custom configuration found. Create new config file?'
@@ -187,10 +187,10 @@ class MainWindow(QtWidgets.QMainWindow):
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
             _save_path = QtWidgets.QFileDialog.getSaveFileName(
-                self, 'Save config file', str(save_path), 'YAML files (*.yml)'
+                self, 'Save config file', str(save_path), Paths.allowed_files
             )[0]
             save_path = Path(_save_path)
-            text = default_config_path.read_text()
+            text = Paths.default_config.read_text()
             save_path.write_text(text)
             log.info(f'Created new config file at {save_path}')
 
@@ -200,7 +200,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def load_config(self):
         load_path = Path(config['General']['local_config_file'])
         _load_path = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Open config file', str(load_path), 'YAML files (*.yml)',
+            self, 'Open config file', str(load_path), Paths.allowed_files,
         )[0]
         load_path = Path(_load_path)
         if not load_path.exists() or not load_path.is_file():
