@@ -89,7 +89,7 @@ def send_telegram_alert(message: str):
         log.error("No internet connection. Cannot send Telegram message.")
         return
 
-    if 'TOKEN' not in config['Telegram']:
+    if 'token' not in config['Telegram']:
         log.error("Telegram token not specified in config.")
         return
 

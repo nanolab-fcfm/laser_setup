@@ -219,6 +219,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def suggest_reload(self):
         self.reload.setStyleSheet('background-color: red;')
         self.reload.setText('Reload to apply changes')
+        self.reload.setShortcut('Ctrl+R')
 
     def error_dialog(self, message:str):
         error_dialog = QtWidgets.QMessageBox(parent=self)

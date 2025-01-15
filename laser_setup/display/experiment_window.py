@@ -123,6 +123,9 @@ class ExperimentWindow(ManagedWindowBase):
             time.sleep(0.5)
 
         self.log_widget._blinking_stop(self.log_widget.tab_index)
+        if self.use_estimator:
+            self.estimator.update_thread.stop()
+
         super().closeEvent(event)
 
 
