@@ -80,6 +80,7 @@ class ExperimentWindow(ManagedWindow):
         if procedure is None:
             procedure = self.make_procedure()
 
+        config['Filename']['prefix'] = config['Filename']['prefix'] or procedure.__class__.__name__
         filename = unique_filename(config['General']['data_dir'], **config['Filename'])
         log.info(f"Saving data to {filename}.")
 
