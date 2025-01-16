@@ -708,7 +708,7 @@ requires-dist = [
     { name = "bendev", specifier = "==0.3.1" },
     { name = "gitpython" },
     { name = "matplotlib" },
-    { name = "pymeasure", specifier = ">=0.14.0,<0.15" },
+    { name = "pymeasure", specifier = ">=0.14.0,<0.16" },
     { name = "pyqt6", specifier = ">=6.1.0" },
     { name = "pyyaml" },
     { name = "qtpy" },
@@ -718,7 +718,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pymeasure", extras = ["tests"], specifier = ">=0.14.0,<0.15" },
+    { name = "pymeasure", extras = ["tests"], specifier = ">=0.14.0,<0.16" },
     { name = "sphinx", specifier = ">=7.4.7" },
     { name = "sphinx-rtd-theme", specifier = ">=3.0.2" },
 ]

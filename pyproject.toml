@@ -10,7 +10,7 @@ dependencies = [
     'bendev==0.3.1',
     'GitPython',
     'matplotlib',
-    'pymeasure>=0.14.0,<0.15',
+    'pymeasure>=0.15.0,<0.16',
     'PyQt6>=6.1.0',
     'PyYAML',
     'qtpy',
@@ -51,7 +51,7 @@ version = {attr = "laser_setup.__version__"}
 
 [dependency-groups]
 dev = [
-    "pymeasure[tests]>=0.14.0,<0.15",
+    "pymeasure[tests]>=0.14.0,<0.16",
     "sphinx>=7.4.7",
     "sphinx-rtd-theme>=3.0.2",
 ]
