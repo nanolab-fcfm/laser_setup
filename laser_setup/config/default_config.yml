@@ -75,11 +75,11 @@ Sequences:
 
 Telegram:
   # Telegram bot token
-  token: <token_id>
+  token: ''
 
   # Chat IDs for the Telegram bot to send messages to
-  name: <chat_id>
-  name2: <chat_id_2>
+  name: ''
+  name2: ''
 
 
 ############################################

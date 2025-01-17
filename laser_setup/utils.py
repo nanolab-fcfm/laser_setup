@@ -82,37 +82,36 @@ def remove_empty_data(days: int = 2):
 def send_telegram_alert(message: str):
     """Sends a message to all valid Telegram chats on config['Telegram'].
     """
-    try:
-        requests.get("https://www.google.com/", timeout=1)
-
-    except:
-        log.error("No internet connection. Cannot send Telegram message.")
+    if not (TOKEN := config['Telegram'].get('token', None)):
+        log.debug("Telegram token not specified in config.")
         return
-
-    if 'token' not in config['Telegram']:
-        log.error("Telegram token not specified in config.")
-        return
-
-    TOKEN = config['Telegram']['token']
 
     chats = [c for c in config['Telegram'] if c != 'token']
     if len(chats) == 0:
-        log.error("No chats specified in config.")
+        log.debug("No chats specified in config.")
+        return
+
+    try:
+        requests.get("http://www.example.com/", timeout=0.5)
+    except requests.RequestException:
+        log.error("No internet response. Cannot send Telegram message.")
         return
 
     message = ''.join(['\\' + c if c in "_*[]()~`>#+-=|{}.!" else c for c in message])
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
     for chat in chats:
-        chat_id = config['Telegram'][chat]
-        params = dict(
-            chat_id = chat_id,
-            text = message,
-            parse_mode = 'MarkdownV2'
-        )
+        if chat_id := config['Telegram'][chat]:
+            params = dict(
+                chat_id = chat_id,
+                text = message,
+                parse_mode = 'MarkdownV2'
+            )
 
-        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
         requests.post(url, params=params)
-        log.info(f"Sent '{message}' to {chat}.")
+
+    log.info(f"Sent '{message}' to {chats}.")
+
 
 
 def get_status_message(timeout: float = .5) -> str:
