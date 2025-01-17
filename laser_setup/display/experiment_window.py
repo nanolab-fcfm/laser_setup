@@ -3,8 +3,7 @@ import time
 from functools import partial
 from typing import Type
 
-from pymeasure.display.widgets import (InputsWidget, LogWidget, PlotFrame,
-                                       PlotWidget)
+from pymeasure.display.widgets import InputsWidget, PlotFrame, PlotWidget
 from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
@@ -12,7 +11,7 @@ from pymeasure.experiment import Procedure, Results, unique_filename
 from .. import config
 from ..procedures import BaseProcedure, ChipProcedure
 from .Qt import QtCore, QtGui, QtWidgets
-from .widgets import ProgressBar, TextWidget
+from .widgets import LogWidget, ProgressBar, TextWidget
 
 log = logging.getLogger(__name__)
 

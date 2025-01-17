@@ -1,9 +1,10 @@
 import time
 
 from pymeasure.display.log import LogHandler
-from pymeasure.display.widgets import TabWidget
+from pymeasure.display.widgets import LogWidget, TabWidget
 from pymeasure.display.widgets.log_widget import HTMLFormatter
-from .Qt import QtWidgets, QtCore, QtSql
+
+from .Qt import QtCore, QtGui, QtSql, QtWidgets
 
 
 class ProgressBar(QtWidgets.QDialog):
@@ -69,6 +70,20 @@ class TextWidget(TabWidget, QtWidgets.QWidget):
 
         vbox.addWidget(self.view)
         self.setLayout(vbox)
+
+
+class LogWidget(LogWidget):
+    _original_color = None
+    def _blink(self):
+        self.tab_widget.tabBar().setTabTextColor(
+            self.tab_index,
+            self._original_color if self._blink_state else QtGui.QColor(self._blink_color)
+        )
+        self._blink_state = not self._blink_state
+
+    def _blinking_start(self, message):
+        super()._blinking_start(message)
+        self._original_color = self.tab_widget.tabBar().tabTextColor(self.tab_index)
 
 
 class LogsWidget(QtWidgets.QWidget):
