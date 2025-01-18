@@ -18,6 +18,7 @@ class Paths:
     default_config: Path = _parent / 'config' / 'default_config.yml'
     default_parameters: Path = _parent / 'config' / 'parameters.yml'
     default_procedures: Path = _parent / 'config' / 'procedures.yml'
+    default_splash: Path = _parent / 'assets' / 'img' / 'splash.png'
 
 
 class YAMLParser:

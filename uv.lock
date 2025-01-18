@@ -708,7 +708,7 @@ requires-dist = [
     { name = "bendev", specifier = "==0.3.1" },
     { name = "gitpython" },
     { name = "matplotlib" },
-    { name = "pymeasure", specifier = ">=0.14.0,<0.16" },
+    { name = "pymeasure", specifier = ">=0.15.0,<0.16" },
     { name = "pyqt6", specifier = ">=6.1.0" },
     { name = "pyyaml" },
     { name = "qtpy" },
@@ -1124,7 +1124,7 @@ wheels = [
 
 [[package]]
 name = "pymeasure"
-version = "0.14.0"
+version = "0.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "numpy", version = "2.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
@@ -1135,9 +1135,9 @@ dependencies = [
     { name = "pyserial" },
     { name = "pyvisa" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/5c/98/3b2d5ca66c0b96e39e762cf72a20fa52f703b3fed7dd90bebb1d81abe759/pymeasure-0.14.0.tar.gz", hash = "sha256:bbe91bbe3241992a616f165c30d150f01cc900309a7926f605690aa845911742", size = 3839485 }
+sdist = { url = "https://files.pythonhosted.org/packages/16/27/232d96a29851d83146f8c80f6fb3d2193819d06aeafcbdf7b14054967978/pymeasure-0.15.0.tar.gz", hash = "sha256:2867db427948ac3487b365c64ed5805507899808b08450285327f21e72a36ae1", size = 3880853 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/09/cfb9580779d6be0e0c23f854d51909f9b4683693996a10bb692ebea2d571/PyMeasure-0.14.0-py3-none-any.whl", hash = "sha256:87e546beb34e0534128998e52a04f7b09c3bd348f7c0b96b44cb1ccca0e5a6d6", size = 762839 },
+    { url = "https://files.pythonhosted.org/packages/5e/76/25122ed2937e3c71c90294da0f2b5f80a74f4604a7c11a36c0ed869fe942/PyMeasure-0.15.0-py3-none-any.whl", hash = "sha256:bae7c3ad63d3e9c6eaba0675e9dab4bc30a0d64a05e273307c26df89909b41a6", size = 800183 },
 ]
 
 [package.optional-dependencies]

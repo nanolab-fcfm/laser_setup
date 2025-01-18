@@ -293,7 +293,11 @@ def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
     :param args: The arguments to pass to the window class.
     """
     app = QtWidgets.QApplication(sys.argv)
-    pixmap = QtGui.QPixmap(config['GUI']['splash_image'])
+    splash_image = Path(config['GUI']['splash_image'])
+    if not splash_image.exists():
+        splash_image = Paths.default_splash
+
+    pixmap = QtGui.QPixmap(splash_image.as_posix())
     pixmap = pixmap.scaledToHeight(480)
     splash = QtWidgets.QSplashScreen(pixmap)
     splash.show()
