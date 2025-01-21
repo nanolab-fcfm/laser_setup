@@ -14,10 +14,10 @@ class Paths:
         ('General', 'local_config_file')
     ]
     _parent = Path(__file__).parent
-    allowed_files: str = 'YAML files (*.yml)'
-    default_config: Path = _parent / 'config' / 'default_config.yml'
-    default_parameters: Path = _parent / 'config' / 'parameters.yml'
-    default_procedures: Path = _parent / 'config' / 'procedures.yml'
+    allowed_files: str = 'YAML files (*.yaml)'
+    default_config: Path = _parent / 'config' / 'default_config.yaml'
+    default_parameters: Path = _parent / 'config' / 'parameters.yaml'
+    default_procedures: Path = _parent / 'config' / 'procedures.yaml'
     default_splash: Path = _parent / 'assets' / 'img' / 'splash.png'
 
 

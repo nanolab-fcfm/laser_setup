@@ -44,7 +44,7 @@ laser_setup_gui = "laser_setup.__main__:main"
 include = ["laser_setup*"]
 
 [tool.setuptools.package-data]
-laser_setup = ["config/*.yml", "assets/**"]
+laser_setup = ["config/*.yaml", "assets/**"]
 
 [tool.setuptools.dynamic]
 version = {attr = "laser_setup.__version__"}

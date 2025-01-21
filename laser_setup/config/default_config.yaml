@@ -5,16 +5,16 @@
 
 General:
   # Global configuration file. Overrides this file. If not found, it will be skipped
-  global_config_file: ./config/config.yml
+  global_config_file: ./config/config.yaml
 
   # Local configuration file. Overrides global_config. If not found, it will be skipped
-  local_config_file: ./config/config.yml
+  local_config_file: ./config/config.yaml
 
   # Parameters file. Useful for Procedures that share the same parameters
-  parameters_file: ./config/parameters.yml
+  parameters_file: ./config/parameters.yaml
 
   # Procedure configuration. Overrides the parameter defaults if given.
-  procedure_config_file: ./config/procedures.yml
+  procedure_config_file: ./config/procedures.yaml
 
   # Data directory. Where the data will be saved
   data_dir: ./data
