@@ -116,12 +116,12 @@ class SQLiteWidget(QtWidgets.QWidget):
         super().__init__(parent)
 
         # Initialize database connection
-        self.database = database
-        self.con = QtSql.QSqlDatabase.addDatabase('QSQLITE')
-        self.con.setDatabaseName(self.database)
+        self.con_name = f"con_{id(self)}"
+        self.con = QtSql.QSqlDatabase.addDatabase('QSQLITE', self.con_name)
+        self.con.setDatabaseName(database)
 
         if not self.con.open():
-            raise Exception(f"Unable to open database: {self.database}")
+            raise Exception(f"Unable to open database: {database}")
 
         # Initialize model
         self.model = QtSql.QSqlTableModel(self, self.con)
@@ -187,3 +187,8 @@ class SQLiteWidget(QtWidgets.QWidget):
     def update(self):
         """Update the model data by re-selecting the table."""
         self.model.select()
+
+    def closeEvent(self, event):
+        """Close the database connection when the widget is closed."""
+        self.con.close()
+        super().closeEvent(event)

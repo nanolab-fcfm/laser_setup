@@ -87,9 +87,10 @@ class MainWindow(QtWidgets.QMainWindow):
             script_menu.addAction(action)
 
         view_menu = menu.addMenu('&View')
-        view_menu.addAction(
+        db_action = view_menu.addAction(
             'Parameter Database', partial(self.open_database, config['General']['database'])
         )
+        db_action.setShortcut('Ctrl+Shift+D')
 
         self.log_widget = LogsWidget('Logs', parent=self)
         self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
@@ -271,9 +272,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
             parameters_to_db.create_db(parent=self)
 
-        db_widget = SQLiteWidget(db_path.as_posix(), parent=self)
-        db_widget.closeEvent = lambda _: db_widget.con.close()
-        self.open_widget(db_widget, db_name)
+        self.db_widget = SQLiteWidget(db_path.as_posix(), parent=self)
+        self.open_widget(self.db_widget, db_name)
 
     def closeEvent(self, event):
         """Ensures all running threads are properly stopped."""
