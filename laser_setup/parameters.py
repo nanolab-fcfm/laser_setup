@@ -64,6 +64,10 @@ class LaserParameters(ParameterProvider):
 
     fiber = ListParameter('Optical fiber', choices=fibers)
 
+    # Wavelength Parameters
+    wl_start = FloatParameter('Start Wavelength', units='nm', default=400.0)
+    wl_end = FloatParameter('End Wavelength', units='nm', default=700.0)
+    wl_step = FloatParameter('Wavelength Step', units='nm', default=1.0)
 
 class InstrumentParameters(ParameterProvider):
     N_avg = IntegerParameter('N_avg', default=2, group_by='show_more')  # deprecated

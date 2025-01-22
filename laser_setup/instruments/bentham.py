@@ -107,7 +107,7 @@ class Bentham(Instrument):
 
         if isinstance(adapter, str) or adapter is None:
             try:
-                self.adapter = bendev.Device(adapter)
+                self.adapter = bendev.Device(serial_number=adapter)
 
             except bendev.exceptions.ExternalDeviceNotFound:
                 if adapter is not None:
