@@ -7,7 +7,7 @@ import numpy as np
 import requests
 import pandas as pd
 
-from . import config
+from .config import config
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
 
 
 def get_data_files(pattern: str = '*.csv') -> List[Path]:
-    data_path = Path(config['General']['data_dir'])
+    data_path = Path(config.Dir.data_dir)
     return list(data_path.rglob(pattern))
 
 
@@ -80,13 +80,13 @@ def remove_empty_data(days: int = 2):
 
 
 def send_telegram_alert(message: str):
-    """Sends a message to all valid Telegram chats on config['Telegram'].
+    """Sends a message to all valid Telegram chats on config.Telegram.
     """
-    if not (TOKEN := config['Telegram'].get('token', None)):
+    if not (TOKEN := config.Telegram.get('token', None)):
         log.debug("Telegram token not specified in config.")
         return
 
-    chats = [c for c in config['Telegram'] if c != 'token']
+    chats = [c for c in config.Telegram if c != 'token']
     if len(chats) == 0:
         log.debug("No chats specified in config.")
         return
@@ -101,7 +101,7 @@ def send_telegram_alert(message: str):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
     for chat in chats:
-        if chat_id := config['Telegram'][chat]:
+        if chat_id := config.Telegram[chat]:
             params = dict(
                 chat_id = chat_id,
                 text = message,

@@ -14,23 +14,21 @@ from types import SimpleNamespace
 from pymeasure.experiment.config import set_mpl_rcparams
 from pymeasure.log import setup_logging
 
-from .parser import load_config
+from .config import config
 
 __version__ = '0.5.0-alpha'
-
-# Read the configuration files
-config = load_config()
 
 # Setup logging
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
-if config.get('Logging', {}).get('filename'):
-    Path(config['Logging']['filename']).parent.mkdir(parents=True, exist_ok=True)
+if config.Logging.filename:
+    Path(config.Logging.filename).parent.mkdir(parents=True, exist_ok=True)
 
-setup_logging(log, **config.get('Logging', {}))
+setup_logging(log, **config.Logging)
 
-log.info(f"Using config file: {config['_session']['config_path_used']}")
+log.info(f"Using config file: {config._session['config_path_used']}")
 
 # Setup matplotlib.rcParams from config
-set_mpl_rcparams(SimpleNamespace(_sections=config))
+_rcparams = {'matplotlib.rcParams': config.matplotlib_rcParams}
+set_mpl_rcparams(SimpleNamespace(_sections=_rcparams))

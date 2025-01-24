@@ -3,9 +3,8 @@ from pathlib import Path
 
 import pyvisa
 
-from .. import config
+from ..config import config, save_yaml
 from ..instruments import TENMA, Keithley2450
-from ..parser import save_yaml
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +45,7 @@ def tenma_ping(adapter, tenmas: list, parent=None):
 
 
 def setup(parent=None):
-    save_path = Path(config['_session']['save_path'])
+    save_path = Path(config._session['save_path'])
     save_path.parent.mkdir(parents=True, exist_ok=True)
 
     rm = pyvisa.ResourceManager()

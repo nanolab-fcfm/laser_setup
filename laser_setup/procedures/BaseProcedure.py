@@ -1,13 +1,16 @@
-import time
 import logging
+import time
 
+from omegaconf import DictConfig
 from pymeasure.experiment import Procedure
 
-from ..utils import send_telegram_alert
+from ..config import config, load_yaml
 from ..instruments import InstrumentManager, PendingInstrument
-from ..parameters import Parameters, procedure_config
+from ..parameters import Parameters
+from ..utils import send_telegram_alert
 
 log = logging.getLogger(__name__)
+procedure_config = load_yaml(config.Dir.procedure_config_file, _instantiate=True)
 
 
 class BaseProcedureMeta(type):
@@ -21,7 +24,7 @@ class BaseProcedureMeta(type):
             if key not in dct:
                 continue
 
-            if not isinstance(value, dict):
+            if not isinstance(value, (dict, DictConfig)):
                 value = {'value': value}
 
             for k, v in value.items():

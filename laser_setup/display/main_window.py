@@ -4,14 +4,15 @@ import sys
 from functools import partial
 from importlib.metadata import metadata
 from pathlib import Path
+from typing import Callable
 
 from pymeasure.experiment import Procedure
 
-from .. import config
-from ..cli import Scripts, parameters_to_db
+from ..cli import parameters_to_db, init_config
+from ..config import (DefaultPaths, Qt_config, config, instantiate, load_yaml,
+                      save_yaml)
+from ..config.Qt import ScriptsType, ProceduresType, SequencesType
 from ..instruments import InstrumentManager, Instruments
-from ..parser import Paths, load_yaml, save_yaml
-from ..procedures import Experiments, from_str
 from ..utils import get_status_message, remove_empty_data
 from .experiment_window import ExperimentWindow, SequenceWindow
 from .Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
@@ -24,36 +25,42 @@ class MainWindow(QtWidgets.QMainWindow):
     """The main window for program. It contains buttons to open
     the experiment windows, sequence windows, and run scripts.
     """
-    procedures: list[type[Procedure]] = Experiments
-    sequences: list[tuple[str, list[type[Procedure]]]] = list(config.get('Sequences', {}).items())
-    scripts: list[callable] = Scripts
-    config = {
-        'title': 'Main Window',
-        'size': (640, 480),
-        'widget_size': (640, 480),
-        'icon': '',
-        'readme_file': 'README.md',
-    }
-    def __init__(self, **kwargs):
-        self.config.update(config['GUI']['MainWindow'])
+
+    def __init__(
+        self,
+        title: str = 'Main Window',
+        size: list[int, int] = [640, 480],
+        widget_size: list[int, int] = [640, 480],
+        icon: str = '',
+        readme_file: str | Path = 'README.md',
+        procedures: ProceduresType = None,
+        sequences: SequencesType = None,
+        scripts: ScriptsType = None,
+        **kwargs
+    ):
+        self.widget_size = widget_size
+        self.readme_path = Path(readme_file)
+        self.procedures = procedures
+        self.sequences = sequences
+        self.scripts = scripts
+
         super().__init__(**kwargs)
-        self.setWindowTitle(self.config.get('title'))
-        self.setWindowIcon(
-            self.config.get('icon') or self.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
-            )
-        )
-        self.resize(*self.config.get('size', {}))
+        self.setWindowTitle(title)
+        self.setWindowIcon(icon or self.style().standardIcon(
+            QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
+        ))
+        self.resize(*size)
         self.setCentralWidget(QtWidgets.QWidget(parent=self))
 
-        self.windows: dict[str|type[Procedure], QtWidgets.QMainWindow] = {}
+        self.windows: dict[type[Procedure] | str, QtWidgets.QMainWindow] = {}
         self._layout = QtWidgets.QGridLayout(self.centralWidget())
         menu = self.menuBar()
 
         procedure_menu = menu.addMenu('&Procedures')
         procedure_menu.setToolTipsVisible(True)
-        for cls in self.procedures:
-            action = QtGui.QAction(getattr(cls, 'name', cls.__name__), self)
+        for item in self.procedures:
+            cls = item.target
+            action = QtGui.QAction(item.name or getattr(cls, 'name', cls.__name__), self)
             doc = cls.__doc__.replace('    ', '').strip()
             action.triggered.connect(partial(self.open_app, cls))
             action.setToolTip(doc)
@@ -63,11 +70,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         sequence_menu = menu.addMenu('Se&quences')
         sequence_menu.setToolTipsVisible(True)
-        for name, list_str in self.sequences:
+        for name, seq_list in self.sequences.items():
             action = QtGui.QAction(name, self)
-            doc = str(list_str).replace("'", "").replace('"', '')
+            doc = str(seq_list).replace("'", "").replace('"', '')
             action.triggered.connect(partial(
-                self.open_sequence, name, list(map(from_str, list_str))
+                self.open_sequence, name, seq_list
             ))
             action.setToolTip(doc)
             action.setStatusTip(doc)
@@ -76,8 +83,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         script_menu = menu.addMenu('&Scripts')
         script_menu.setToolTipsVisible(True)
-        for func in self.scripts:
-            action = QtGui.QAction(func.__doc__ or func.__module__, self)
+        for item in self.scripts:
+            func = item.target
+            action = QtGui.QAction(item.name or func.__doc__, self)
             doc = sys.modules[func.__module__].__doc__ or ''
             doc = doc.replace('    ', '').strip()
             action.triggered.connect(partial(self.run_script, func))
@@ -88,7 +96,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         view_menu = menu.addMenu('&View')
         db_action = view_menu.addAction(
-            'Parameter Database', partial(self.open_database, config['General']['database'])
+            'Parameter Database', partial(self.open_database, config.Dir.database)
         )
         db_action.setShortcut('Ctrl+Shift+D')
 
@@ -96,7 +104,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
 
         self.log = logging.getLogger('laser_setup')
-        self.log.setLevel(config['Logging']['console_level'])
+        self.log.setLevel(config.Logging.console_level)
         self.log.addHandler(self.log_widget.handler)
 
         log_action = view_menu.addAction('Logs', self.log_widget.show)
@@ -135,9 +143,8 @@ class MainWindow(QtWidgets.QMainWindow):
         readme.setStyleSheet("""
             font-size: 12pt;
         """)
-        readme_path = Path(self.config['readme_file'])
-        if readme_path.exists():
-            readme_text = readme_path.read_text()
+        if self.readme_path.exists():
+            readme_text = self.readme_path.read_text()
         else:
             readme_text = metadata('laser_setup').get('Description')
         readme.setMarkdown(readme_text)
@@ -152,14 +159,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status_bar.addPermanentWidget(self.reload)
 
     def open_sequence(self, name: str, procedure_list: list[type[Procedure]]):
-        window = SequenceWindow(procedure_list, title=name, parent=self)
+        window = SequenceWindow(procedure_list, title=name,
+                                parent=self, **instantiate(Qt_config.SequenceWindow))
         window.show()
 
     def open_app(self, cls: type[Procedure]):
-        self.windows[cls] = ExperimentWindow(cls)
+        self.windows[cls] = ExperimentWindow(
+            cls, **instantiate(Qt_config.ExperimentWindow)
+        )
         self.windows[cls].show()
 
-    def run_script(self, f: callable):
+    def run_script(self, f: Callable):
         """Runs the given script function in the main thread."""
         try:
             f(parent=self)
@@ -171,7 +181,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Opens a widget in a new window."""
         widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
         widget.setWindowTitle(title)
-        widget.resize(*self.config['widget_size'])
+        widget.resize(*self.widget_size)
         widget.show()
 
     def edit_config(self):
@@ -199,19 +209,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.suggest_reload()
 
     def load_config(self):
-        load_path = Path(config['General']['local_config_file'])
+        load_path = Path(config.Dir.local_config_file)
         _load_path = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Open config file', str(load_path), Paths.allowed_files,
+            self, 'Open config file', str(load_path), DefaultPaths.allowed_files,
         )[0]
         load_path = Path(_load_path)
-        if not load_path.exists() or not load_path.is_file():
+        if not load_path.is_file():
             if str(load_path) != '.':
                 log.warning(f'Config file {load_path} not found.')
             return
 
-        global_config_path = Path(config['General']['global_config_file'])
+        global_config_path = Path(config.Dir.global_config_file)
+        if not global_config_path.is_file():
+            log.warning(
+                'Loading a config file is not possible without a global config file. '
+                f'Creating one at {global_config_path}'
+            )
+            text = DefaultPaths.config.read_text()
+            global_config_path.write_text(text)
+
         _yaml = load_yaml(global_config_path)
-        _yaml['General']['local_config_file'] = load_path.as_posix()
+        _yaml['Dir']['local_config_file'] = load_path.as_posix()
         save_yaml(_yaml, global_config_path)
         log.info(f'Switched to config file {load_path}')
 
@@ -222,7 +240,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reload.setText('Reload to apply changes')
         self.reload.setShortcut('Ctrl+R')
 
-    def error_dialog(self, message:str):
+    def error_dialog(self, message: str):
         error_dialog = QtWidgets.QMessageBox(parent=self)
         error_dialog.setText(f"An error occurred:\n{message}\nPlease reload the program.")
         error_dialog.setIcon(QtWidgets.QMessageBox.Icon.Critical)
@@ -237,9 +255,10 @@ class MainWindow(QtWidgets.QMainWindow):
         return None
 
     def question_box(self, title: str, text: str) -> bool:
-        buttons = QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
-        reply = QtWidgets.QMessageBox.question(self, title, text, buttons)
-        return reply == QtWidgets.QMessageBox.StandardButton.Yes
+        MessageBox = QtWidgets.QMessageBox
+        buttons = MessageBox.StandardButton.Yes | MessageBox.StandardButton.No
+        reply = MessageBox.question(self, title, text, buttons)
+        return reply == MessageBox.StandardButton.Yes
 
     def text_window(self, title: str, text: str):
         """Displays a text window with the given title and text. adds a scroll bar"""
@@ -249,21 +268,25 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_console(self):
         """Opens an interactive console. Loads common modules and instruments."""
-        from ..instruments import FakeAdapter
+        from ..instruments import FakeAdapter  # noqa: F401
         instruments = InstrumentManager()
 
-        header = "Interactive console. To instantiate an instrument, use the 'instruments.connect' method.\n"
+        header = (
+            "Interactive console. To instantiate an instrument, use the "
+            "'instruments.connect' method.\n"
+        )
         if '-d' in sys.argv or '--debug' in sys.argv:
-            header += "\nDebug mode (the InstrumentManager will use a FakeAdapter if it can't connect to an instrument).\n"
-
+            header += (
+                "\nDebug mode (the InstrumentManager will use a FakeAdapter if "
+                "it can't connect to an instrument).\n"
+            )
         self.console_widget = ConsoleWidget(
             namespace=globals() | locals(), text=header, parent=self
         )
         self.open_widget(self.console_widget, 'Console')
 
-
     def open_database(self, db_name: str):
-        db_path = Path(config['General']['data_dir']) / db_name
+        db_path = Path(config.Dir.data_dir) / db_name
         if not db_path.exists():
             ans = self.question_box(
                 'Database not found', f'Database {db_path} not found. Create new database?'
@@ -293,9 +316,9 @@ def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
     :param args: The arguments to pass to the window class.
     """
     app = QtWidgets.QApplication(sys.argv)
-    splash_image = Path(config['GUI']['splash_image'])
+    splash_image = Path(Qt_config.GUI.splash_image)
     if not splash_image.exists():
-        splash_image = Paths.default_splash
+        splash_image = DefaultPaths.splash
 
     pixmap = QtGui.QPixmap(splash_image.as_posix())
     pixmap = pixmap.scaledToHeight(480)
@@ -303,13 +326,19 @@ def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
     splash.show()
 
     # Get available styles with QtWidgets.QStyleFactory.keys()
-    app.setStyle(config['GUI']['style'])
-    if bool(config['GUI']['dark_mode']):
+    app.setStyle(Qt_config.GUI.style)
+    if Qt_config.GUI.dark_mode:
         app.setPalette(get_dark_palette())
     QtCore.QLocale.setDefault(QtCore.QLocale(
         QtCore.QLocale.Language.English,
         QtCore.QLocale.Country.UnitedStates
     ))
+
+    if issubclass(Window, MainWindow):
+        kwargs.update(**instantiate(Qt_config.MainWindow))
+
+    elif issubclass(Window, ExperimentWindow):
+        kwargs.update(**instantiate(Qt_config.ExperimentWindow))
 
     window = Window(*args, **kwargs)
     splash.finish(window)

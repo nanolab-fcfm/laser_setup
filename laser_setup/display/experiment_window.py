@@ -8,8 +8,8 @@ from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
 
-from .. import config
-from ..procedures import BaseProcedure, ChipProcedure
+from ..config import Qt_config, config
+from ..procedures import BaseProcedure
 from .Qt import QtCore, QtGui, QtWidgets
 from .widgets import LogWidget, ProgressBar, TextWidget
 
@@ -22,15 +22,20 @@ class ExperimentWindow(ManagedWindowBase):
     from the GUI, by queuing it in the manager. It also allows for existing
     data to be loaded and displayed.
     """
-    inputs_in_scrollarea: bool = True
-    enable_file_input: bool = False
-    dock_plot_number: int = 2
-    icon: str = None
-
-    def __init__(self, cls: Type[Procedure], title: str = '', **kwargs):
+    def __init__(
+        self,
+        cls: Type[Procedure],
+        title: str = '',
+        inputs_in_scrollarea: bool = True,
+        enable_file_input: bool = False,
+        dock_plot_number: int = 2,
+        icon: str = None,
+        info_file: str = None,
+        **kwargs
+    ):
         self.cls = cls
 
-        if bool(config['GUI']['dark_mode']):
+        if Qt_config.GUI.dark_mode:
             PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
 
         if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
@@ -43,12 +48,12 @@ class ExperimentWindow(ManagedWindowBase):
                                       self.y_axis)
         self.plot_widget.setMinimumSize(100, 200)
 
-        self.text_widget = TextWidget('Information', file=config['GUI']['info_file'])
+        self.text_widget = TextWidget('Information', file=info_file)
         self.dock_widget = DockWidget('Dock', cls,
             x_axis_labels=[self.x_axis,],
-            y_axis_labels=cls.DATA_COLUMNS[1:self.dock_plot_number+1],
+            y_axis_labels=cls.DATA_COLUMNS[1:dock_plot_number+1],
         )
-        if bool(config['GUI']['dark_mode']):
+        if Qt_config.GUI.dark_mode:
             for plot_widget in (self.plot_widget, *self.dock_widget.plot_frames):
                 plot_widget.setAutoFillBackground(True)
                 plot_widget.plot_frame.setStyleSheet('background-color: black;')
@@ -61,8 +66,8 @@ class ExperimentWindow(ManagedWindowBase):
             widget_list=widget_list,
             inputs=getattr(cls, 'INPUTS', []),
             displays=getattr(cls, 'INPUTS', []),
-            inputs_in_scrollarea=self.inputs_in_scrollarea,
-            enable_file_input=self.enable_file_input,
+            inputs_in_scrollarea=inputs_in_scrollarea,
+            enable_file_input=enable_file_input,
             sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
             sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
             sequence_file = getattr(cls, 'SEQUENCE_FILE', None),
@@ -70,7 +75,7 @@ class ExperimentWindow(ManagedWindowBase):
         )
         self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
         self.setWindowIcon(
-            self.icon or self.style().standardIcon(
+            icon or self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
             )
         )
@@ -85,16 +90,16 @@ class ExperimentWindow(ManagedWindowBase):
 
         self.log = logging.getLogger()
         self.log.addHandler(self.log_widget.handler)
-        self.log.setLevel(config['Logging']['console_level'])
+        self.log.setLevel(config.Logging.console_level)
         self.log.info(f"{self.__class__.__name__} connected to logging")
 
     def queue(self, procedure: Type[Procedure] = None):
         if procedure is None:
             procedure = self.make_procedure()
 
-        filename_kwargs: dict = config['Filename'].copy()
+        filename_kwargs: dict = dict(config.Filename).copy()
         prefix = filename_kwargs.pop('prefix', '') or procedure.__class__.__name__
-        filename = unique_filename(config['General']['data_dir'],
+        filename = unique_filename(config.Dir.data_dir,
                                    prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")
 
@@ -131,24 +136,31 @@ class ExperimentWindow(ManagedWindowBase):
 class SequenceWindow(QtWidgets.QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
-    The CommonProcedure class attribute is used to group parameters that are
+    The common_procedure class attribute is used to group parameters that are
     common to all procedures in the sequence. To avoid this behavior for a
     specific parameter, add it to the inputs_ignored list.
 
     :attr abort_timeout: float: Timeout for the abort message box.
     :attr inputs_ignored: list[str]: List of inputs to ignore when grouping parameters.
-    :attr CommonProcedure: type[BaseProcedure]: Class to group common parameters.
+    :attr common_procedure: type[BaseProcedure]: Class to group common parameters.
     """
-    abort_timeout: float = 30
-    inputs_ignored = ['show_more', 'chained_exec']
-    CommonProcedure: type[BaseProcedure] = ChipProcedure
-
     status_labels = []
     aborted: bool = False
 
-    def __init__(self, procedure_list: list[Type[BaseProcedure]], title: str = '', **kwargs):
+    def __init__(
+        self,
+        procedure_list: list[Type[BaseProcedure]],
+        title: str = '',
+        abort_timeout: float = 30.,
+        common_procedure: Type[BaseProcedure] = BaseProcedure,
+        inputs_ignored: list[str] = [],
+        **kwargs
+    ):
         super().__init__(**kwargs)
         self.procedure_list = procedure_list
+        self.abort_timeout = abort_timeout
+        self.common_procedure = common_procedure
+        self.inputs_ignored = inputs_ignored
 
         self.resize(200*(len(procedure_list)+1), 480)
         self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in procedure_list))})")
@@ -156,13 +168,13 @@ class SequenceWindow(QtWidgets.QMainWindow):
         layout = QtWidgets.QHBoxLayout()
         layout.addLayout(self._get_procedure_vlayout(title))
 
-        base_inputs = [i for i in self.CommonProcedure.INPUTS if i not in self.inputs_ignored]
+        base_inputs = [i for i in self.common_procedure.INPUTS if i not in self.inputs_ignored]
 
-        widget = InputsWidget(self.CommonProcedure, inputs=base_inputs)
+        widget = InputsWidget(self.common_procedure, inputs=base_inputs)
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget)
-        for i, proc in enumerate(procedure_list):
+        for proc in procedure_list:
             layout.addLayout(self._get_procedure_vlayout(proc.__name__))
             proc_inputs = list(proc.INPUTS)
             for input in base_inputs:
@@ -269,7 +281,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
             if self.aborted:
                 break
 
-        self.CommonProcedure.instruments.shutdown_all()
+        self.common_procedure.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
         if not self.aborted: log.info("Sequence finished.")
         self.set_status(-1, 'red' if self.aborted else 'green')
