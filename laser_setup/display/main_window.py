@@ -185,26 +185,7 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.show()
 
     def edit_config(self):
-        save_path = Path(config['_session']['save_path'])
-        if config['_session']['config_path_used'] == Paths.default_config:
-            create_config = self.question_box(
-                'Create new config?',
-                'No custom configuration found. Create new config file?'
-            )
-            if not create_config:
-                log.warning('Cannot edit settings without a custom config file.')
-                return
-
-            save_path.parent.mkdir(parents=True, exist_ok=True)
-
-            _save_path = QtWidgets.QFileDialog.getSaveFileName(
-                self, 'Save config file', str(save_path), Paths.allowed_files
-            )[0]
-            save_path = Path(_save_path)
-            text = Paths.default_config.read_text()
-            save_path.write_text(text)
-            log.info(f'Created new config file at {save_path}')
-
+        save_path = init_config.init_config(parent=self)
         os.startfile(save_path)
         self.suggest_reload()
 
