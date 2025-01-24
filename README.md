@@ -94,20 +94,6 @@ If you cloned the repository, you can also run the scripts directly from the `Sc
 python -m Scripts.<script_name>
 ```
 
-Additionally, there are two scripts to quickly analyze data.
-
-If you want to find the Dirac Point of an IVg file:
-
-```
-laser_setup find_dp_script
-```
-
-To calculate the desired powers of a LED calibration file you can use the following command, specifying the powers in uW (separated by a space):
-
-```
-python -m Scripts.find_calibration_voltage <desired powers>
-```
-
 
 ## Procedures
 A list of all available Procedures and their parameters. To maximize functionality, all user-written procedures should be subclasses of `BaseProcedure`, which is a subclass of `Procedure` from PyMeasure. Procedures inherit the following from their parent class:

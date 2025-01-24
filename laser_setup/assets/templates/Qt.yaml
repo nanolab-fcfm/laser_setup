@@ -45,10 +45,6 @@ MainWindow:
       alias: setup_adapters
       target: ${function:laser_setup.cli.setup_adapters.main}
 
-    - name: "Find Dirac Point"
-      alias: find_dp_script
-      target: ${function:laser_setup.cli.find_dp_script.main}
-
     - name: "Get updates"
       alias: get_updates
       target: ${function:laser_setup.cli.get_updates.main}

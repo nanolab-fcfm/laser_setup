@@ -66,7 +66,9 @@ def remove_empty_data(days: int = 2):
     """
     data = get_data_files()
     try:
-        data = [file for file in data if (datetime.datetime.now() - sort_by_creation_date(file)[0]).days <= days]
+        data = [file for file in data if (
+            datetime.datetime.now() - sort_by_creation_date(file)[0]
+            ).days <= days]
     except:
         pass
     for file in data:
@@ -102,16 +104,11 @@ def send_telegram_alert(message: str):
 
     for chat in chats:
         if chat_id := config.Telegram[chat]:
-            params = dict(
-                chat_id = chat_id,
-                text = message,
-                parse_mode = 'MarkdownV2'
-            )
+            params = {'chat_id': chat_id, 'text': message, 'parse_mode': 'MarkdownV2'}
 
         requests.post(url, params=params)
 
     log.info(f"Sent '{message}' to {chats}.")
-
 
 
 def get_status_message(timeout: float = .5) -> str:
@@ -194,15 +191,21 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     data_files = [d for d in data_sorted if 'IVg' in str(d)][-1:-max_files-1:-1]
     for file in data_files:
         data = read_pymeasure(file)
-        if data[0]['Chip group name'] == chip_group and data[0]['Chip number'] == str(chip_number) and data[0]['Sample'] == sample:
-            DP =  find_dp(data)
+        if all(
+            data[0]['Chip group name'] == chip_group,
+            data[0]['Chip number'] == str(chip_number),
+            data[0]['Sample'] == sample
+        ):
+            DP = find_dp(data)
             log.info(f"Dirac Point found from {file.split('/')[-1]}: {DP} [V]")
             if not isinstance(DP, float) or np.isnan(DP):
                 continue
 
             return DP
 
-    log.warning(f"Dirac Point not found for {chip_group} {chip_number} {sample}. (Using DP = 0. instead)")
+    log.warning(
+        f"Dirac Point not found for {chip_group} {chip_number} {sample}. (Using DP = 0. instead)"
+    )
     return 0.
 
 
@@ -224,206 +227,3 @@ def rename_data_value(original: str, replace: str):
             f.truncate()
 
     log.info(f"Replaced '{original}' with '{replace}' in all data files.")
-
-
-####################################################################################################
-# Old functions, to be removed
-####################################################################################################
-
-
-def get_timestamp(file):
-    return float(read_pymeasure(file)[0]['Start time'])
-
-
-def sort_by_creation_date_calibration(pattern):
-    # Get a list of file paths that match the specified pattern
-    file_paths = list(Path.cwd().glob(pattern))
-
-    # exclude calibration files
-    file_paths = [path for path in file_paths if "Calibration" not in path]
-
-    # Sort the file paths based on their creation date
-    sorted_file_paths = sorted(file_paths, key=get_timestamp)
-
-    return sorted_file_paths
-
-
-def find_Miguel(day_of_data):
-    indices_out = []
-    for i, data in enumerate(day_of_data):
-        if (data[0]['Chip group name'] == "Miguel") and (data[0]['Chip number'] == "8") and (data[0]['Sample'] == "A"):
-            indices_out.append(i)
-    return indices_out
-
-
-def experiment_type(experiment):
-    if 'VG end' in experiment[0]:
-        return "Vg"
-    return "It"
-
-
-def find_NN_points(data, vg):
-    df = data.copy()
-    df["Vg (V)"] -= vg
-    df.sort_values(by='Vg (V)', inplace=True)
-    nearest_left = df[df['Vg (V)'] <= 0].iloc[-1]
-    nearest_right = df[df['Vg (V)'] >= 0].iloc[0]
-    return nearest_left['Vg (V)'], nearest_right['Vg (V)'], nearest_left['I (A)'], nearest_right['I (A)']
-
-
-def interpolate_df(data, vg):
-    df = data.copy()
-    df["Vg (V)"] -= vg
-    x_1, x_2, y_1, y_2 = find_NN_points(data, vg)
-
-    return y_2 - x_2 * (y_2 - y_1) / (x_2 - x_1)
-
-
-def increment_numbers(input_list):
-    current_number = input_list[0]
-    counter = 1
-    output_list = []
-
-    for num in input_list:
-        if num != current_number:
-            current_number = num
-            counter += 1
-        output_list.append(counter)
-
-    return output_list
-
-
-def divide_inyective(data):
-    chunks = np.sign(data.values[1:,0] - data.values[:-1,0])
-    chunks = np.concatenate([chunks.reshape(-1), chunks[-1].reshape(-1)])
-    return increment_numbers(chunks)
-
-
-def get_mean_current_for_given_gate(data, vg):
-    # primero revisamos si existe
-    if vg in data["Vg (V)"]:
-        return data[data["Vg (V)"]==vg].mean()["I (A)"]
-
-    # primreo hay que dividir el intervalo en intervalos inyectivos
-    data.loc[:, "chunks"] = divide_inyective(data)
-
-    results = []
-    number_of_chunks = int(data.loc[len(data) - 1, "chunks"])
-    groups = data.groupby("chunks")
-    for i in range(number_of_chunks):
-        # check if desired value in chunk
-        current_df = groups.get_group(i+1)
-        if (vg > current_df["Vg (V)"].max()) and (vg < current_df["Vg (V)"].min()):
-            continue
-
-        results.append(interpolate_df(current_df, vg))
-
-    #devolver el promedio de la lista
-    return np.mean(results)
-
-
-def summary_current_given_voltage(data):
-    if experiment_type(data) == "Vg":
-        return get_mean_current_for_given_gate(data[1], -1.3)
-    else:
-        return "None"
-
-
-def center_data(data):
-    min_x, min_y = find_dp(data)
-    data_ = data.copy()
-    data_["Vg (V)"] -= min_x
-    data_["I (A)"] -= min_y
-    return data_
-
-
-def add_zoomed_in_subplot(ax, x_data, y_data, x_data_2, y_data_2, zoom_x_range, zoom_y_range, deltaI):
-    zoomed_in_ax = ax.inset_axes([0.6, 0.3, 0.3, .5])  # Adjust the position and size as needed
-    zoomed_in_ax.plot(x_data, y_data, color='blue')
-    zoomed_in_ax.plot(x_data_2, y_data_2, color='red')
-    zoomed_in_ax.vlines(-1.3, *zoom_y_range, "k", "--")
-    zoomed_in_ax.set_title(f'$\Delta I$ = {deltaI} (A)')
-
-    zoomed_in_ax.grid()
-    zoomed_in_ax.set_xlim(zoom_x_range)
-    zoomed_in_ax.set_ylim(zoom_y_range)
-    ax.indicate_inset_zoom(zoomed_in_ax)
-
-
-def get_VG(data):
-    try:
-        return data[0]["VG"]
-    except:
-        "None"
-
-
-def make_data_summary(experiments):
-    ledV = [data[0]['Laser voltage'] for data in experiments]
-    led_wl = [data[0]['Laser wavelength'] for data in experiments]
-    exp_type = [experiment_type(data) for data in experiments]
-    Ids = [summary_current_given_voltage(data) for data in experiments]
-    vg = [get_VG(data) for data in experiments]
-    dp = []
-    timestamp = []
-    for i, data in enumerate(experiments):
-        timestamp.append(get_timestamp_from_unix(float(data[0]["Start time"])))
-        if exp_type[i] == "Vg":
-            dp.append(find_dp(data))
-        else:
-            dp.append(np.nan)
-
-
-    data = {'led V': ledV, 'Experiment type': exp_type, 'wl': led_wl, "vg": vg, "dp": dp, "timestamp": timestamp}
-    df = pd.DataFrame(data)
-    return df
-
-
-def get_current_from_Vg(data, vg):
-    from scipy.stats import linregress
-    # we first check if the value exists
-    df = data[1]
-    if vg in df["Vg (V)"]:
-        return df[df["Vg (V)"]==vg].mean()["I (A)"]
-
-    # encontrar la vecindad a fitear
-    dVg = np.abs(df["Vg (V)"][1] - df["Vg (V)"][0])
-
-    df_filtered = df[(df["Vg (V)"]>vg-2*dVg)&(df["Vg (V)"]<vg+2*dVg)]
-    reg = linregress(df_filtered["Vg (V)"].values, df_filtered["I (A)"].values)
-    #plt.plot(df["Vg (V)"], df["I (A)"], "+")
-    #plt.plot(df_filtered["Vg (V)"], df_filtered["I (A)"], "o")
-    #x = np.linspace(vg-2*dVg, vg+2*dVg, 100)
-    #y = reg.slope * x + reg.intercept
-    #plt.plot(x, y)
-
-    return reg.slope * vg + reg.intercept
-
-
-def get_timestamp_from_unix(timestamp_unix):
-    # Convert Unix timestamp to a datetime object
-    dt_object = datetime.datetime.fromtimestamp(timestamp_unix)
-
-    # Convert the datetime object to a pandas Timestamp
-    timestamp_pandas = pd.Timestamp(dt_object)
-
-    return timestamp_pandas
-
-
-def get_date_time_from_timestamp_unix(timestamp_unix):
-    # Convert Unix timestamp to a datetime object
-    dt_object = datetime.datetime.fromtimestamp(timestamp_unix)
-
-    # Extract year, month, day, hour, minute, and second from the datetime object
-    year = dt_object.year
-    month = dt_object.month
-    day = dt_object.day
-    hour = dt_object.hour
-    minute = dt_object.minute
-    second = dt_object.second
-
-    return year, month, day, hour, minute, second
-
-
-def load_sorted_data(folder: str):
-    data = sort_by_creation_date_calibration(Path(folder) / "*.csv")
-    return [read_pymeasure(path) for path in data]
