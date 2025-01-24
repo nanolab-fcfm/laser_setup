@@ -1,35 +1,27 @@
-import argparse
-
-from . import __version__
-from .cli import Scripts, script_list
-from .display import ExperimentWindow, MainWindow, display_window
-from .procedures import Experiments, experiment_list
+from .config import Qt_config, instantiate
+from .parser import experiment_list, parser, script_list
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Laser Setup')
-    parser.add_argument('procedure', nargs='?', help='Procedure to run', choices=experiment_list + script_list)
-    parser.add_argument('-v', '--version', action='version', version=f'%(prog)s {__version__}')
-    parser.add_argument('-d', '--debug', action='store_true', default=False, help='Enable debug mode')
-
     args = parser.parse_args()
 
-    if args.debug:
-        from .procedures.FakeProcedure import FakeProcedure, FakeIVg
-        Experiments.extend([FakeProcedure, FakeIVg])
-
     if args.procedure is None:
+        from .display import MainWindow, display_window
         display_window(MainWindow)
 
     elif args.procedure in experiment_list:
+        from .display import ExperimentWindow, display_window
         idx = experiment_list.index(args.procedure)
-        display_window(ExperimentWindow, Experiments[idx])
+        display_window(ExperimentWindow, instantiate(
+            Qt_config.MainWindow.procedures[idx].target, level=1
+        ))
 
     elif args.procedure in script_list:
         idx = script_list.index(args.procedure)
-        Scripts[idx]()
+        instantiate(Qt_config.MainWindow.scripts[idx].target, level=1)()
 
     else:
+        # This should never happen
         raise ValueError(f"Invalid argument: {args.procedure}")
 
 
