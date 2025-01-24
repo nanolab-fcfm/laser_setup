@@ -55,7 +55,7 @@ class MainWindowConfig:
 
 @dataclass
 class SequenceWindowConfig:
-    abort_timeout: float = 30.
+    abort_timeout: int = 30
     common_procedure: Any = ''
     inputs_ignored: list[str] = field(default_factory=list)
 

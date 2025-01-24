@@ -39,7 +39,9 @@ class ExperimentWindow(ManagedWindowBase):
             PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
 
         if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
-            raise AttributeError(f"Procedure {cls.__name__} must define DATA_COLUMNS with at least 2 columns.")
+            raise AttributeError(
+                f"Procedure {cls.__name__} must define DATA_COLUMNS with at least 2 columns."
+            )
 
         self.x_axis = cls.DATA_COLUMNS[0]
         self.y_axis = cls.DATA_COLUMNS[1]
@@ -49,7 +51,8 @@ class ExperimentWindow(ManagedWindowBase):
         self.plot_widget.setMinimumSize(100, 200)
 
         self.text_widget = TextWidget('Information', file=info_file)
-        self.dock_widget = DockWidget('Dock', cls,
+        self.dock_widget = DockWidget(
+            'Dock', cls,
             x_axis_labels=[self.x_axis,],
             y_axis_labels=cls.DATA_COLUMNS[1:dock_plot_number+1],
         )
@@ -68,9 +71,9 @@ class ExperimentWindow(ManagedWindowBase):
             displays=getattr(cls, 'INPUTS', []),
             inputs_in_scrollarea=inputs_in_scrollarea,
             enable_file_input=enable_file_input,
-            sequencer = hasattr(cls, 'SEQUENCER_INPUTS'),
-            sequencer_inputs = getattr(cls, 'SEQUENCER_INPUTS', None),
-            sequence_file = getattr(cls, 'SEQUENCE_FILE', None),
+            sequencer=hasattr(cls, 'SEQUENCER_INPUTS'),
+            sequencer_inputs=getattr(cls, 'SEQUENCER_INPUTS', None),
+            sequence_file=getattr(cls, 'SEQUENCE_FILE', None),
             **kwargs
         )
         self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
@@ -113,7 +116,8 @@ class ExperimentWindow(ManagedWindowBase):
 
     def closeEvent(self, event: QtGui.QCloseEvent):
         if self.manager.is_running():
-            reply = QtWidgets.QMessageBox.question(self, 'Message',
+            reply = QtWidgets.QMessageBox.question(
+                self, 'Message',
                 'Do you want to close the window? This will abort the current experiment.',
                 QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
             )
@@ -140,7 +144,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
     common to all procedures in the sequence. To avoid this behavior for a
     specific parameter, add it to the inputs_ignored list.
 
-    :attr abort_timeout: float: Timeout for the abort message box.
+    :attr abort_timeout: int: Timeout for the abort message box.
     :attr inputs_ignored: list[str]: List of inputs to ignore when grouping parameters.
     :attr common_procedure: type[BaseProcedure]: Class to group common parameters.
     """
@@ -151,14 +155,14 @@ class SequenceWindow(QtWidgets.QMainWindow):
         self,
         procedure_list: list[Type[BaseProcedure]],
         title: str = '',
-        abort_timeout: float = 30.,
+        abort_timeout: int = 30,
         common_procedure: Type[BaseProcedure] = BaseProcedure,
         inputs_ignored: list[str] = [],
         **kwargs
     ):
         super().__init__(**kwargs)
         self.procedure_list = procedure_list
-        self.abort_timeout = abort_timeout
+        self.abort_timeout = int(abort_timeout)
         self.common_procedure = common_procedure
         self.inputs_ignored = inputs_ignored
 
@@ -195,7 +199,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         inputs = QtWidgets.QWidget(self)
         inputs.setLayout(layout)
         inputs.setSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum,
-                                QtWidgets.QSizePolicy.Policy.Fixed)
+                             QtWidgets.QSizePolicy.Policy.Fixed)
         scroll_area.setWidget(inputs)
 
         vbox = QtWidgets.QVBoxLayout()
@@ -283,28 +287,32 @@ class SequenceWindow(QtWidgets.QMainWindow):
 
         self.common_procedure.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
-        if not self.aborted: log.info("Sequence finished.")
+        if not self.aborted:
+            log.info("Sequence finished.")
+
         self.set_status(-1, 'red' if self.aborted else 'green')
         self.aborted = False
 
     @QtCore.Slot()
     def aborted_procedure(self, window: ExperimentWindow, close_window=True):
-        t_text = lambda t: f'Abort (continuing in {t} s)'
+        t_text = 'Abort (continuing in %d s)'
         t_iter = iter(range(self.abort_timeout-1, -1, -1))
 
         window.abort_button.setEnabled(False)
 
         reply = QtWidgets.QMessageBox(self)
-        reply.setWindowTitle(t_text(self.abort_timeout))
+        reply.setWindowTitle(t_text % self.abort_timeout)
         reply.setText('This experiment was aborted. Do you want to abort the rest of the sequence?')
         reply.setIcon(QtWidgets.QMessageBox.Icon.Warning)
-        reply.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        reply.setStandardButtons(
+            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
+        )
         reply.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
         reply.setWindowModality(QtCore.Qt.WindowModality.NonModal)
 
         # Create a QTimer to update the title every second
         timer = QtCore.QTimer()
-        timer.timeout.connect(lambda: reply.setWindowTitle(t_text(next(t_iter))))
+        timer.timeout.connect(lambda: reply.setWindowTitle(t_text % next(t_iter)))
         timer.start(1000)
 
         # Close the message box after timeout
