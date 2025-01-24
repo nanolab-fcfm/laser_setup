@@ -84,10 +84,9 @@ class FakeIVg(IVg):
 
     # Laser Parameters
     laser_toggle = Parameters.Laser.laser_toggle
-    group_by = {'laser_toggle': True}
-    laser_wl = Parameters.Laser.laser_wl; laser_wl.group_by = group_by
-    laser_v = Parameters.Laser.laser_v; laser_v.group_by = group_by
-    burn_in_t = Parameters.Laser.burn_in_t; burn_in_t.group_by = group_by
+    laser_wl = Parameters.Laser.laser_wl
+    laser_v = Parameters.Laser.laser_v
+    burn_in_t = Parameters.Laser.burn_in_t
 
     # Additional Parameters, preferably don't change
     N_avg = Parameters.Instrument.N_avg     # deprecated

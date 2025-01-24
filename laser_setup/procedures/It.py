@@ -35,7 +35,9 @@ class It(ChipProcedure):
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
-    INPUTS = ChipProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC']
+    INPUTS = ChipProcedure.INPUTS + [
+        'vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC'
+    ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
@@ -44,7 +46,8 @@ class It(ChipProcedure):
         if vg.endswith(' V'):
             vg = vg[:-2]
         if 'DP' in vg:
-            vg = vg.replace('DP', f"{get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20):.2f}")
+            laset_dp = get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20)
+            vg = vg.replace('DP', f"{laset_dp:.2f}")
 
         self._parameters['vg'] = Parameters.Control.vg
         self._parameters['vg'].value = float(eval(vg))
@@ -55,13 +58,17 @@ class It(ChipProcedure):
 
         if self.chained_exec and self.__class__.startup_executed:
             log.info("Skipping startup")
-            self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
+            self.meter.measure_current(
+                current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
+            )
             return
 
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
-        self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
+        self.meter.measure_current(
+            current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
+        )
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
@@ -88,7 +95,6 @@ class It(ChipProcedure):
         elif self.vg < 0:
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
-
         def measuring_loop(t_end: float, laser_v: float):
             keithley_time = self.meter.get_time()
             while keithley_time < t_end:
@@ -101,11 +107,13 @@ class It(ChipProcedure):
                 keithley_time = self.meter.get_time()
                 current = self.meter.current
 
-                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, current, laser_v])))
+                self.emit(
+                    'results', dict(zip(self.DATA_COLUMNS, [keithley_time, current, laser_v]))
+                )
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T *  1/2, 0.)
+        measuring_loop(self.laser_T * 1/2, 0.)
         self.tenma_laser.voltage = self.laser_v
         measuring_loop(self.laser_T, self.laser_v)
         self.tenma_laser.voltage = 0.

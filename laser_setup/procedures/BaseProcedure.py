@@ -94,7 +94,8 @@ class ChipProcedure(BaseProcedure):
     def shutdown(self):
         if not self.should_stop() and self.status >= self.RUNNING:
             send_telegram_alert(
-                f"Finished {self.__class__.__name__} measurement for Chip {self.chip_group} {self.chip_number}, Sample {self.sample}!"
+                f"Finished {self.__class__.__name__} measurement for Chip "
+                f"{self.chip_group} {self.chip_number}, Sample {self.sample}!"
             )
 
             if self.chained_exec:

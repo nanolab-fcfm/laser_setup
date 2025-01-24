@@ -20,17 +20,19 @@ class LaserCalibration(BaseProcedure):
     show_more = None
     info = None
 
-    power_meter: ThorlabsPM100USB = PendingInstrument(ThorlabsPM100USB, config['Adapters']['power_meter'])
+    power_meter: ThorlabsPM100USB = PendingInstrument(
+        ThorlabsPM100USB, config['Adapters']['power_meter']
+    )
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
 
-    procedure_version = Parameters.Base.procedure_version; procedure_version.value = '1.1.1'
+    procedure_version = Parameters.Base.procedure_version
 
     laser_wl = Parameters.Laser.laser_wl
     fiber = Parameters.Laser.fiber
     vl_start = Parameters.Control.vl_start
     vl_end = Parameters.Control.vl_end
     vl_step = Parameters.Control.vl_step
-    step_time = Parameters.Control.step_time; step_time.value = 2.
+    step_time = Parameters.Control.step_time
     N_avg = Parameters.Instrument.N_avg
 
     # Metadata

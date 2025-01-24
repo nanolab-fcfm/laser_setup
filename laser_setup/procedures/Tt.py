@@ -18,7 +18,7 @@ class Tt(ChipProcedure):
         PT100SerialSensor, config['Adapters']['pt100_port'], includeSCPI=False
     )
     # Parameters
-    sampling_t = Parameters.Control.sampling_t; sampling_t.value = 0.15
+    sampling_t = Parameters.Control.sampling_t
     laser_T = Parameters.Laser.laser_T  # Using laser_T as total measurement time
 
     # Inputs and data columns
@@ -57,7 +57,9 @@ class Tt(ChipProcedure):
             self.emit(
                 'results',
                 {
-                    column: value for column, value in zip(self.DATA_COLUMNS, [elapsed_time] + list(data))
+                    column: value for column, value in zip(
+                        self.DATA_COLUMNS, [elapsed_time] + list(data)
+                    )
                 },
             )
 
@@ -65,4 +67,3 @@ class Tt(ChipProcedure):
             self.emit('progress', 100 * elapsed_time / total_time)
 
             time.sleep(self.sampling_t)
-

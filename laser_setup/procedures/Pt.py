@@ -18,20 +18,22 @@ class Pt(BaseProcedure):
     """
     name = 'P vs t'
 
-    power_meter: ThorlabsPM100USB = PendingInstrument(ThorlabsPM100USB, config['Adapters']['power_meter'])
+    power_meter: ThorlabsPM100USB = PendingInstrument(
+        ThorlabsPM100USB, config['Adapters']['power_meter']
+    )
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
 
-    procedure_version = Parameters.Base.procedure_version; procedure_version.value = '0.1.1'
+    procedure_version = Parameters.Base.procedure_version
 
     # Important Parameters
     laser_wl = Parameters.Laser.laser_wl
     fiber = Parameters.Laser.fiber
     laser_v = Parameters.Laser.laser_v
     N_avg = Parameters.Instrument.N_avg
-    laser_T = Parameters.Laser.laser_T; laser_T.value = 20.
+    laser_T = Parameters.Laser.laser_T
 
     # Metadata
-    sensor    = Parameters.Instrument.sensor
+    sensor = Parameters.Instrument.sensor
 
     # Additional Parameters, preferably don't change
     sampling_t = Parameters.Control.sampling_t
@@ -61,7 +63,7 @@ class Pt(BaseProcedure):
     def execute(self):
         log.info("Starting the measurement")
 
-        def measuring_loop(initial_time:float, t_end: float, laser_v: float):
+        def measuring_loop(initial_time: float, t_end: float, laser_v: float):
             avg_array = np.zeros(self.N_avg)
             while (time.time() - initial_time) < t_end:
                 if self.should_stop():
@@ -75,13 +77,15 @@ class Pt(BaseProcedure):
                     avg_array[j] = self.power_meter.power
 
                 current_time = time.time() - initial_time
-                self.emit('results', dict(zip(self.DATA_COLUMNS, [current_time, np.mean(avg_array), laser_v])))
+                self.emit('results', dict(
+                    zip(self.DATA_COLUMNS, [current_time, np.mean(avg_array), laser_v])
+                ))
                 avg_array[:] = 0.
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
         initial_time = time.time()
-        measuring_loop(initial_time, self.laser_T *  1/2, 0.)
+        measuring_loop(initial_time, self.laser_T * 1/2, 0.)
         self.tenma_laser.voltage = self.laser_v
         measuring_loop(initial_time, self.laser_T, self.laser_v)
         self.tenma_laser.voltage = 0.

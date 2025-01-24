@@ -36,7 +36,9 @@ class IVgT(IVg):
         # Set the laser if toggled and wait for burn-in
         if self.laser_toggle:
             self.tenma_laser.voltage = self.laser_v
-            log.info(f"Laser is ON. Sleeping for {self.burn_in_t} seconds to let the current stabilize.")
+            log.info(
+                f"Laser is ON. Sleeping for {self.burn_in_t} seconds to let the current stabilize."
+            )
             time.sleep(self.burn_in_t)
 
         # Set the Vg ramp and the measuring loop

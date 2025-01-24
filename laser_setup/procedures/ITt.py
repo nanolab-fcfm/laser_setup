@@ -36,7 +36,6 @@ class ITt(It):
         elif self.vg < 0:
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
-
         def measuring_loop(t_end: float, laser_v: float):
             keithley_time = self.meter.get_time()
             while keithley_time < t_end:
@@ -56,7 +55,7 @@ class ITt(It):
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T *  1/2, 0.)
+        measuring_loop(self.laser_T * 1/2, 0.)
         self.tenma_laser.voltage = self.laser_v
         measuring_loop(self.laser_T, self.laser_v)
         self.tenma_laser.voltage = 0.

@@ -32,9 +32,9 @@ class IVg(ChipProcedure):
     # Laser Parameters
     laser_toggle = Parameters.Laser.laser_toggle
     group_by = {'laser_toggle': True}
-    laser_wl = Parameters.Laser.laser_wl; laser_wl.group_by = group_by
-    laser_v = Parameters.Laser.laser_v; laser_v.group_by = group_by
-    burn_in_t = Parameters.Laser.burn_in_t; burn_in_t.group_by = group_by
+    laser_wl = Parameters.Laser.laser_wl
+    laser_v = Parameters.Laser.laser_v
+    burn_in_t = Parameters.Laser.burn_in_t
 
     # Additional Parameters, preferably don't change
     N_avg = Parameters.Instrument.N_avg     # deprecated
@@ -43,7 +43,10 @@ class IVg(ChipProcedure):
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
-    INPUTS = ChipProcedure.INPUTS + ['vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'Irange', 'NPLC']
+    INPUTS = ChipProcedure.INPUTS + [
+        'vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl',
+        'laser_v', 'burn_in_t', 'Irange', 'NPLC'
+    ]
     DATA_COLUMNS = ['Vg (V)', 'I (A)']
     # SEQUENCER_INPUTS = ['vds']
 
@@ -56,13 +59,17 @@ class IVg(ChipProcedure):
 
         if self.chained_exec and self.__class__.startup_executed:
             log.info("Skipping startup")
-            self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
+            self.meter.measure_current(
+                current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
+            )
             return
 
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
-        self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
+        self.meter.measure_current(
+            current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
+        )
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
@@ -91,7 +98,9 @@ class IVg(ChipProcedure):
         # Set the laser if toggled and wait for burn-in
         if self.laser_toggle:
             self.tenma_laser.voltage = self.laser_v
-            log.info(f"Laser is ON. Sleeping for {self.burn_in_t} seconds to let the current stabilize.")
+            log.info(
+                f"Laser is ON. Sleeping for {self.burn_in_t} seconds to let the current stabilize."
+            )
             time.sleep(self.burn_in_t)
 
         # Set the Vg ramp and the measuring loop
