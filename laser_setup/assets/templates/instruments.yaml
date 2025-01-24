@@ -1,0 +1,42 @@
+############################################
+# Adapter configuration
+############################################
+
+devices:
+  # Keithley 2450 USB Device Port
+  keithley2450: USB0::0x05E6::0x2450::04448997::0::INSTR
+
+  # Negative Voltage TENMA
+  tenma_neg: COM9
+
+  # Positive Voltage TENMA
+  tenma_pos: COM3
+
+  # Laser controller TENMA
+  tenma_laser: COM4
+
+  # Power meter
+  power_meter: COM7
+
+  # Temperature sensor
+  pt100_port: COM6
+
+
+resources:
+  USB0::0x05E6::0x2450::04448997::0::INSTR:
+    device: keithley2450
+
+  COM9:
+    device: tenma_neg
+
+  COM3:
+    device: tenma_pos
+
+  COM4:
+    device: tenma_laser
+
+  COM7:
+    device: power_meter
+
+  COM6:
+    device: pt100_port

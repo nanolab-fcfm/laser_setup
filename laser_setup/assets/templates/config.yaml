@@ -3,7 +3,7 @@
 # config is updated. You can copy this file somewhere else and use it as a
 # reference to create your own configuration file.
 
-General:
+Dir:
   # Global configuration file. Overrides this file. If not found, it will be skipped
   global_config_file: ./config/config.yaml
 
@@ -15,6 +15,9 @@ General:
 
   # Procedure configuration. Overrides the parameter defaults if given.
   procedure_config_file: ./config/procedures.yaml
+
+  # Qt configuration file. Overrides the default Qt configuration
+  Qt_file: ./config/Qt.yaml
 
   # Data directory. Where the data will be saved
   data_dir: ./data
@@ -47,32 +50,6 @@ Adapters:
   pt100_port: COM6
 
 
-GUI:
-  # PyQt GUI style. Options vary with OS. Examples: windows11, Fusion (Recommended). Use 'default' for the system's default
-  style: Fusion
-
-  # toggle dark mode. If False, the computer's theme will be used
-  dark_mode: true
-
-  # Splash screen image. Leave empty to disable
-  splash_image: ./assets/img/nanolab_logo.png
-
-  # File to open in the Info tab
-  info_file: ./docs/led_protocol.md
-
-  MainWindow:
-    # README file to open in the main window
-    readme_file: ./README.md
-
-    title: Laser Setup
-
-
-Sequences:
-  # List of Procedures to run sequentially. Each Procedure must be defined in the procedures module.
-  MainSequence: [IVg, It, IVg, Wait, IVg]
-  TestSequence: [FakeProcedure, Wait]
-
-
 Telegram:
   # Telegram bot token
   token: ''
@@ -88,7 +65,7 @@ Telegram:
 
 Filename:
   # Configure the data filenames. With this config,
-  # a file would be created at config['General']['data']/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
+  # a file would be created at {config.Dir.data}/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
   # File prefix. Leave empty to use the procedure class name instead
   prefix: ''
 
@@ -105,7 +82,7 @@ Logging:
   filename: ./log/std.log
   file_level: INFO
 
-matplotlib.rcParams:
+matplotlib_rcParams:
   # Matplotlib configuration, parsed by PyMeasure. All values must be strings
   axes.grid: "True"
   figure.autolayout: "True"

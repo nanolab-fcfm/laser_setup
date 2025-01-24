@@ -6,7 +6,7 @@
 #    fget: function_name (optional).            # If type is Metadata, the function or attribute to get the value from
 #    default: default_value
 #    name: Parameter name                       # Name to be displayed in the GUI and stored in the data file
-#    description: "Parameter description." (optional)
+#    #description: "Parameter description." (optional)  # Description to be displayed in the GUI. Not implemented yet
 #    units: units (optional)
 #    minimum: minimum_value (optional)
 #    maximum: maximum_value (optional)
@@ -14,194 +14,234 @@
 #    group_by: parameter_name (optional).       # Show and hide parameters based on the boolean value of another parameter
 #    decimals: number_of_decimals (optional).   # Number of decimals to use
 
+_types:
+  - &Parameter pymeasure.experiment.Parameter
+  - &BooleanParameter pymeasure.experiment.BooleanParameter
+  - &IntegerParameter pymeasure.experiment.IntegerParameter
+  - &FloatParameter pymeasure.experiment.FloatParameter
+  - &ListParameter pymeasure.experiment.ListParameter
+  - &Metadata pymeasure.experiment.Metadata
+
 Base:
-  procedure_version: !Parameter
+  procedure_version:
     # When modified, increment <parameter name>.<parameter property>.<procedure startup/shutdown>
+    _target_: *Parameter
     default: 1.5.0
     name: Procedure version
-    description: "Procedure version, used for compatibility checks"
+    #description: "Procedure version, used for compatibility checks"
 
-  show_more: !BooleanParameter
+  show_more:
+    _target_: *BooleanParameter
     default: false
     name: Show more
-    description: "Show more information"
+    #description: "Show more information"
 
-  info: !Parameter
+  info:
+    _target_: *Parameter
     default: None
     name: Information
-    description: "Information about the procedure"
+    #description: "Information about the procedure"
 
-  chained_exec: !BooleanParameter
+  chained_exec:
+    _target_: *BooleanParameter
     default: false
     name: Chained execution
-    description: "Execute multiple procedures of the same type in sequence, skipping shutdown and startup"
+    #description: "Execute multiple procedures of the same type in sequence, skipping shutdown and startup"
 
-  start_time: !Metadata
+  start_time:
+    _target_: *Metadata
     fget: time.time
     name: Start time
-    description: "Start time of the procedure"
+    #description: "Start time of the procedure"
 
 
 Chip:
-  chip_group: !ListParameter
+  chip_group:
+    _target_: *ListParameter
     default: other
     name: Chip group name
-    # description: "Chip group name"
+    # #description: "Chip group name"
     choices: [other, Coni, Fiona, Margarita, Miguel, "Pepe (no ALD)", Unbonded, "8", Box1, Rosita]
 
-  chip_number: !IntegerParameter
+  chip_number:
+    _target_: *IntegerParameter
     default: 1
     name: Chip number
     minimum: 1
 
-  sample: !ListParameter
+  sample:
+    _target_: *ListParameter
     default: other
     name: Sample
     choices: [other, A, B, C, D, E, F, G, H, I, J]
 
 
 Laser:
-  laser_toggle: !BooleanParameter
+  laser_toggle:
+    _target_: *BooleanParameter
     default: false
     name: Laser toggle
 
-  laser_wl: !ListParameter
+  laser_wl:
+    _target_: *ListParameter
     default: 0
     name: Laser wavelength
     units: nm
     choices: [0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]
 
-  laser_v: !FloatParameter
+  laser_v:
+    _target_: *FloatParameter
     default: 0.
     name: Laser voltage
     units: V
 
-  laser_T: !FloatParameter
+  laser_T:
+    _target_: *FloatParameter
     default: 120.
     name: Laser ON+OFF period
     units: s
 
-  burn_in_t: !FloatParameter
+  burn_in_t:
+    _target_: *FloatParameter
     default: 60.
     name: Burn-in time
     units: s
 
-  fiber: !ListParameter
+  fiber:
+    _target_: *ListParameter
     default: other
     name: Optical fiber
     choices: [other, "F1 (M92L02)", "F2 (M92L02)", "F3 (M96L02)", "F4 (M96L02)"]
 
 
 Instrument:
-  N_avg: !IntegerParameter
+  N_avg:
+    _target_: *IntegerParameter
     default: 2
     name: N_avg
-    description: Number of averages per measurement
+    #description: Number of averages per measurement
     group_by: show_more
 
-  Irange: !FloatParameter
+  Irange:
+    _target_: *FloatParameter
     default: 0.001
     name: Irange
-    description: Current range
+    #description: Current range
     units: A
     minimum: 0
     maximum: 0.105
     group_by: show_more
 
-  NPLC: !FloatParameter
+  NPLC:
+    _target_: *FloatParameter
     default: 1.0
     name: NPLC
-    description: Number of power line cycles
+    #description: Number of power line cycles
     minimum: 0.01
     maximum: 10
     group_by: show_more
 
-  sensor: !Metadata
+  sensor:
+    _target_: *Metadata
     fget: power_meter.sensor_name
     name: Sensor model
 
 
 Control:
-  sampling_t: !FloatParameter
+  sampling_t:
+    _target_: *FloatParameter
     default: 0.
     name: Sampling time (excluding Keithley)
     units: s
     group_by: show_more
 
-  vds: !FloatParameter
+  vds:
+    _target_: *FloatParameter
     default: 0.075
     name: VDS
     units: V
     decimals: 10
 
-  vg: !FloatParameter
+  vg:
+    _target_: *FloatParameter
     default: 0.
     name: VG
     units: V
     minimum: -100.
     maximum: 100.
 
-  vg_dynamic: !Parameter
+  vg_dynamic:
+    _target_: *Parameter
     default: "DP + 0. V"
     name: VG
-    description: "Dynamically evaluated VG value. Use 'DP' for the sample's previously measured Dirac Point."
+    #description: "Dynamically evaluated VG value. Use 'DP' for the sample's previously measured Dirac Point."
 
   # Voltage ramps
-  step_time: !FloatParameter
+  step_time:
+    _target_: *FloatParameter
     default: 0.01
     name: Step time
     units: s
     group_by: show_more
 
-  vg_start: !FloatParameter
+  vg_start:
+    _target_: *FloatParameter
     default: -35.
     name: VG start
-    description: "Initial Gate voltage"
+    #description: "Initial Gate voltage"
     units: V
 
-  vg_end: !FloatParameter
+  vg_end:
+    _target_: *FloatParameter
     default: 35.
     name: VG end
-    description: "Final Gate voltage"
+    #description: "Final Gate voltage"
     units: V
 
-  vg_step: !FloatParameter
+  vg_step:
+    _target_: *FloatParameter
     default: 0.2
     name: VG step
-    description: "Gate voltage step"
+    #description: "Gate voltage step"
     units: V
     group_by: show_more
 
-  vsd_start: !FloatParameter
+  vsd_start:
+    _target_: *FloatParameter
     default: -1.
     name: VSD start
-    description: "Initial Source-Drain voltage"
+    #description: "Initial Source-Drain voltage"
     units: V
 
-  vsd_end: !FloatParameter
+  vsd_end:
+    _target_: *FloatParameter
     default: 1.
     name: VSD end
-    description: "Final Source-Drain voltage"
+    #description: "Final Source-Drain voltage"
     units: V
 
-  vsd_step: !FloatParameter
+  vsd_step:
+    _target_: *FloatParameter
     default: 0.01
     name: VSD step
-    description: "Source-Drain voltage step"
+    #description: "Source-Drain voltage step"
     units: V
     group_by: show_more
 
-  vl_start: !FloatParameter
+  vl_start:
+    _target_: *FloatParameter
     default: 0.
     name: Laser voltage start
     units: V
 
-  vl_end: !FloatParameter
+  vl_end:
+    _target_: *FloatParameter
     default: 5.
     name: Laser voltage end
     units: V
 
-  vl_step: !FloatParameter
+  vl_step:
+    _target_: *FloatParameter
     default: 0.1
     name: Laser voltage step
     units: V
