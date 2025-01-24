@@ -36,11 +36,19 @@ SequencesType = dict[str, list[Any]]
 @dataclass
 class MainWindowConfig:
     title: str = 'Laser Setup'
-    readme_file: str = ''
+    readme_file: str = 'README.md'
     size: list[int] = field(default_factory=lambda: [640, 480])
     widget_size: list[int] = field(default_factory=lambda: [640, 480])
     icon: str | None = None
-    scripts: ScriptsType = field(default_factory=list)
+    scripts: ScriptsType = field(
+        default_factory=lambda: [
+            MenuItemConfig(
+                name='Init Config',
+                target='${function:laser_setup.cli.init_config.init_config}',
+                alias='init'
+            )
+        ]
+    )
     procedures: ProceduresType = field(default_factory=list)
     sequences: SequencesType = field(default_factory=dict)
 

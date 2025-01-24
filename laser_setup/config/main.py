@@ -26,8 +26,8 @@ class DirConfig:
     global_config_file: str = os.getenv('CONFIG') or 'config/config.yaml'
     local_config_file: str = 'config/config.yaml'
     parameters_file: str = DefaultPaths.parameters.as_posix()
-    procedure_config_file: str = DefaultPaths.procedures.as_posix()
-    Qt_file: str = DefaultPaths.Qt.as_posix()
+    procedure_config_file: str = ''
+    Qt_file: str = ''
     data_dir: str = 'data'
     database: str = 'database.db'
 

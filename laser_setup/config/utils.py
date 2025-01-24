@@ -85,6 +85,9 @@ def load_yaml(
     except FileNotFoundError:
         log.warning(f"File not found: {file_path}. Returning an empty dictionary.")
         data = OmegaConf.create(flags=flags)
+    except PermissionError:
+        log.debug(f"Permission denied: {file_path}.")
+        data = OmegaConf.create(flags=flags)
 
     if struct is not None:
         config_struct = OmegaConf.structured(struct, flags=flags)

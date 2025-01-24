@@ -143,7 +143,7 @@ class MainWindow(QtWidgets.QMainWindow):
         readme.setStyleSheet("""
             font-size: 12pt;
         """)
-        if self.readme_path.exists():
+        if self.readme_path.is_file():
             readme_text = self.readme_path.read_text()
         else:
             readme_text = metadata('laser_setup').get('Description')
