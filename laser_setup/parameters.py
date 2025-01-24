@@ -1,81 +1,44 @@
 """Module for setting up the parameters for the laser setup.
 Parameters should be defined here and imported in the procedures.
 """
-import copy
-from pathlib import Path
-from typing import TypeVar
+from copy import deepcopy
 
-import yaml
-from pymeasure.experiment import (BooleanParameter, FloatParameter,
-                                  IntegerParameter, ListParameter, Metadata,
-                                  Parameter)
+from omegaconf import DictConfig
 
-from . import config
-from .instruments import PendingInstrument
-from .parser import YAMLParser, merge_dicts
-
-AnyParameter = TypeVar('AnyParameter', bound=Parameter)
+from .config import DefaultPaths, load_yaml
+from .config.parameters import ParameterCatalog
 
 
-class ParameterProvider:
-    """Base class for Parameters objects. When a parameter is
-    accessed, a copy of the parameter is returned to avoid
-    modifying the original parameter.
+class DeepCopyDictConfig(DictConfig):
+    """Deepcopy of the DictConfig class. It allows to deepcopy the
+    parameters when they are accessed.
     """
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            if isinstance(v, dict):
-                v = ParameterProvider(**v)
+    def __getitem__(self, key):
+        item = super().__getitem__(key)
+        return deepcopy(item)
 
-            setattr(self, k.replace(' ', '_'), v)
-
-    def __getattribute__(self, name):
-        attr = super().__getattribute__(name)
-
-        # Check if the attribute is a Parameter or Metadata instance
-        if isinstance(attr, (Parameter, Metadata)):
-            return copy.deepcopy(attr)
-
-        return attr
-
-    def __getitem__(self, name: str):
-        return getattr(self, name.replace(' ', '_'))
-
-    def __setitem__(self, name: str, value: any):
-        setattr(self, name, value)
+    def __getattr__(self, key):
+        item = super().__getattr__(key)
+        return deepcopy(item)
 
 
-class ParameterParser(YAMLParser):
-    """Class to parse parameters from a YAML file."""
-    tag_dict = {
-        '!Parameter': Parameter,
-        '!BooleanParameter': BooleanParameter,
-        '!IntegerParameter': IntegerParameter,
-        '!FloatParameter': FloatParameter,
-        '!ListParameter': ListParameter,
-        '!Metadata': Metadata,
-        '!PendingInstrument': PendingInstrument
-    }
+class ParametersMeta(type):
+    """Metaclass for Parameters. It is used to set attributes
+    and the default `Parameters` sections in the class definition.
+    """
+    def __new__(cls: type, name: str, bases: tuple, dct: dict):
+        for key, value in dct['_dict'].items():
+            if key.startswith('_'):
+                continue
 
-    @staticmethod
-    def get_constructor(
-        param_cls: type[AnyParameter],
-        loader: type[yaml.SafeLoader],
-        node: yaml.nodes.MappingNode
-    ) -> Parameter:
-        data: dict = loader.construct_mapping(node, deep=True)
-        data.pop('description', None)   # description not implemented yet
+            dct[key] = DeepCopyDictConfig(value)
 
-        return param_cls(**data)
+        return super().__new__(cls, name, bases, dct)
 
 
-parser = ParameterParser()
-Parameters = ParameterProvider(
-    **parser.read(Path(__file__).parent / 'config' / 'parameters.yml'),
-    **parser.read(config['General']['parameters_file'], {})
-)
-
-procedure_config = parser.read(Path(__file__).parent / 'config' / 'procedures.yml', {})
-procedure_config = merge_dicts(procedure_config,
-    parser.read(config['General']['procedure_config_file'], {})
-)
+class Parameters(ParameterCatalog, metaclass=ParametersMeta):
+    """Parameter catalog. Returns a deepcopy of the parameter when accessed.
+    """
+    # There's probably a better way to do this, but at least it works.
+    _dict = load_yaml(DefaultPaths.parameters, ParameterCatalog,
+                      flags={'allow_objects': True}, _instantiate=True)
