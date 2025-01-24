@@ -25,7 +25,7 @@ def init_config(parent=None):
     if parent is not None:
         create_config = parent.question_box(title, desc)
     else:
-        print(title + '\n' + desc)
+        log.info(desc)
         create_config = (input(f'{title} (y/n): ').lower() == 'y')
         app = QtWidgets.QApplication([])
 
