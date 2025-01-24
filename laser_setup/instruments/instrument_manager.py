@@ -105,7 +105,7 @@ class InstrumentManager:
         :return: The instrument object.
         """
         try:
-            instrument: AnyInstrument = cls(adapter, **kwargs)
+            instrument: AnyInstrument = cls(adapter=adapter, **kwargs)
         except Exception as e:
             if '-d' in sys.argv or '--debug' in sys.argv:
                 log.warning(f"Could not connect to {cls.__name__}: {e} Using FakeAdapter.")
@@ -116,23 +116,36 @@ class InstrumentManager:
         return instrument
 
     def connect(
-        self, cls: type[AnyInstrument], adapter: str = None, name: str = None, **kwargs
+        self,
+        cls: type[AnyInstrument],
+        adapter: str | None = None,
+        name: str | None = '',
+        includeSCPI: bool | None = False,
+        **kwargs
     ) -> AnyInstrument:
         """Connects to an instrument and saves it in the dictionary.
 
         :param cls: The instrument class to set up.
         :param adapter: The adapter to use for the communication. If None, the result
             depends on the instrument class.
-        :param name: The name of the instrument. If None, it uses the class name
-            and adapter.
+        :param name: The name of the instrument. If '', it uses the class name
+            and adapter. If None, it uses the default name.
+        :param includeSCPI: Flag indicating whether to include SCPI commands. If None,
+            it uses the default value.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         """
-        if name is None:
+        if name is not None and not name:
             name = f"{cls.__name__}/{adapter}"
 
         if name not in self.instances:
+            if name is not None:
+                kwargs['name'] = name
+
+            if includeSCPI is not None:
+                kwargs['includeSCPI'] = includeSCPI
+
             try:
-                instrument = self.setup_adapter(cls, adapter, **kwargs)
+                instrument = self.setup_adapter(cls, adapter=adapter, **kwargs)
                 self.instances[name] = instrument
                 log.debug(f"Connected '{name}' as {cls.__name__} via {instrument.adapter}")
 
