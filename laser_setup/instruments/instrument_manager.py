@@ -1,9 +1,13 @@
-import sys
 import logging
-from typing import TypeVar, Dict
+import random
+import sys
+import time
+from typing import Dict, TypeVar
+from uuid import uuid4
 
 from pymeasure.adapters import FakeAdapter
 from pymeasure.instruments import Instrument
+from pymeasure.instruments.fakes import FakeInstrument
 
 log = logging.getLogger(__name__)
 AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
@@ -108,8 +112,8 @@ class InstrumentManager:
             instrument: AnyInstrument = cls(adapter=adapter, **kwargs)
         except Exception as e:
             if '-d' in sys.argv or '--debug' in sys.argv:
-                log.warning(f"Could not connect to {cls.__name__}: {e} Using FakeAdapter.")
-                instrument = cls(FakeAdapter(), **kwargs)
+                log.warning(f"Could not connect to {cls.__name__}: {e} Using DebugInstrument.")
+                instrument = DebugInstrument(**kwargs)
             else:
                 raise
 
@@ -134,12 +138,14 @@ class InstrumentManager:
             it uses the default value.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         """
-        if name is not None and not name:
+        if name == '':
             name = f"{cls.__name__}/{adapter}"
 
         if name not in self.instances:
             if name is not None:
                 kwargs['name'] = name
+            else:
+                name = uuid4().hex
 
             if includeSCPI is not None:
                 kwargs['includeSCPI'] = includeSCPI
@@ -186,3 +192,80 @@ class InstrumentManager:
         log.info("Shutting down all instruments.")
         for name in list(self.instances):
             self.shutdown(name)
+
+
+class DebugInstrument(FakeInstrument):
+    """Debug instrument class useful for testing.
+
+    Overrides properties and methods for multiple instrument types, returning
+    random data.
+    """
+    wait_for: float = 0.01
+
+    # meter
+    source_voltage: float = 0.
+    _func = lambda *args, **kwargs: None  # noqa: E731
+    measure_current = _func
+    make_buffer = _func
+    reset = _func
+    enable_source = _func
+    clear_buffer = _func
+
+    # tenma
+    output: bool = False
+
+    # power meter
+    wavelength: float = 0.
+
+    def __init__(self, name="Debug instrument", **kwargs):
+        super().__init__(name=name, **kwargs)
+        self._tstart = 0.
+        self._voltage = 0.
+        self._current = 0.
+        self._units = {'voltage': 'V',
+                       'output_voltage': 'V',
+                       'time': 's',
+                       'wave': 'a.u.'}
+
+    def get_time(self):
+        """Return the time since the instrument was instantiated."""
+        return time.time() - self._tstart
+
+    @property
+    def voltage(self):
+        """Measure the voltage."""
+        time.sleep(self.wait_for)
+        return random.uniform(1e-3, 1e-1)
+
+    @voltage.setter
+    def voltage(self, value):
+        """Set the voltage."""
+        self._voltage = value
+
+    @property
+    def current(self):
+        """Measure the current."""
+        time.sleep(self.wait_for)
+        return random.uniform(1e-9, 1e-6)
+
+    @current.setter
+    def current(self, value):
+        """Set the current."""
+        self._current = value
+
+    @property
+    def power(self):
+        """Measure the power."""
+        time.sleep(self.wait_for)
+        return random.uniform(1e-9, 1e-6)
+
+    def apply_voltage(self, value):
+        """Apply a voltage."""
+        self.voltage = value
+
+    def ramp_to_voltage(self, value):
+        """Ramp to a voltage."""
+        self.voltage = value
+
+    def __repr__(self):
+        return "<DebugAdapter>"
