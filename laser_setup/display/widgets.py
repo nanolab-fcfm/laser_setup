@@ -59,11 +59,12 @@ class TextWidget(TabWidget, QtWidgets.QWidget):
         self.view.setStyleSheet("""
             font-size: 12pt;
         """)
-        self.file = Path(file)
-        if not self.file.is_file():
-            readme_text = f'{file} not found :('
-        else:
-            readme_text = self.file.read_text()
+
+        self.file = Path(file) if file else None
+        readme_text = (
+            self.file.read_text() if self.file and self.file.is_file()
+            else f'{file} not found :('
+        )
 
         self.view.setMarkdown(readme_text)
 

@@ -8,7 +8,7 @@ from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
 
-from ..config import Qt_config, config
+from ..config import Qt_config, config, instantiate
 from ..procedures import BaseProcedure
 from .Qt import QtCore, QtGui, QtWidgets
 from .widgets import LogWidget, ProgressBar, TextWidget
@@ -251,7 +251,9 @@ class SequenceWindow(QtWidgets.QMainWindow):
                 continue
 
             window_name = getattr(proc, 'name', proc.__name__)
-            window = ExperimentWindow(proc, title=window_name)
+            kwargs = {**instantiate(Qt_config.ExperimentWindow)}
+            kwargs['title'] = window_name
+            window = ExperimentWindow(proc, **kwargs)
             procedure_parameters = inputs[i+1].get_procedure()._parameters
             parameters = procedure_parameters | base_parameters
             window.set_parameters(parameters)

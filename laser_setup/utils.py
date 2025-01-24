@@ -113,7 +113,7 @@ def get_status_message(timeout: float = .5) -> str:
         message = res.json()['message']
         return message
 
-    except requests.RequestException:
+    except (requests.RequestException, KeyError):
         return 'Ready'
 
 
