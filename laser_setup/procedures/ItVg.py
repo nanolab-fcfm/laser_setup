@@ -123,12 +123,8 @@ class ItVg(ChipProcedure):
             measuring_loop(self.burn_in_t, self.vg_ramp[0])
 
         for i, vg in enumerate(self.vg_ramp):
-            if vg >= 0:
-                self.tenma_neg.voltage = 0.
-                self.tenma_pos.voltage = vg
-            elif vg < 0:
-                self.tenma_pos.voltage = 0.
-                self.tenma_neg.voltage = -vg
+            self.tenma_neg.voltage = -vg * (vg < 0)
+            self.tenma_pos.voltage = vg * (vg >= 0)
 
             measuring_loop(self.step_time * (i + 1) + self.burn_in_t * self.laser_toggle, vg)
 
