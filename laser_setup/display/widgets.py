@@ -1,4 +1,5 @@
 import time
+from pathlib import Path
 
 from pymeasure.display.log import LogHandler
 from pymeasure.display.widgets import LogWidget, TabWidget
@@ -58,11 +59,12 @@ class TextWidget(TabWidget, QtWidgets.QWidget):
         self.view.setStyleSheet("""
             font-size: 12pt;
         """)
-        try:
-            with open(file, encoding='utf-8') as f:
-                readme_text = f.read()
-        except:
+        self.file = Path(file)
+        if not self.file.is_file():
             readme_text = f'{file} not found :('
+        else:
+            readme_text = self.file.read_text()
+
         self.view.setMarkdown(readme_text)
 
         vbox = QtWidgets.QVBoxLayout(self)
@@ -74,6 +76,7 @@ class TextWidget(TabWidget, QtWidgets.QWidget):
 
 class LogWidget(LogWidget):
     _original_color = None
+
     def _blink(self):
         self.tab_widget.tabBar().setTabTextColor(
             self.tab_index,
@@ -89,6 +92,7 @@ class LogWidget(LogWidget):
 class LogsWidget(QtWidgets.QWidget):
     fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     datefmt = '%H:%M:%S %p'
+
     def __init__(self, title="Logs", parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
         self.setWindowTitle(title)
@@ -112,6 +116,7 @@ class LogsWidget(QtWidgets.QWidget):
 class SQLiteWidget(QtWidgets.QWidget):
     """Widget to display and interact with the contents of a SQLite database."""
     select_text = "Select a table..."
+
     def __init__(self, database: str, default_table: str = None, parent=None):
         super().__init__(parent)
 

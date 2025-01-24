@@ -10,6 +10,7 @@ from ..utils import read_file_parameters, get_data_files
 log = logging.getLogger(__name__)
 all_params: Dict[str, Set[str]] = {}
 
+
 def create_table_if_not_exists(cursor: sqlite3.Cursor, table_name: str, columns: set):
     """Creates the table if it doesn't exist, adding the columns from all_params."""
     # Create the table with columns from all_params
@@ -20,7 +21,11 @@ def create_table_if_not_exists(cursor: sqlite3.Cursor, table_name: str, columns:
         )
     ''')
 
-def insert_data_with_columns(cursor: sqlite3.Cursor, table_name: str, row_name: str, params: dict, all_params: Dict[str, Set[str]]):
+
+def insert_data_with_columns(
+    cursor: sqlite3.Cursor, table_name: str, row_name: str,
+    params: dict, all_params: Dict[str, Set[str]]
+):
     """Inserts data into the table, filling missing columns with None."""
     # Update all_params with any new keys from params, adding columns as necessary
     for key in params.keys():
@@ -40,6 +45,7 @@ def insert_data_with_columns(cursor: sqlite3.Cursor, table_name: str, row_name: 
         INSERT INTO "{table_name}" ("table_name", {param_names})
         VALUES (?, {param_placeholders})
     ''', [row_name] + row_filled)
+
 
 def add_to_parameters_db(csv_file: Path, conn: sqlite3.Connection):
     params = read_file_parameters(csv_file)

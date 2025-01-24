@@ -2,8 +2,8 @@
 Module to ensure compatibility with any Qt version. By default,
 pyqtgraph.Qt from pymeasure.display.Qt is used.
 """
-from pyqtgraph.console import ConsoleWidget
-from qtpy import QtCore, QtGui, QtSql, QtWidgets
+from pyqtgraph.console import ConsoleWidget  # noqa: F401
+from qtpy import QtCore, QtGui, QtSql, QtWidgets  # noqa: F401
 
 
 class Worker(QtCore.QObject):
@@ -13,6 +13,7 @@ class Worker(QtCore.QObject):
     done.
     """
     finished = QtCore.Signal(object)
+
     def __init__(
         self,
         func: callable,

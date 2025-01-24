@@ -123,7 +123,7 @@ class Bentham(Instrument):
         self.move
 
     def read(self, timeout: float = 0, read_interval: float = 0.05) -> str:
-            return self.adapter.read(timeout, read_interval)
+        return self.adapter.read(timeout, read_interval)
 
     def query(self, command, timeout: float = 0, read_interval: float = 0.05) -> str:
         return self.adapter.query(command, timeout, read_interval)

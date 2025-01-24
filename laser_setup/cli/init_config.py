@@ -27,7 +27,7 @@ def init_config(parent=None):
     else:
         log.info(desc)
         create_config = (input(f'{title} (y/n): ').lower() == 'y')
-        app = QtWidgets.QApplication([])
+        _ = QtWidgets.QApplication([])
 
     if not create_config:
         log.warning('Cannot edit settings without a config file.')

@@ -70,7 +70,7 @@ def load_yaml(
     flags: Optional[dict[str, bool]] = None,
     _instantiate: bool = False,
     **kwargs,
-    ) -> T | DictConfig:
+) -> T | DictConfig:
     """Load a YAML file and return its contents as a dictionary.
 
     :param file_path: Path to the YAML file.
