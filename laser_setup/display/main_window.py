@@ -8,14 +8,14 @@ from typing import Callable
 
 from pymeasure.experiment import Procedure
 
-from ..cli import parameters_to_db, init_config
-from ..config import (DefaultPaths, Qt_config, config, instantiate, load_yaml,
-                      save_yaml)
-from ..config.Qt import ScriptsType, ProceduresType, SequencesType
+from ..cli import parameters_to_db
+from ..config import (ConfigHandler, DefaultPaths, Qt_config, config,
+                      instantiate)
+from ..config.Qt import ProceduresType, ScriptsType, SequencesType
 from ..instruments import InstrumentManager, Instruments
+from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
 from ..utils import get_status_message, remove_empty_data
 from .experiment_window import ExperimentWindow, SequenceWindow
-from .Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
 from .widgets import LogsWidget, SQLiteWidget
 
 log = logging.getLogger(__name__)
@@ -43,6 +43,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.procedures = procedures
         self.sequences = sequences
         self.scripts = scripts
+        self.config_handler = ConfigHandler(parent=self, config=config)
 
         super().__init__(**kwargs)
         self.setWindowTitle(title)
@@ -114,8 +115,8 @@ class MainWindow(QtWidgets.QMainWindow):
         console_action.setShortcut('Ctrl+Shift+C')
 
         settings_menu = menu.addMenu('&Settings')
-        settings_menu.addAction('Edit config', self.edit_config)
-        settings_menu.addAction('Load config', self.load_config)
+        settings_menu.addAction('Edit config', self.config_handler.edit_config)
+        settings_menu.addAction('Load config', self.config_handler.import_config)
 
         # Help
         help_menu = menu.addMenu('&Help')
@@ -183,38 +184,6 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.setWindowTitle(title)
         widget.resize(*self.widget_size)
         widget.show()
-
-    def edit_config(self):
-        save_path = init_config.init_config(parent=self, verbose=False)
-        os.startfile(save_path)
-        self.suggest_reload()
-
-    def load_config(self):
-        load_path = Path(config.Dir.local_config_file)
-        _load_path = QtWidgets.QFileDialog.getOpenFileName(
-            self, 'Open config file', str(load_path), DefaultPaths.allowed_files,
-        )[0]
-        load_path = Path(_load_path)
-        if not load_path.is_file():
-            if str(load_path) != '.':
-                log.warning(f'Config file {load_path} not found.')
-            return
-
-        global_config_path = Path(config.Dir.global_config_file)
-        if not global_config_path.is_file():
-            log.warning(
-                'Loading a config file is not possible without a global config file. '
-                f'Creating one at {global_config_path}'
-            )
-            text = DefaultPaths.config.read_text()
-            global_config_path.write_text(text)
-
-        _yaml = load_yaml(global_config_path)
-        _yaml['Dir']['local_config_file'] = load_path.as_posix()
-        save_yaml(_yaml, global_config_path)
-        log.info(f'Switched to config file {load_path}')
-
-        self.reload.click()
 
     def suggest_reload(self):
         self.reload.setStyleSheet('background-color: red;')

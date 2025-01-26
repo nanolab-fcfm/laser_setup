@@ -1,12 +1,9 @@
 import logging
-import os
 from pathlib import Path
 from typing import Any, Optional, Type, TypeVar
 
 from hydra.utils import instantiate as hydra_instantiate
 from omegaconf import DictConfig, OmegaConf
-
-from .main import AppConfig, DefaultPaths
 
 log = logging.getLogger(__name__)
 T = TypeVar('T')
@@ -25,43 +22,6 @@ def safeget(dic: dict | DictConfig, *keys, default: Any = None) -> Any:
             return default
         dic = dic[key]
     return dic
-
-
-def load_config(
-    config_env: str = 'CONFIG',
-    lookup: list[tuple[str, str]] = DefaultPaths.default_config_lookup,
-) -> AppConfig | DictConfig:
-    """Load the configuration files appropiately. By default, it loads the
-    files in the following order:
-    1. Default configuration file.
-    2. Global configuration file (if it exists), with its path defined in the
-    default config, and overwritten with the environment variable `config_env`.
-    3. Local configuration file (if it exists), with its path defined in the
-    global config.
-
-    :param config_env: Environment variable to look for the global configuration file.
-    :param lookup: List of tuples with the keys to look for the configuration files.
-    :return: The parsed configuration
-    """
-    config: AppConfig = OmegaConf.structured(AppConfig)
-    config_path_used: str | Path = 'default'
-
-    if config_env_path := os.getenv(config_env):
-        config[lookup[0][0]][lookup[0][1]] = config_env_path
-
-    for section, key in lookup:
-        if config_path := safeget(config, section, key):
-            config_path = Path(config_path)
-            if config_path.is_file():
-                new_config = OmegaConf.load(config_path)
-                config = OmegaConf.merge(config, new_config)
-                config_path_used = config_path
-
-    config._session = {
-        'config_path_used': config_path_used,
-        'save_path': config_path
-    }
-    return config
 
 
 def load_yaml(

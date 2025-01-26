@@ -6,18 +6,11 @@ from typing import Optional
 
 class DefaultPaths:
     """Default paths for the configuration files."""
-    default_config_lookup: list[tuple[str, str]] = [
-        ('Dir', 'global_config_file'),
-        ('Dir', 'local_config_file')
-    ]
     _parent = Path(__file__).parent
     assets: Path = _parent.parent / 'assets'
     allowed_files: str = 'YAML files (*.yaml)'
     config: Path = assets / 'templates' / 'config.yaml'
     parameters: Path = assets / 'templates' / 'parameters.yaml'
-    procedures: Path = assets / 'templates' / 'procedures.yaml'
-    instruments: Path = assets / 'templates' / 'instruments.yaml'
-    Qt: Path = assets / 'templates' / 'Qt.yaml'
     splash: Path = assets / 'img' / 'splash.png'
 
 

@@ -2,6 +2,8 @@
 Module to ensure compatibility with any Qt version. By default,
 pyqtgraph.Qt from pymeasure.display.Qt is used.
 """
+import sys
+
 from pyqtgraph.console import ConsoleWidget  # noqa: F401
 from qtpy import QtCore, QtGui, QtSql, QtWidgets  # noqa: F401
 
@@ -33,3 +35,11 @@ class Worker(QtCore.QObject):
     def run(self):
         result = self.func(**self.kwargs)
         self.finished.emit(result)
+
+
+def make_app():
+    """Make a Qt Application."""
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        app = QtWidgets.QApplication(sys.argv)
+    return app

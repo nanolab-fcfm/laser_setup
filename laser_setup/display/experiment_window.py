@@ -10,7 +10,7 @@ from pymeasure.experiment import Procedure, Results, unique_filename
 
 from ..config import Qt_config, config, instantiate
 from ..procedures import BaseProcedure
-from .Qt import QtCore, QtGui, QtWidgets
+from ..Qt import QtCore, QtGui, QtWidgets
 from .widgets import LogWidget, ProgressBar, TextWidget
 
 log = logging.getLogger(__name__)

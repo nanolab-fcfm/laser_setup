@@ -5,7 +5,7 @@ from pymeasure.display.log import LogHandler
 from pymeasure.display.widgets import LogWidget, TabWidget
 from pymeasure.display.widgets.log_widget import HTMLFormatter
 
-from .Qt import QtCore, QtGui, QtSql, QtWidgets
+from ..Qt import QtCore, QtGui, QtSql, QtWidgets
 
 
 class ProgressBar(QtWidgets.QDialog):
