@@ -8,13 +8,13 @@ from ..config import DefaultPaths, config
 log = logging.getLogger(__name__)
 
 
-def init_config(parent=None):
+def init_config(parent=None, verbose=True):
     """Initiliaze the configuration files by copying the template files to the
     selected directory.
     """
     save_path = Path(config._session['save_path'])
     if config._session['config_path_used'] != 'default':
-        if __name__ == '__main__':
+        if verbose:
             log.info(f'Config found at {save_path}. Skipping initialization.')
 
         return save_path
@@ -51,3 +51,7 @@ def init_config(parent=None):
 
 def main():
     init_config(parent=None)
+
+
+if __name__ == "__main__":
+    main()

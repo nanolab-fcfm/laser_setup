@@ -185,7 +185,7 @@ class MainWindow(QtWidgets.QMainWindow):
         widget.show()
 
     def edit_config(self):
-        save_path = init_config.init_config(parent=self)
+        save_path = init_config.init_config(parent=self, verbose=False)
         os.startfile(save_path)
         self.suggest_reload()
 
