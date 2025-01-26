@@ -1,7 +1,8 @@
-# Configuration template. Sets the default configuration.
-# Read the comments for each section, as they will dissapear when the global
-# config is updated. You can copy this file somewhere else and use it as a
-# reference to create your own configuration file.
+# Configuration template.
+
+# You can copy this file and use it as a reference to create your own global
+# and local configuration files.
+
 
 Dir:
   # Global configuration file. Overrides this file. If not found, it will be skipped
@@ -16,9 +17,6 @@ Dir:
   # Procedure configuration. Overrides the parameter defaults if given.
   procedure_config_file: ./config/procedures.yaml
 
-  # Qt configuration file. Overrides the default Qt configuration
-  Qt_file: ./config/Qt.yaml
-
   # Data directory. Where the data will be saved
   data_dir: ./data
 
@@ -29,6 +27,7 @@ Dir:
 ############################################
 # Adapter configuration
 ############################################
+
 
 Adapters:
   # Keithley 2450 USB Device Port
@@ -50,18 +49,138 @@ Adapters:
   pt100_port: COM6
 
 
-Telegram:
-  # Telegram bot token
-  token: ''
+############################################
+# PyQt configuration
+############################################
 
-  # Chat IDs for the Telegram bot to send messages to
-  name: ''
-  name2: ''
+
+Qt:
+  GUI:
+    # PyQt GUI style. Options vary with OS. Examples: windows11, Fusion (Recommended). Use 'default' for the system's default
+    style: Fusion
+
+    # toggle dark mode. If False, the computer's theme will be used
+    dark_mode: true
+
+    # Splash screen image. Leave empty to disable
+    splash_image: ./assets/img/nanolab_logo.png
+
+
+  ExperimentWindow:
+    title: ''
+
+    # Whether to add a scrollbar
+    inputs_in_scrollarea: true
+
+    # Displays a file input widget (not implemented yet)
+    enable_file_input: false
+
+    # Number of plots to show in the Dock tab
+    dock_plot_number: 2
+
+    # File to open in the Info tab
+    info_file: ./docs/led_protocol.md
+
+    icon: null
+
+
+  MainWindow:
+    # README file to open in the main window
+    readme_file: ./README.md
+
+    title: Laser Setup
+
+    size: [640, 480]
+
+    widget_size: [640, 480]
+
+    icon: null
+
+    scripts:
+      # List of names and scripts to show in the Scripts tab
+      - name: "Set up Adapters"
+        alias: setup_adapters
+        target: ${function:laser_setup.cli.setup_adapters.main}
+
+      - name: "Get updates"
+        alias: get_updates
+        target: ${function:laser_setup.cli.get_updates.main}
+
+      - name: "Parameters to Database"
+        alias: parameters_to_db
+        target: ${function:laser_setup.cli.parameters_to_db.main}
+
+      - name: "Init Config"
+        alias: init
+        target: ${function:laser_setup.cli.init_config.init_config}
+
+    procedures:
+      # List of names and procedures to show in the Procedures tab
+      - name: I vs V
+        alias: IV
+        target: ${class:laser_setup.procedures.IV}
+
+      - name: I vs Vg
+        alias: IVg
+        target: ${class:laser_setup.procedures.IVg}
+
+      - name: I vs t
+        alias: It
+        target: ${class:laser_setup.procedures.It}
+
+      - name: I vs t (Vg)
+        alias: ItVg
+        target: ${class:laser_setup.procedures.ItVg}
+
+      - name: I,T vs t
+        alias: ITt
+        target: ${class:laser_setup.procedures.ITt}
+
+      - name: I,T vs Vg
+        alias: ITg
+        target: ${class:laser_setup.procedures.IVgT}
+
+      - name: T vs t
+        alias: Tt
+        target: ${class:laser_setup.procedures.Tt}
+
+      - name: P vs t
+        alias: Pt
+        target: ${class:laser_setup.procedures.Pt}
+
+      - name: Laser Calibration
+        alias: LaserCalibration
+        target: ${class:laser_setup.procedures.LaserCalibration}
+
+    sequences:
+      # List of Procedures to run sequentially.
+      MainSequence:
+        - ${class:laser_setup.procedures.IVg}
+        - ${class:laser_setup.procedures.It}
+        - ${class:laser_setup.procedures.IVg}
+        - ${class:laser_setup.procedures.Wait}
+        - ${class:laser_setup.procedures.IVg}
+
+      TestSequence:
+        - ${class:laser_setup.procedures.FakeProcedure.FakeProcedure}
+        - ${class:laser_setup.procedures.Wait}
+
+
+  SequenceWindow:
+    # Timeout when aborting a sequence
+    abort_timeout: 30
+
+    # Common procedure parameters that will be used for all procedures in the sequence
+    common_procedure: ${class:laser_setup.procedures.ChipProcedure}
+
+    # Inputs in common_procedure that should be shown for each procedure
+    inputs_ignored: ['show_more', 'chained_exec']
 
 
 ############################################
 # PyMeasure configuration
 ############################################
+
 
 Filename:
   # Configure the data filenames. With this config,
@@ -75,6 +194,7 @@ Filename:
   index: true
   datetimeformat: "%Y-%m-%d"
 
+
 Logging:
   # Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
   console: true
@@ -82,7 +202,22 @@ Logging:
   filename: ./log/std.log
   file_level: INFO
 
+
 matplotlib_rcParams:
   # Matplotlib configuration, parsed by PyMeasure. All values must be strings
   axes.grid: "True"
   figure.autolayout: "True"
+
+
+############################################
+# Extra
+############################################
+
+
+Telegram:
+  # Telegram bot token
+  token: ''
+
+  # Chat IDs for the Telegram bot to send messages to
+  chat_ids:
+    - ''

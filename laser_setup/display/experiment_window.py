@@ -8,7 +8,7 @@ from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
 
-from ..config import Qt_config, config, instantiate
+from ..config import config, instantiate
 from ..procedures import BaseProcedure
 from ..Qt import QtCore, QtGui, QtWidgets
 from .widgets import LogWidget, ProgressBar, TextWidget
@@ -35,7 +35,7 @@ class ExperimentWindow(ManagedWindowBase):
     ):
         self.cls = cls
 
-        if Qt_config.GUI.dark_mode:
+        if config.Qt.GUI.dark_mode:
             PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
 
         if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
@@ -56,7 +56,7 @@ class ExperimentWindow(ManagedWindowBase):
             x_axis_labels=[self.x_axis,],
             y_axis_labels=cls.DATA_COLUMNS[1:dock_plot_number+1],
         )
-        if Qt_config.GUI.dark_mode:
+        if config.Qt.GUI.dark_mode:
             for plot_widget in (self.plot_widget, *self.dock_widget.plot_frames):
                 plot_widget.setAutoFillBackground(True)
                 plot_widget.plot_frame.setStyleSheet('background-color: black;')
@@ -251,7 +251,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
                 continue
 
             window_name = getattr(proc, 'name', proc.__name__)
-            kwargs = {**instantiate(Qt_config.ExperimentWindow)}
+            kwargs = {**instantiate(config.Qt.ExperimentWindow)}
             kwargs['title'] = window_name
             window = ExperimentWindow(proc, **kwargs)
             procedure_parameters = inputs[i+1].get_procedure()._parameters

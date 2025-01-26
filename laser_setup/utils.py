@@ -1,11 +1,11 @@
+import datetime
 import logging
 from pathlib import Path
-import datetime
 from typing import Dict, List, Tuple
 
 import numpy as np
-import requests
 import pandas as pd
+import requests
 
 from .config import config
 
@@ -83,8 +83,7 @@ def send_telegram_alert(message: str):
         log.debug("Telegram token not specified in config.")
         return
 
-    chats = [c for c in config.Telegram if c != 'token']
-    if len(chats) == 0:
+    if len(config.Telegram.chat_ids) == 0:
         log.debug("No chats specified in config.")
         return
 
@@ -97,13 +96,12 @@ def send_telegram_alert(message: str):
     message = ''.join(['\\' + c if c in "_*[]()~`>#+-=|{}.!" else c for c in message])
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
-    for chat in chats:
-        if chat_id := config.Telegram[chat]:
-            params = {'chat_id': chat_id, 'text': message, 'parse_mode': 'MarkdownV2'}
+    for chat_id in config.Telegram.chat_ids:
+        params = {'chat_id': chat_id, 'text': message, 'parse_mode': 'MarkdownV2'}
 
         requests.post(url, params=params)
 
-    log.info(f"Sent '{message}' to {chats}.")
+    log.debug(f"Sent '{message}' to {config.Telegram.chat_ids}.")
 
 
 def get_status_message(timeout: float = .5) -> str:

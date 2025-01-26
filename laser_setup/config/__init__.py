@@ -1,8 +1,7 @@
 from omegaconf import OmegaConf
 
+from .defaults import DefaultPaths  # noqa: F401
 from .handler import ConfigHandler
-from .main import DefaultPaths  # noqa: F401
-from .Qt import QtConfig
 from .utils import instantiate, load_yaml, safeget, save_yaml  # noqa: F401
 
 OmegaConf.register_new_resolver(
@@ -13,4 +12,3 @@ OmegaConf.register_new_resolver(
 )
 
 config = ConfigHandler.load_config()
-Qt_config = load_yaml(config.Dir.Qt_file, struct=QtConfig)

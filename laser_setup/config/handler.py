@@ -7,7 +7,7 @@ from pathlib import Path
 from omegaconf import DictConfig, OmegaConf
 
 from ..Qt import QtWidgets, make_app
-from .main import AppConfig, DefaultPaths
+from .defaults import AppConfig, DefaultPaths
 from .utils import load_yaml, safeget, save_yaml
 
 log = logging.getLogger(__name__)

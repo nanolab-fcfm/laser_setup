@@ -9,9 +9,8 @@ from typing import Callable
 from pymeasure.experiment import Procedure
 
 from ..cli import parameters_to_db
-from ..config import (ConfigHandler, DefaultPaths, Qt_config, config,
-                      instantiate)
-from ..config.Qt import ProceduresType, ScriptsType, SequencesType
+from ..config import ConfigHandler, DefaultPaths, config, instantiate
+from ..config.defaults import ProceduresType, ScriptsType, SequencesType
 from ..instruments import InstrumentManager, Instruments
 from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
 from ..utils import get_status_message, remove_empty_data
@@ -161,12 +160,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_sequence(self, name: str, procedure_list: list[type[Procedure]]):
         window = SequenceWindow(procedure_list, title=name,
-                                parent=self, **instantiate(Qt_config.SequenceWindow))
+                                parent=self, **instantiate(config.Qt.SequenceWindow))
         window.show()
 
     def open_app(self, cls: type[Procedure]):
         self.windows[cls] = ExperimentWindow(
-            cls, **instantiate(Qt_config.ExperimentWindow)
+            cls, **instantiate(config.Qt.ExperimentWindow)
         )
         self.windows[cls].show()
 
@@ -266,7 +265,7 @@ def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
     :param args: The arguments to pass to the window class.
     """
     app = QtWidgets.QApplication(sys.argv)
-    splash_image = Path(Qt_config.GUI.splash_image)
+    splash_image = Path(config.Qt.GUI.splash_image)
     if not splash_image.exists():
         splash_image = DefaultPaths.splash
 
@@ -276,8 +275,8 @@ def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
     splash.show()
 
     # Get available styles with QtWidgets.QStyleFactory.keys()
-    app.setStyle(Qt_config.GUI.style)
-    if Qt_config.GUI.dark_mode:
+    app.setStyle(config.Qt.GUI.style)
+    if config.Qt.GUI.dark_mode:
         app.setPalette(get_dark_palette())
     QtCore.QLocale.setDefault(QtCore.QLocale(
         QtCore.QLocale.Language.English,
@@ -285,10 +284,10 @@ def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
     ))
 
     if issubclass(Window, MainWindow):
-        kwargs.update(**instantiate(Qt_config.MainWindow))
+        kwargs.update(**instantiate(config.Qt.MainWindow))
 
     elif issubclass(Window, ExperimentWindow):
-        kwargs.update(**instantiate(Qt_config.ExperimentWindow))
+        kwargs.update(**instantiate(config.Qt.ExperimentWindow))
 
     window = Window(*args, **kwargs)
     splash.finish(window)

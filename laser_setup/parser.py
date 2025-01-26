@@ -1,12 +1,12 @@
 """Module to parse CLI arguments"""
 import argparse
 
-from .config import Qt_config
-from .config.Qt import MenuItemConfig
 from . import __version__
+from .config import config
+from .config.defaults import MenuItemConfig
 
-experiment_list = [i.alias for i in Qt_config.MainWindow.procedures]
-script_list = [i.alias for i in Qt_config.MainWindow.scripts]
+experiment_list = [i.alias for i in config.Qt.MainWindow.procedures]
+script_list = [i.alias for i in config.Qt.MainWindow.scripts]
 
 parser = argparse.ArgumentParser(description='Laser Setup')
 parser.add_argument('procedure', nargs='?', help='Procedure to run',
@@ -20,7 +20,7 @@ parser.add_argument('-d', '--debug', action='store_true',
 args = parser.parse_args()
 
 if args.debug:
-    Qt_config.MainWindow.procedures.extend((
+    config.Qt.MainWindow.procedures.extend((
         MenuItemConfig(
             name='Fake Procedure',
             target='${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',

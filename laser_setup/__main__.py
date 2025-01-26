@@ -1,4 +1,4 @@
-from .config import Qt_config, instantiate
+from .config import config, instantiate
 from .parser import experiment_list, parser, script_list
 
 
@@ -13,12 +13,12 @@ def main():
         from .display import ExperimentWindow, display_window
         idx = experiment_list.index(args.procedure)
         display_window(ExperimentWindow, instantiate(
-            Qt_config.MainWindow.procedures[idx].target, level=1
+            config.Qt.MainWindow.procedures[idx].target, level=1
         ))
 
     elif args.procedure in script_list:
         idx = script_list.index(args.procedure)
-        instantiate(Qt_config.MainWindow.scripts[idx].target, level=1)()
+        instantiate(config.Qt.MainWindow.scripts[idx].target, level=1)()
 
     else:
         # This should never happen

@@ -9,14 +9,38 @@ from ..instruments import TENMA, Keithley2450
 log = logging.getLogger(__name__)
 
 
+def list_resources():
+    """
+    Prints the available resources, and returns a list of VISA resource names
+    """
+    rm = pyvisa.ResourceManager()
+    instrs = rm.list_resources()
+    for n, instr in enumerate(instrs):
+        try:
+            res = rm.open_resource(instr)
+            try:
+                idn = res.query('*IDN?')[:-1]
+            except pyvisa.Error:
+                idn = "Unknown"
+            finally:
+                res.close()
+                print(n, ":", instr, ":", idn)
+        except pyvisa.VisaIOError as e:
+            print(n, ":", instr, ":", "Visa IO Error: check connections")
+            print(e)
+    rm.close()
+    return instrs
+
+
 def keithley_exists(adapter):
     try:
         K = Keithley2450(adapter)
         log.info(f"Keithley 2450 found at {adapter}")
         K.beep(3*440, 0.5)
         return True
-    except:
-        log.warning(f"Keithley 2450 not found at {adapter}")
+
+    except Exception as e:
+        log.warning(f"Keithley 2450 not found at {adapter}: {e}")
         return False
 
 
@@ -25,8 +49,9 @@ def tenma_ping(adapter, tenmas: list, parent=None):
     try:
         T = TENMA(adapter)
         T.apply_voltage(0.01)
-    except:
-        log.warning(f"Adapter {adapter} not found")
+
+    except Exception as e:
+        log.warning(f"Adapter {adapter} not found: {e}")
         return
 
     which_tenma = ''
@@ -52,7 +77,9 @@ def setup(parent=None):
     devices = rm.list_resources()
 
     is_keithley = False
-    if 'keithley2450' not in config['Adapters'] or not keithley_exists(config['Adapters']['keithley2450']):
+    if 'keithley2450' not in config['Adapters'] or not keithley_exists(
+        config['Adapters']['keithley2450']
+    ):
         for dev in devices:
             if 'USB0::0x05E6::0x2450' in dev and keithley_exists(dev):
                 config['Adapters']['keithley2450'] = dev
@@ -60,7 +87,9 @@ def setup(parent=None):
                 break
 
         if not is_keithley:
-            log.error("Keithley 2450 not found on any USB port. Connect the instrument and try again.")
+            log.error(
+                "Keithley 2450 not found on any USB port. Connect the instrument and try again."
+            )
 
     else:
         is_keithley = True
@@ -80,7 +109,10 @@ def setup(parent=None):
     if found_tenmas:
         for tenma in tenmas:
             if tenma not in found_tenmas and tenma != 'None':
-                log.warning(f'TENMA {tenma} is configured, but was not found. Setting as empty str to avoid duplicates.')
+                log.warning(
+                    f'TENMA {tenma} is configured, but was not found. '
+                    'Setting as empty str to avoid duplicates.'
+                )
                 config['Adapters'][tenma] = ''
 
     else:
