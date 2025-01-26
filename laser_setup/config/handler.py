@@ -31,10 +31,15 @@ class ConfigHandler:
         parent: QtWidgets.QWidget = None,
         config: AppConfig | DictConfig = None
     ):
-        self.parent = parent or make_app()
         self.config = config or self.load_config()
         self.save_path = Path(config._session['save_path'])
         self.config_path_used = config._session['config_path_used']
+
+        self.app = make_app()
+        if parent is None:
+            parent = QtWidgets.QWidget()
+
+        self.parent = parent
 
     @staticmethod
     def load_config(
