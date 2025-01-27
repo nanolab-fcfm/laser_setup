@@ -84,10 +84,13 @@ class ExperimentWindow(ManagedWindowBase):
         )
         # Add a shutdown all button if the procedure is a BaseProcedure
         if issubclass(self.procedure_class, BaseProcedure):
-            self.shutdown_button = QtWidgets.QPushButton('Shutdown', self)
+            self.shutdown_button = QtWidgets.QPushButton('&Shutdown', self)
             self.shutdown_button.clicked.connect(self.procedure_class.instruments.shutdown_all)
             self.shutdown_button.setToolTip('Shutdown all instruments')
             self.abort_button.parent().layout().children()[0].insertWidget(2, self.shutdown_button)
+
+        self.abort_button.setText('&Abort')
+        self.queue_button.setText('&Queue')
 
         self.browser_widget.browser.measured_quantities.update([self.x_axis, self.y_axis])
 

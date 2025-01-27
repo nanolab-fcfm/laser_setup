@@ -183,7 +183,7 @@ def find_dp(data: Tuple[Dict, pd.DataFrame]) -> float:
     return df['Vg (V)'][peaks].mean()
 
 
-def sort_by_creation_date(filename: str) -> List[str]:
+def sort_by_creation_date(filename: str) -> tuple[datetime.datetime, int]:
     """This function sorts the files found in the given pattern by their
     creation date.
 
@@ -208,23 +208,18 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     latest one.
     :return: The latest Dirac Point found
     """
-    # Old method: (data = read_pymeasure(file))
-    # df = data[1]  # pandas df
-    # diff = np.abs(df.diff()["I (A)"].values)
-    # indices_smallest_four = np.argpartition(diff, 4)[:4]
-    # return round(np.mean(df["Vg (V)"].values[indices_smallest_four]), 2)
     data_total = get_data_files()
-    data_sorted = sorted(data_total, key=sort_by_creation_date)
-    data_files = [d for d in data_sorted if 'IVg' in str(d)][-1:-max_files-1:-1]
+    data_sorted: list[Path] = sorted(data_total, key=sort_by_creation_date)
+    data_files: list[Path] = [d for d in data_sorted if 'IVg' in str(d.stem)][-1:-max_files-1:-1]
     for file in data_files:
         data = read_pymeasure(file)
-        if all(
+        if all((
             data[0]['Chip group name'] == chip_group,
             data[0]['Chip number'] == str(chip_number),
             data[0]['Sample'] == sample
-        ):
+        )):
             DP = find_dp(data)
-            log.info(f"Dirac Point found from {file.split('/')[-1]}: {DP} [V]")
+            log.info(f"Dirac Point found from {file.name}: {DP} [V]")
             if not isinstance(DP, float) or np.isnan(DP):
                 continue
 
