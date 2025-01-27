@@ -1,9 +1,10 @@
-import time
 import logging
+import time
+
 import numpy as np
 
 from .. import config
-from ..instruments import ThorlabsPM100USB, Bentham, PendingInstrument
+from ..instruments import Bentham, PendingInstrument, ThorlabsPM100USB
 from ..parameters import Parameters
 from ..procedures import BaseProcedure
 
@@ -47,12 +48,6 @@ class Pwl(BaseProcedure):
             log.info("Skipping startup")
             return
 
-        # Turn on the light source and set initial wavelength
-        self.light_source.lamp = True
-        time.sleep(1.0)  # Allow the lamp to stabilize
-
-        self.power_meter.wavelength = self.wl_start
-
         self.__class__.startup_executed = True
 
     def execute(self):
@@ -60,6 +55,10 @@ class Pwl(BaseProcedure):
         Performs the wavelength sweep and records power measurements.
         """
         log.info("Starting the wavelength sweep")
+
+        # Turn on the light source and set initial wavelength
+        self.light_source.lamp = True
+        time.sleep(1.0)  # Allow the lamp to stabilize
 
         wl_range = np.arange(self.wl_start, self.wl_end + self.wl_step, self.wl_step)
         avg_array = np.zeros(self.N_avg)
@@ -90,22 +89,9 @@ class Pwl(BaseProcedure):
             power_avg = np.mean(avg_array)
             elapsed_time = time.time() - initial_time
 
-            # Emit results with wavelength, power, and timestamp
             self.emit('results', dict(zip(
                 self.DATA_COLUMNS, [wavelength, power_avg, elapsed_time]
             )))
-            avg_array[:] = 0  # Reset the averaging array
+            avg_array[:] = 0
 
-    def shutdown(self):
-        """
-        Safely shuts down instruments after measurement.
-        """
-
-        try:
-            self.light_source.lamp = False
-            self.light_source.shutdown()  # Ensure proper shutdown of the Bentham light source
-            log.info("Bentham light source successfully shut down")
-        except Exception as e:
-            log.error(f"Error during shutdown of the Bentham light source: {e}")
-
-        log.info("Measurement completed, instruments turned off")
+        self.light_source.lamp = False
