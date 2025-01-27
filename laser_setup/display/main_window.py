@@ -16,6 +16,7 @@ from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
 from ..utils import get_status_message, remove_empty_data
 from .experiment_window import ExperimentWindow, SequenceWindow
 from .widgets import LogsWidget, SQLiteWidget
+from .camera_widget import CameraWidget
 
 log = logging.getLogger(__name__)
 
@@ -100,6 +101,9 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         db_action.setShortcut('Ctrl+Shift+D')
 
+        video_action = view_menu.addAction('Cameras', self.open_camera)
+        video_action.setShortcut('Ctrl+Shift+C')
+
         self.log_widget = LogsWidget('Logs', parent=self)
         self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
 
@@ -110,8 +114,8 @@ class MainWindow(QtWidgets.QMainWindow):
         log_action = view_menu.addAction('Logs', self.log_widget.show)
         log_action.setShortcut('Ctrl+Shift+L')
 
-        console_action = view_menu.addAction('Console', self.open_console)
-        console_action.setShortcut('Ctrl+Shift+C')
+        console_action = view_menu.addAction('Terminal', self.open_terminal)
+        console_action.setShortcut('Ctrl+Shift+T')
 
         settings_menu = menu.addMenu('&Settings')
         settings_menu.addAction('Edit config', self.config_handler.edit_config)
@@ -179,7 +183,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_widget(self, widget: QtWidgets.QWidget, title: str):
         """Opens a widget in a new window."""
-        widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
+        widget.setWindowFlags(QtCore.Qt.WindowType.Window)
         widget.setWindowTitle(title)
         widget.resize(*self.widget_size)
         widget.show()
@@ -215,7 +219,12 @@ class MainWindow(QtWidgets.QMainWindow):
         text_edit.setPlainText(text)
         self.open_widget(text_edit, title)
 
-    def open_console(self):
+    def open_camera(self):
+        """Opens the camera widget."""
+        self.camera_widget = CameraWidget(parent=self)
+        self.open_widget(self.camera_widget, 'Cameras')
+
+    def open_terminal(self):
         """Opens an interactive console. Loads common modules and instruments."""
         from ..instruments import FakeAdapter  # noqa: F401
         instruments = InstrumentManager()
