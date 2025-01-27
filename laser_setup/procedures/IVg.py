@@ -31,7 +31,6 @@ class IVg(ChipProcedure):
 
     # Laser Parameters
     laser_toggle = Parameters.Laser.laser_toggle
-    group_by = {'laser_toggle': True}
     laser_wl = Parameters.Laser.laser_wl
     laser_v = Parameters.Laser.laser_v
     burn_in_t = Parameters.Laser.burn_in_t

@@ -46,8 +46,8 @@ class It(ChipProcedure):
         if vg.endswith(' V'):
             vg = vg[:-2]
         if 'DP' in vg:
-            laset_dp = get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20)
-            vg = vg.replace('DP', f"{laset_dp:.2f}")
+            latest_DP = get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20)
+            vg = vg.replace('DP', f"{latest_DP:.2f}")
 
         self._parameters['vg'] = Parameters.Control.vg
         self._parameters['vg'].value = float(eval(vg))
