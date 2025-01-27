@@ -121,7 +121,15 @@ class ConfigHandler:
 
     def edit_config(self):
         save_path = self.init_config(verbose=False)
-        os.startfile(save_path)
+        try:
+            if os.name == 'nt':
+                os.startfile(save_path)
+            elif os.name == 'posix':
+                os.system(f'xdg-open {save_path}')
+            else:
+                log.warning(f'Your OS ({os.name}) is not supported.')
+        except Exception as e:
+            log.error(f'Error opening the config file: {e}')
         try:
             self.parent.suggest_reload()
         except AttributeError:
