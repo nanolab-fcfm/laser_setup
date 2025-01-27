@@ -15,7 +15,7 @@ class PT100SerialSensor(Instrument):
     """
     def __init__(
         self,
-        port: str,
+        adapter: str,
         name: str = "PT100 Sensor",
         baudrate: int = 115200,
         timeout: float = 0.15,
@@ -32,14 +32,14 @@ class PT100SerialSensor(Instrument):
         :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param kwargs: Additional keyword arguments.
         """
-        adapter = SerialAdapter(port, baudrate=baudrate, timeout=timeout)
+        adapter = SerialAdapter(port=adapter, baudrate=baudrate, timeout=timeout)
         super().__init__(
             adapter,
             name=name,
             includeSCPI=includeSCPI,
             **kwargs
         )
-        log.info(f"{self.name} initialized on port {port} at {baudrate} baud.")
+        log.info(f"{self.name} initialized on port {adapter} at {baudrate} baud.")
         self.clock = np.nan
         self.plate_temp = np.nan
         self.ambient_temp = np.nan
