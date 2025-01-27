@@ -32,6 +32,7 @@ class AdapterConfig:
     tenma_laser: str = ''
     power_meter: str = ''
     pt100_port: str = ''
+    light_source: str = ''
 
 
 @dataclass

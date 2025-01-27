@@ -59,6 +59,9 @@ class IVg(ChipProcedure):
 
         if self.chained_exec and self.__class__.startup_executed:
             log.info("Skipping startup")
+            # TENMA sources to 0V
+            self.tenma_neg.apply_voltage(0.)
+            self.tenma_pos.apply_voltage(0.)
             self.meter.measure_current(
                 current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
             )
@@ -125,6 +128,8 @@ class IVg(ChipProcedure):
                 'results',
                 dict(zip(self.DATA_COLUMNS, [vg, self.__class__.DATA[1][-1]]))
             )
+        if self.laser_toggle:
+            self.tenma_laser.apply_voltage(0.)
 
     def shutdown(self):
         self.__class__.DATA = [[], []]

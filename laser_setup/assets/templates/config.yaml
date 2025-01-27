@@ -46,7 +46,10 @@ Adapters:
   power_meter: COM7
 
   # Temperature sensor
-  pt100_port: COM6
+  pt100_port: COM8
+
+  # Light source
+  light_source: COM6
 
 
 ############################################
@@ -147,6 +150,10 @@ Qt:
       - name: P vs t
         alias: Pt
         target: ${class:laser_setup.procedures.Pt}
+
+      - name: P vs wl
+        alias: Pwl
+        target: ${class:laser_setup.procedures.Pwl}
 
       - name: Laser Calibration
         alias: LaserCalibration

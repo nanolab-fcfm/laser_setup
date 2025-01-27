@@ -32,6 +32,12 @@ Pt:
       value: 20.
 
 
+Pwl:
+  update_parameters:
+    procedure_version:
+      value: 1.2.0
+
+
 ItVg:
   update_parameters:
     laser_wl:

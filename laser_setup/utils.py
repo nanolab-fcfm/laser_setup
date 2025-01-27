@@ -46,6 +46,39 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
     V = np.concatenate((v_i, V_m, v_f))
     return V
 
+def voltage_ds_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarray:
+    """This function returns an array with the voltages to be applied
+    for a voltage sweep. It goes from 0 to v_start, then to v_end and finally back to 0.
+    If the step size is 1e-6, it will only be applied in the range -1mV to 1mV.
+    Otherwise, a step size of 1mV will be used.
+
+    :param v_start: The starting voltage of the sweep
+    :param v_end: The ending voltage of the sweep
+    :param v_step: The step size of the sweep
+    :return: An array with the voltages to be applied
+    """
+
+    if  1e-6 <= v_step <= 5e-4:
+        # Paso de 1e-6 en el rango de -1mV a 1mV
+        small_step = v_step
+        large_step = 5e-4  # 0.5mV 
+    else:
+        # Paso de 1mV fuera del rango de -1mV a 1mV
+        small_step = v_step  
+        large_step = v_step
+    
+    direction = 1 if v_start > 0 else -1
+
+    v_i = np.arange(0, direction * min(abs(v_start),  5e-4), direction * small_step)
+    v_m1 = np.arange(direction * min(abs(v_start),  5e-4), v_start, direction * large_step)    
+    v_m2 = np.arange(v_start, direction * min(abs(v_start),  5e-4), direction * -large_step)
+    v_m3 = np.arange(direction * min(abs(v_start),  5e-4), -direction * min(abs(v_end), 5e-4), direction * -small_step)
+    v_m4 = np.arange(-direction * min(abs(v_end), 5e-4), v_end, direction * -large_step)
+    v_f1 = np.arange(v_end, -direction * min(abs(v_end), 5e-4), direction * large_step)
+    v_f2 = np.arange(-direction * min(abs(v_end), 5e-4), 0 + direction * small_step, direction * small_step)
+    V = np.concatenate((v_i, v_m1, v_m2, v_m3, v_m4, v_f1, v_f2))
+    
+    return V
 
 def get_data_files(pattern: str = '*.csv') -> List[Path]:
     data_path = Path(config.Dir.data_dir)

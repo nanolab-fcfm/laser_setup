@@ -76,7 +76,7 @@ class ExperimentWindow(ManagedWindowBase):
             sequence_file=getattr(cls, 'SEQUENCE_FILE', None),
             **kwargs
         )
-        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
+        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__) or cls.__name__)
         self.setWindowIcon(
             icon or self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton

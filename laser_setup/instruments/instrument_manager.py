@@ -216,6 +216,7 @@ class DebugInstrument(FakeInstrument):
 
     # power meter
     wavelength: float = 0.
+    sensor_name: str = 'sensor'
 
     def __init__(self, name="Debug instrument", **kwargs):
         super().__init__(name=name, **kwargs)

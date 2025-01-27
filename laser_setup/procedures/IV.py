@@ -2,7 +2,8 @@ import time
 import logging
 
 from .. import config
-from ..utils import voltage_sweep_ramp
+from ..utils import voltage_ds_sweep_ramp
+from ..utils import get_latest_DP
 from ..instruments import TENMA, Keithley2450, PendingInstrument
 from ..parameters import Parameters
 from .BaseProcedure import ChipProcedure
@@ -22,7 +23,7 @@ class IV(ChipProcedure):
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
 
     # Important Parameters
-    vg = Parameters.Control.vg
+    vg = Parameters.Control.vg_dynamic
     vsd_start = Parameters.Control.vsd_start
     vsd_end = Parameters.Control.vsd_end
 
@@ -45,6 +46,18 @@ class IV(ChipProcedure):
     ]
     DATA_COLUMNS = ['Vsd (V)', 'I (A)']
     SEQUENCER_INPUTS = ['laser_v', 'vg', 'vds']
+
+    def pre_startup(self):
+        vg = str(self.vg)
+        if vg.endswith(' V'):
+            vg = vg[:-2]
+        if 'DP' in vg:
+            laset_dp = get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20)
+            vg = vg.replace('DP', f"{laset_dp:.2f}")
+
+        self._parameters['vg'] = Parameters.Control.vg
+        self._parameters['vg'].value = float(eval(vg))
+        self.vg = self._parameters['vg'].value
 
     def startup(self):
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
@@ -100,7 +113,7 @@ class IV(ChipProcedure):
             time.sleep(self.burn_in_t)
 
         # Set the Vsd ramp and the measuring loop
-        self.vsd_ramp = voltage_sweep_ramp(self.vsd_start, self.vsd_end, self.vsd_step)
+        self.vsd_ramp = voltage_ds_sweep_ramp(self.vsd_start, self.vsd_end, self.vsd_step)
         for i, vsd in enumerate(self.vsd_ramp):
             if self.should_stop():
                 log.warning('Measurement aborted')
@@ -115,3 +128,6 @@ class IV(ChipProcedure):
             current = self.meter.current
 
             self.emit('results', dict(zip(self.DATA_COLUMNS, [vsd, current])))
+
+        if self.laser_toggle:
+            self.tenma_laser.apply_voltage(0.)
