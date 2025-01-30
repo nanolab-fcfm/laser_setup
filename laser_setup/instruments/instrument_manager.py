@@ -1,7 +1,7 @@
 import logging
 import random
-import sys
 import time
+from types import SimpleNamespace
 from typing import Dict, TypeVar
 from uuid import uuid4
 
@@ -13,37 +13,36 @@ log = logging.getLogger(__name__)
 AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
 
 
-class PendingInstrument(Instrument):
+class PendingInstrument(SimpleNamespace, Instrument):
     """A placeholder for an instrument that is pending initialization.
 
     This class holds the configuration for an instrument that will be connected
     and initialized at a later stage. It allows for the deferred setup of instruments,
     enabling dynamic and flexible instrument management within procedures.
-
-    :param cls: The class of the instrument to be initialized.
-    :param adapter: The adapter string for the instrument connection.
-    :param name: The name of the instrument.
-    :param includeSCPI: Flag indicating whether to include SCPI commands.
-    :param kwargs: Additional keyword arguments for instrument configuration.
     """
     def __init__(
         self,
         cls: type[AnyInstrument] = Instrument,
         adapter: str = None,
         name: str = None,
-        includeSCPI=False,
+        includeSCPI: bool = False,
         **kwargs
     ):
-        self.config = {
-            'cls': cls,
-            'adapter': adapter,
-            'name': name,
-            'includeSCPI': includeSCPI,
-            **kwargs
-        }
+        """Initializes the PendingInstrument.
 
-    def __repr__(self) -> str:
-        return f"PendingInstrument({self.config})"
+        :param cls: The class of the instrument to be initialized.
+        :param adapter: The adapter string for the instrument connection.
+        :param name: The name of the instrument.
+        :param includeSCPI: Flag indicating whether to include SCPI commands.
+        :param kwargs: Additional keyword arguments for instrument configuration.
+        """
+        super().__init__(
+            cls=cls,
+            adapter=adapter,
+            name=name,
+            includeSCPI=includeSCPI,
+            **kwargs
+        )
 
 
 class InstrumentManager:
@@ -58,7 +57,6 @@ class InstrumentManager:
     :method shutdown_all: Safely shuts down all instruments.
     """
     def __init__(self):
-        super().__init__()
         self.instances: Dict[str, type[AnyInstrument]] = {}
 
     def __repr__(self) -> str:
@@ -97,7 +95,12 @@ class InstrumentManager:
         return help_str if return_str else print(help_str)
 
     @staticmethod
-    def setup_adapter(cls: type[AnyInstrument], adapter: str, **kwargs) -> AnyInstrument:
+    def setup_adapter(
+        cls: type[AnyInstrument],
+        adapter: str,
+        debug: bool = False,
+        **kwargs
+    ) -> AnyInstrument:
         """Sets up the adapter for the given instrument class. If the setup fails,
         it raises an exception, unless debug mode is enabled (-d flag), in which
         case it replaces the adapter with a FakeAdapter. Returns the instrument
@@ -105,13 +108,14 @@ class InstrumentManager:
 
         :param cls: The instrument class to set up.
         :param adapter: The adapter to use for the communication.
+        :param debug: Flag indicating whether to use the DebugInstrument as a fallback.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         :return: The instrument object.
         """
         try:
             instrument: AnyInstrument = cls(adapter=adapter, **kwargs)
         except Exception as e:
-            if '-d' in sys.argv or '--debug' in sys.argv:
+            if debug:
                 log.warning(f"Could not connect to {cls.__name__}: {e} Using DebugInstrument.")
                 instrument = DebugInstrument(**kwargs)
             else:

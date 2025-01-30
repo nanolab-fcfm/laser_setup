@@ -66,10 +66,11 @@ class BaseProcedure(Procedure, metaclass=BaseProcedureMeta):
         connected instrument.
         """
         log.info("Setting up instruments")
-        all_attrs = {**self.__class__.__dict__, **self.__dict__}
-        for key, instrument in all_attrs.items():
-            if isinstance(instrument, PendingInstrument):
-                setattr(self, key, self.instruments.connect(**instrument.config))
+        all_attrs = vars(self.__class__) | vars(self)
+        for key, attr in all_attrs.items():
+            if isinstance(attr, PendingInstrument):
+                instr_dict = vars(attr) | {'debug': config._session.args.debug}
+                setattr(self, key, self.instruments.connect(**instr_dict))
 
     def shutdown(self):
         if not self.should_stop() and self.status >= self.RUNNING and self.chained_exec:
