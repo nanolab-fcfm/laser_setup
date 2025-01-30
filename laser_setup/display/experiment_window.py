@@ -120,7 +120,7 @@ class ExperimentWindow(ManagedWindowBase):
     def closeEvent(self, event: QtGui.QCloseEvent):
         if self.manager.is_running():
             reply = QtWidgets.QMessageBox.question(
-                self, 'Message',
+                self, 'Abort Experiment',
                 'Do you want to close the window? This will abort the current experiment.',
                 QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No
             )
@@ -135,7 +135,7 @@ class ExperimentWindow(ManagedWindowBase):
 
         self.log_widget._blinking_stop(self.log_widget.tab_index)
         if self.use_estimator:
-            del self.estimator
+            self.estimator.update_thread.stop()
 
         super().closeEvent(event)
 
