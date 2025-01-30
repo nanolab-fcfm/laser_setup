@@ -1,7 +1,7 @@
 import datetime
 import logging
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, Generator, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -86,28 +86,58 @@ def get_data_files(pattern: str = '*.csv') -> List[Path]:
     return list(data_path.rglob(pattern))
 
 
+def iter_file_lines(
+    file: str | Path,
+    **kwargs
+) -> Generator[str, None, None] | None:
+    """Reads a file line by line and yields each line.
+    Useful for checks on files with large data.
+
+    :param file: The file to read
+    :param kwargs: Additional arguments for the open function
+    :return: A generator with the lines of the file
+    """
+    file_path = Path(file)
+    if not file_path.is_file():
+        raise FileNotFoundError(f"File not found: {file}")
+
+    with file_path.open(mode='r', **kwargs) as f:
+        for line in f:
+            yield line
+
+
 def remove_empty_data(days: int = 2):
     """This function removes all the empty files in the data folder,
     up to a certain number of days back. Empty files are considered files with
     only the header and no data.
     """
     data = get_data_files()
-    try:
-        data = [file for file in data if (
-            datetime.datetime.now() - sort_by_creation_date(file)[0]
-            ).days <= days]
-    except Exception as e:
-        log.error(f"Error while removing empty files: {e}")
-        pass
+    data = [file for file in data if (
+        datetime.datetime.now() - extract_date_and_number(file)[0]
+        ).days <= days]
 
+    at_least_one = False
     for file in data:
-        with open(file, 'r') as f:
-            nonheader = [line for line in f.readlines() if not line.startswith('#')]
+        nonheader_count = 0
+        for line in iter_file_lines(file):
+            if not line.startswith('#'):
+                nonheader_count += 1
 
-        if len(nonheader) == 1:
+            if nonheader_count > 1:
+                break
+
+        if nonheader_count <= 1:
+            at_least_one = True
             file.unlink()
+            log.debug(f"Removed empty file: {file}")
 
-    log.info('Empty files removed')
+    for directory in Path(config.Dir.data_dir).rglob('*'):
+        if directory.is_dir() and not list(directory.iterdir()):
+            directory.rmdir()
+            log.debug(f"Removed empty directory: {directory}")
+
+    if at_least_one:
+        log.info('Empty files removed')
 
 
 def send_telegram_alert(message: str):
@@ -149,11 +179,14 @@ def get_status_message(timeout: float = .5) -> str:
         return 'Ready'
 
 
-def read_file_parameters(file_path: str) -> Dict[str, str]:
+def read_file_parameters(file_path: str | Path) -> Dict[str, str]:
     """Reads the parameters from a PyMeasure data file."""
     parameters = {}
-    file = Path(file_path).read_text().splitlines()
-    for line in file:
+    file_path = Path(file_path)
+    if not file_path.is_file():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    for line in iter_file_lines(file_path):
         line = line.strip()
         if not line or line.startswith('#Data:'):
             break           # Stop reading after the data starts
@@ -175,20 +208,19 @@ def read_pymeasure(file_path: str, comment='#') -> Tuple[Dict, pd.DataFrame]:
     return parameters, data
 
 
-def find_dp(data: Tuple[Dict, pd.DataFrame]) -> float:
+def find_dp(df: pd.DataFrame) -> float:
+    """Finds the Dirac Point from an IVg measurement."""
     from scipy.signal import find_peaks
-    df = data[1]
     R = 1 / df['I (A)']
     peaks, _ = find_peaks(R)
     return df['Vg (V)'][peaks].mean()
 
 
-def sort_by_creation_date(filename: str) -> tuple[datetime.datetime, int]:
-    """This function sorts the files found in the given pattern by their
-    creation date.
+def extract_date_and_number(filename: str | Path) -> tuple[datetime.datetime, int]:
+    """Extracts the date and number from a file name.
 
-    :param pattern: The pattern to look for files
-    :return: A list of file paths sorted by creation date
+    :param filename: The file name to sort
+    :return: A tuple with the date and number of the file
     """
     filename = Path(filename).name
     date_part, number_part = filename.split('_')
@@ -197,7 +229,7 @@ def sort_by_creation_date(filename: str) -> tuple[datetime.datetime, int]:
     return date, number
 
 
-def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -> float:
+def get_latest_DP(chip_group: str, chip_number: int | str, sample: str, max_files=1) -> float:
     """This function returns the latest Dirac Point found for the specified
     chip group, chip number and sample. This is based on IVg measurements.
 
@@ -209,20 +241,23 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     :return: The latest Dirac Point found
     """
     data_total = get_data_files()
-    data_sorted: list[Path] = sorted(data_total, key=sort_by_creation_date)
+    data_sorted: list[Path] = sorted(data_total, key=extract_date_and_number)
     data_files: list[Path] = [d for d in data_sorted if 'IVg' in str(d.stem)][-1:-max_files-1:-1]
     for file in data_files:
-        data = read_pymeasure(file)
+        params, data = read_pymeasure(file)
         if all((
-            data[0]['Chip group name'] == chip_group,
-            data[0]['Chip number'] == str(chip_number),
-            data[0]['Sample'] == sample
+            params['Chip group name'] == chip_group,
+            params['Chip number'] == str(chip_number),
+            params['Sample'] == sample
         )):
             DP = find_dp(data)
-            log.info(f"Dirac Point found from {file.name}: {DP} [V]")
             if not isinstance(DP, float) or np.isnan(DP):
                 continue
 
+            log.info(
+                f"Dirac Point found for {chip_group} {chip_number} {sample} "
+                f"in {file.name}: {DP:.2f} [V]"
+            )
             return DP
 
     log.warning(
@@ -231,13 +266,16 @@ def get_latest_DP(chip_group: str, chip_number: int, sample: str, max_files=1) -
     return 0.
 
 
-def rename_data_value(original: str, replace: str):
+def rename_data_value(original: str, replace: str) -> None:
     """Takes all .csv files in data/**/*.csv, checks for
     headers and replaces all strings matching original with replace
+
+    :param original: The string to replace
+    :param replace: The string to replace with
     """
     data_total = get_data_files()
     for file in data_total:
-        with open(file, 'r+') as f:
+        with file.open('r+') as f:
             lines = f.readlines()
 
             for i, line in enumerate(lines):
