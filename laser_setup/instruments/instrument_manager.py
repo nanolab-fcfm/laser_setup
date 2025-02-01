@@ -63,7 +63,7 @@ class InstrumentManager:
         return f"InstrumentManager({self.instances})"
 
     @staticmethod
-    def help(cls: type[AnyInstrument], return_str=False) -> str:
+    def help(cls: type[AnyInstrument], return_str=False) -> str | None:
         """Returns all available controls and measurements for the given
         instrument class. For each control and measurement, it shows the
         description, command sent to the instrument, and the values that
@@ -73,24 +73,19 @@ class InstrumentManager:
         :param return_str: Whether to return the help string or print it.
         """
         help_str = "Available controls and measurements for "\
-            f"{cls.__name__} (not including methods):\n"
+            f"{cls.__name__} (not including methods):\n\n"
 
         for name in dir(cls):
-            try:
-                attr = getattr(cls, name)
-                if isinstance(attr, property):
-                    if attr.fset.__doc__ is None:
-                        help_str += f"    {name} (measurement): {attr.__doc__} \n"
-                    else:
-                        help_str += f"    {name} (control): {attr.__doc__} \n"
-
-                    help_str += 12*" " + \
-                        f"fget: '{attr.fget.__defaults__[0]}', " \
-                        f"fset: '{attr.fset.__defaults__[0]}', " \
+            attr = getattr(cls, name)
+            if isinstance(attr, property):
+                prop_type = "control" if attr.fset.__doc__ else "measurement"
+                attr_doc = f"{attr.__doc__.strip()}" if attr.__doc__ else ""
+                help_str += f"{name} ({prop_type}): {attr_doc}\n\n"
+                if attr.fget.__module__ == 'pymeasure.instruments.common_base':
+                    help_str += 8*" " + \
+                        f"fget='{attr.fget.__defaults__[0]}', " \
+                        f"fset='{attr.fset.__defaults__[0]}', " \
                         f"values={attr.fget.__defaults__[1]}\n\n"
-
-            except Exception:
-                continue
 
         return help_str if return_str else print(help_str)
 
