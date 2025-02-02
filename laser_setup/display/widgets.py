@@ -52,12 +52,12 @@ class ProgressBar(QtWidgets.QDialog):
 
 
 class TextWidget(TabWidget, QtWidgets.QWidget):
-    def __init__(self, name: str = None, parent=None, file: str = None):
+    def __init__(self, name: str = None, parent=None, file: str = None, font_size: int = 14):
         super().__init__(name, parent)
         self.view = QtWidgets.QTextEdit(self, readOnly=True)
         self.view.setReadOnly(True)
-        self.view.setStyleSheet("""
-            font-size: 12pt;
+        self.view.setStyleSheet(f"""
+            font-size: {int(font_size)}px;
         """)
 
         self.file = Path(file) if file else None
@@ -76,6 +76,9 @@ class TextWidget(TabWidget, QtWidgets.QWidget):
 
 
 class LogWidget(LogWidget):
+    fmt = '%(asctime)s: %(message)s (%(name)s, %(levelname)s)'
+    datefmt = '%I:%M:%S %p'
+
     _original_color = None
 
     def _blink(self):
@@ -91,13 +94,11 @@ class LogWidget(LogWidget):
 
 
 class LogsWidget(QtWidgets.QWidget):
-    fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    datefmt = '%H:%M:%S %p'
+    fmt = '%(asctime)s: %(message)s (%(name)s, %(levelname)s)'
+    datefmt = '%I:%M:%S %p'
 
-    def __init__(self, title="Logs", parent=None, **kwargs):
+    def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)
-        self.setWindowTitle(title)
-        self.resize(640, 480)
         self._setup_ui()
         self._layout()
 

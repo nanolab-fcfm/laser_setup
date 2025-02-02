@@ -63,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
             cls = item.target
             action = QtGui.QAction(item.name or getattr(cls, 'name', cls.__name__), self)
             doc = cls.__doc__.replace('    ', '').strip()
-            action.triggered.connect(partial(self.open_app, cls))
+            action.triggered.connect(partial(self.open_procedure, cls))
             action.setToolTip(doc)
             action.setStatusTip(doc)
             action.setShortcut(f'Ctrl+{len(procedure_menu.actions()) + 1}')
@@ -104,14 +104,14 @@ class MainWindow(QtWidgets.QMainWindow):
         video_action = view_menu.addAction('Cameras', self.open_camera)
         video_action.setShortcut('Ctrl+Shift+C')
 
-        self.log_widget = LogsWidget('Logs', parent=self)
+        self.log_widget = LogsWidget(parent=self)
         self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
 
         self.log = logging.getLogger('laser_setup')
         self.log.setLevel(config.Logging.console_level)
         self.log.addHandler(self.log_widget.handler)
 
-        log_action = view_menu.addAction('Logs', self.log_widget.show)
+        log_action = view_menu.addAction('Logs', partial(self.open_widget, self.log_widget, 'Logs'))
         log_action.setShortcut('Ctrl+Shift+L')
 
         console_action = view_menu.addAction('Terminal', self.open_terminal)
@@ -167,7 +167,7 @@ class MainWindow(QtWidgets.QMainWindow):
                                 parent=self, **instantiate(config.Qt.SequenceWindow))
         window.show()
 
-    def open_app(self, cls: type[Procedure]):
+    def open_procedure(self, cls: type[Procedure]):
         self.windows[cls] = ExperimentWindow(
             cls, **instantiate(config.Qt.ExperimentWindow)
         )
