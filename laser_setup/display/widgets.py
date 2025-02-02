@@ -89,8 +89,16 @@ class LogWidget(LogWidget):
         self._blink_state = not self._blink_state
 
     def _blinking_start(self, message):
+        tab_index_unset = self.tab_index is None
         super()._blinking_start(message)
-        self._original_color = self.tab_widget.tabBar().tabTextColor(self.tab_index)
+        if tab_index_unset:
+            self._original_color = self.tab_widget.tabBar().tabTextColor(self.tab_index)
+
+    def _blinking_stop(self, index):
+        super()._blinking_stop(index)
+        if index == self.tab_index:
+            # For some reason this fixes _blink_color being None at the wrong time
+            self._blink_color = ''
 
 
 class LogsWidget(QtWidgets.QWidget):
