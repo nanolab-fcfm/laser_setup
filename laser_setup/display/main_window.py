@@ -73,7 +73,7 @@ class MainWindow(QtWidgets.QMainWindow):
         sequence_menu.setToolTipsVisible(True)
         for name, seq_list in self.sequences.items():
             action = QtGui.QAction(name, self)
-            doc = str(seq_list).replace("'", "").replace('"', '')
+            doc = ", ".join([cls.__name__ for cls in seq_list])
             action.triggered.connect(partial(
                 self.open_sequence, name, seq_list
             ))
