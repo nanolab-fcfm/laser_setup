@@ -27,7 +27,6 @@ class It(ChipProcedure):
     laser_wl = Parameters.Laser.laser_wl
     laser_v = Parameters.Laser.laser_v
     laser_T = Parameters.Laser.laser_T
-    pulse_time = Parameters.Laser.pulse_time  # New parameter for pulsing
 
     # Additional Parameters, preferably don't change
     sampling_t = Parameters.Control.sampling_t
@@ -35,7 +34,7 @@ class It(ChipProcedure):
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
-    INPUTS = ChipProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'pulse_time', 'sampling_t', 'Irange', 'NPLC']
+    INPUTS = ChipProcedure.INPUTS + ['vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC']
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 
@@ -88,37 +87,25 @@ class It(ChipProcedure):
         elif self.vg < 0:
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
-        def measuring_loop(t_end: float, laser_v: float, pulsing: bool = False):
+
+        def measuring_loop(t_end: float, laser_v: float):
             keithley_time = self.meter.get_time()
-            pulse_state = True  # Start with LED on
-            pulse_end = keithley_time + self.pulse_time if pulsing else t_end
-            
             while keithley_time < t_end:
                 if self.should_stop():
                     log.warning('Measurement aborted')
                     return
-                
+
                 self.emit('progress', 100 * keithley_time / (self.laser_T * 3/2))
-                current = self.meter.current
-                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, current, laser_v])))
-                
-                time.sleep(self.sampling_t)
+
                 keithley_time = self.meter.get_time()
-                
-                # Handle pulsing logic
-                if pulsing and keithley_time >= pulse_end:
-                    pulse_state = not pulse_state  # Toggle state
-                    self.tenma_laser.voltage = self.laser_v if pulse_state else 0
-                    pulse_end = keithley_time + self.pulse_time
+                current = self.meter.current
 
-        # Pre-laser measurement
+                self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_time, current, laser_v])))
+                time.sleep(self.sampling_t)
+
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T * 1/2, 0.)
-
-        # Laser-on measurement with pulsing
+        measuring_loop(self.laser_T *  1/2, 0.)
         self.tenma_laser.voltage = self.laser_v
-        measuring_loop(self.laser_T, self.laser_v, pulsing=True)
-        
-        # Post-laser measurement
+        measuring_loop(self.laser_T, self.laser_v)
         self.tenma_laser.voltage = 0.
         measuring_loop(self.laser_T * 3/2, 0.)

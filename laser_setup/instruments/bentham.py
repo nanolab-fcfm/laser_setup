@@ -134,3 +134,9 @@ class Bentham(Instrument):
 
     def reconnect(self):
         self.adapter.reconnect()
+
+    def reboot(self):
+        """Reboots the Bentham device."""
+        log.info("Rebooting the Bentham instrument...")
+        self.adapter.write("SYSTEM:REBOOT")
+        log.info("Reboot command sent successfully. Please allow time for the device to restart.")

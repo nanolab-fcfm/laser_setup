@@ -59,7 +59,8 @@ class Pwl(BaseProcedure):
         """
         log.info("Starting the wavelength sweep")
 
-        wl_range = np.arange(self.wl_start, self.wl_end + self.wl_step, self.wl_step)
+        step_direction = -abs(self.wl_step) if self.wl_start > self.wl_end else abs(self.wl_step)
+        wl_range = np.arange(self.wl_start, self.wl_end + step_direction, step_direction)
         avg_array = np.zeros(self.N_avg)
         initial_time = time.time()
         self.power_meter.wavelength = self.wl_start
@@ -101,9 +102,8 @@ class Pwl(BaseProcedure):
 
         try:
             self.light_source.lamp = False
-            self.light_source.shutdown()  # Ensure proper shutdown of the Bentham light source
-            log.info("Bentham light source successfully shut down")
+            self.light_source.reboot()
         except Exception as e:
-            log.error(f"Error during shutdown of the Bentham light source: {e}")
+            log.error(f"Error during reboot of the Bentham light source: {e}")
 
         log.info("Measurement completed, instruments turned off")

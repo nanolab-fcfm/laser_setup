@@ -6,6 +6,7 @@ from .ItVg import ItVg
 from .IV import IV
 from .Pt import Pt
 from .Pwl import Pwl
+from .Iwl import Iwl
 from .Tt import Tt
 from .ITt import ITt
 from .IVgT import IVgT
@@ -22,6 +23,7 @@ Experiments: list[tuple[Procedure, str]] = [
     (Tt, 'T vs t'),
     (Pt, 'P vs t'),
     (Pwl, 'P vs wl'),
+    (Iwl, 'I vs wl'),
     (LaserCalibration, 'Calibrate Laser'),
 ]
 

@@ -61,6 +61,7 @@ class LaserParameters(ParameterProvider):
     laser_v = FloatParameter('Laser voltage', units='V', default=0.)
     laser_T = FloatParameter('Laser ON+OFF period', units='s', default=120.)
     burn_in_t = FloatParameter('Burn-in time', units='s', default=60.)
+    pulse_time = FloatParameter('Pulse time', units='s', default=1.)
 
     fiber = ListParameter('Optical fiber', choices=fibers)
 
