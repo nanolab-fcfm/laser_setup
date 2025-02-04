@@ -25,7 +25,6 @@ class MainWindow(QtWidgets.QMainWindow):
     """The main window for program. It contains buttons to open
     the experiment windows, sequence windows, and run scripts.
     """
-
     def __init__(
         self,
         procedures: ProceduresType,
@@ -38,6 +37,18 @@ class MainWindow(QtWidgets.QMainWindow):
         readme_file: str | Path = 'README.md',
         **kwargs
     ):
+        """Initializes the main window with the given procedures, sequences, and scripts.
+
+        :param procedures: List of procedures to display in the Procedures menu.
+        :param sequences: Dictionary with the sequences to display in the Sequences menu.
+        :param scripts: List of scripts to display in the Scripts menu.
+        :param title: Title of the window.
+        :param size: Size of the window.
+        :param widget_size: Size of the widgets.
+        :param icon: Icon of the window.
+        :param readme_file: Path to the README file.
+        :param kwargs: Additional arguments for the QMainWindow.
+        """
         self.widget_size = widget_size
         self.readme_path = Path(readme_file)
         self.procedures = procedures
@@ -55,85 +66,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.windows: dict[type[Procedure] | str, QtWidgets.QMainWindow] = {}
         self._layout = QtWidgets.QGridLayout(self.centralWidget())
-        menu = self.menuBar()
 
-        procedure_menu = menu.addMenu('&Procedures')
-        procedure_menu.setToolTipsVisible(True)
-        for item in self.procedures:
-            cls = item.target
-            action = QtGui.QAction(item.name or getattr(cls, 'name', cls.__name__), self)
-            doc = cls.__doc__.replace('    ', '').strip()
-            action.triggered.connect(partial(self.open_procedure, cls))
-            action.setToolTip(doc)
-            action.setStatusTip(doc)
-            action.setShortcut(f'Ctrl+{len(procedure_menu.actions()) + 1}')
-            procedure_menu.addAction(action)
-
-        sequence_menu = menu.addMenu('Se&quences')
-        sequence_menu.setToolTipsVisible(True)
-        for name, seq_list in self.sequences.items():
-            action = QtGui.QAction(name, self)
-            doc = ", ".join([cls.__name__ for cls in seq_list])
-            action.triggered.connect(partial(
-                self.open_sequence, name, seq_list
-            ))
-            action.setToolTip(doc)
-            action.setStatusTip(doc)
-            action.setShortcut(f'Ctrl+Shift+{len(sequence_menu.actions()) + 1}')
-            sequence_menu.addAction(action)
-
-        script_menu = menu.addMenu('&Scripts')
-        script_menu.setToolTipsVisible(True)
-        for item in self.scripts:
-            func = item.target
-            action = QtGui.QAction(item.name or func.__doc__, self)
-            doc = sys.modules[func.__module__].__doc__ or ''
-            doc = doc.replace('    ', '').strip()
-            action.triggered.connect(partial(self.run_script, func))
-            action.setToolTip(doc)
-            action.setStatusTip(doc)
-            action.setShortcut(f'Alt+{len(script_menu.actions()) + 1}')
-            script_menu.addAction(action)
-
-        view_menu = menu.addMenu('&View')
-        db_action = view_menu.addAction(
-            'Parameter Database', partial(self.open_database, config.Dir.database)
-        )
-        db_action.setShortcut('Ctrl+Shift+D')
-
-        video_action = view_menu.addAction('Cameras', self.open_camera)
-        video_action.setShortcut('Ctrl+Shift+C')
-
-        self.log_widget = LogsWidget(parent=self)
-        self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
-
-        self.log = logging.getLogger('laser_setup')
-        self.log.setLevel(config.Logging.console_level)
-        self.log.addHandler(self.log_widget.handler)
-
-        log_action = view_menu.addAction('Logs', partial(self.open_widget, self.log_widget, 'Logs'))
-        log_action.setShortcut('Ctrl+Shift+L')
-
-        console_action = view_menu.addAction('Terminal', self.open_terminal)
-        console_action.setShortcut('Ctrl+Shift+T')
-
-        settings_menu = menu.addMenu('&Settings')
-        settings_menu.addAction('Edit config', self.config_handler.edit_config)
-        settings_menu.addAction('Load config', self.config_handler.import_config)
-
-        # Help
-        help_menu = menu.addMenu('&Help')
-        help_menu.setToolTipsVisible(True)
-
-        instrument_help = help_menu.addMenu('Instruments')
-        for cls in Instruments:
-            name = getattr(cls, 'name', cls.__name__)
-            action = QtGui.QAction(name, self)
-            action.triggered.connect(partial(
-                self.text_window, name, InstrumentManager.help(cls, return_str=True)
-            ))
-            instrument_help.addAction(action)
-
+        self.menu_bar = self.create_menu_bar()
         self.status_bar = self.statusBar()
 
         thread = QtCore.QThread(parent=self)
@@ -216,6 +150,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def text_window(self, title: str, text: str):
         """Displays a text window with the given title and text. adds a scroll bar"""
         text_edit = QtWidgets.QTextEdit(parent=self)
+        text_edit.setReadOnly(True)
         text_edit.setPlainText(text)
         self.open_widget(text_edit, title)
 
@@ -263,6 +198,100 @@ class MainWindow(QtWidgets.QMainWindow):
                 child.quit()
                 child.wait()
         super().closeEvent(event)
+
+    def create_menu_bar(self) -> QtWidgets.QMenuBar:
+        """Creates the menu bar with the following options:
+        - Procedures
+        - Sequences
+        - Scripts
+        - View
+        - Settings
+        - Help
+
+        This method can be overridden to add more options.
+
+        :return: The menu bar.
+        """
+        menu = self.menuBar()
+
+        procedure_menu = menu.addMenu('&Procedures')
+        procedure_menu.setToolTipsVisible(True)
+        for item in self.procedures:
+            cls = item.target
+            action = QtGui.QAction(item.name or getattr(cls, 'name', cls.__name__), self)
+            doc = cls.__doc__.replace('    ', '').strip()
+            action.triggered.connect(partial(self.open_procedure, cls))
+            action.setToolTip(doc)
+            action.setStatusTip(doc)
+            action.setShortcut(f'Ctrl+{len(procedure_menu.actions()) + 1}')
+            procedure_menu.addAction(action)
+
+        sequence_menu = menu.addMenu('Se&quences')
+        sequence_menu.setToolTipsVisible(True)
+        for name, seq_list in self.sequences.items():
+            action = QtGui.QAction(name, self)
+            doc = ", ".join([cls.__name__ for cls in seq_list])
+            action.triggered.connect(partial(
+                self.open_sequence, name, seq_list
+            ))
+            action.setToolTip(doc)
+            action.setStatusTip(doc)
+            action.setShortcut(f'Ctrl+Shift+{len(sequence_menu.actions()) + 1}')
+            sequence_menu.addAction(action)
+
+        script_menu = menu.addMenu('&Scripts')
+        script_menu.setToolTipsVisible(True)
+        for item in self.scripts:
+            func = item.target
+            action = QtGui.QAction(item.name or func.__doc__, self)
+            doc = sys.modules[func.__module__].__doc__ or ''
+            doc = doc.replace('    ', '').strip()
+            action.triggered.connect(partial(self.run_script, func))
+            action.setToolTip(doc)
+            action.setStatusTip(doc)
+            action.setShortcut(f'Alt+{len(script_menu.actions()) + 1}')
+            script_menu.addAction(action)
+
+        view_menu = menu.addMenu('&View')
+        db_action = view_menu.addAction(
+            'Parameter Database', partial(self.open_database, config.Dir.database)
+        )
+        db_action.setShortcut('Ctrl+Shift+D')
+
+        video_action = view_menu.addAction('Cameras', self.open_camera)
+        video_action.setShortcut('Ctrl+Shift+C')
+
+        self.log_widget = LogsWidget(parent=self)
+        self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
+
+        self.log = logging.getLogger('laser_setup')
+        self.log.setLevel(config.Logging.console_level)
+        self.log.addHandler(self.log_widget.handler)
+
+        log_action = view_menu.addAction('Logs', partial(self.open_widget, self.log_widget, 'Logs'))
+        log_action.setShortcut('Ctrl+Shift+L')
+
+        console_action = view_menu.addAction('Terminal', self.open_terminal)
+        console_action.setShortcut('Ctrl+Shift+T')
+
+        settings_menu = menu.addMenu('&Settings')
+        settings_menu.addAction('Edit config', self.config_handler.edit_config)
+        settings_menu.addAction('Load config', self.config_handler.import_config)
+
+        # Help
+        help_menu = menu.addMenu('&Help')
+        help_menu.setToolTipsVisible(True)
+
+        instrument_help = help_menu.addMenu('Instruments')
+        for cls in Instruments:
+            name = getattr(cls, 'name', cls.__name__)
+            action = QtGui.QAction(name, self)
+            action.triggered.connect(partial(
+                self.text_window, name, InstrumentManager.help(cls, return_str=True)
+            ))
+            instrument_help.addAction(action)
+
+        return menu
 
 
 def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
