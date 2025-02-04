@@ -28,14 +28,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(
         self,
+        procedures: ProceduresType,
+        sequences: SequencesType,
+        scripts: ScriptsType,
         title: str = 'Main Window',
-        size: list[int, int] = [640, 480],
-        widget_size: list[int, int] = [640, 480],
-        icon: str = '',
+        size: tuple[int, int] = (640, 480),
+        widget_size: tuple[int, int] = (640, 480),
+        icon: str | None = None,
         readme_file: str | Path = 'README.md',
-        procedures: ProceduresType = None,
-        sequences: SequencesType = None,
-        scripts: ScriptsType = None,
         **kwargs
     ):
         self.widget_size = widget_size
@@ -47,7 +47,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         super().__init__(**kwargs)
         self.setWindowTitle(title)
-        self.setWindowIcon(icon or self.style().standardIcon(
+        self.setWindowIcon(QtGui.QIcon(icon) if icon else self.style().standardIcon(
             QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
         ))
         self.resize(*size)
@@ -201,7 +201,7 @@ class MainWindow(QtWidgets.QMainWindow):
         error_dialog.exec()
         self.reload.click()
 
-    def select_from_list(self, title: str, items: list[str], label: str = '') -> str:
+    def select_from_list(self, title: str, items: list[str], label: str = '') -> str | None:
         item, ok = QtWidgets.QInputDialog.getItem(self, title, label, items, 0, False)
         if ok:
             return item

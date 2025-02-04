@@ -11,7 +11,7 @@ from pymeasure.experiment import Procedure, Results, unique_filename
 from ..config import config, instantiate
 from ..procedures import BaseProcedure
 from ..Qt import QtCore, QtGui, QtWidgets
-from .widgets import LogWidget, ProgressBar, TextWidget
+from .widgets import LogWidget, ProgressBar, TextTabWidget
 
 log = logging.getLogger(__name__)
 
@@ -29,8 +29,8 @@ class ExperimentWindow(ManagedWindowBase):
         inputs_in_scrollarea: bool = True,
         enable_file_input: bool = False,
         dock_plot_number: int = 2,
-        icon: str = None,
-        info_file: str = None,
+        icon: str | None = None,
+        info_file: str | None = None,
         **kwargs
     ):
         self.cls = cls
@@ -50,7 +50,7 @@ class ExperimentWindow(ManagedWindowBase):
                                       self.y_axis)
         self.plot_widget.setMinimumSize(100, 200)
 
-        self.text_widget = TextWidget('Information', file=info_file)
+        self.text_widget = TextTabWidget('Information', file=info_file)
         self.dock_widget = DockWidget(
             'Dock', cls,
             x_axis_labels=[self.x_axis,],
@@ -78,7 +78,7 @@ class ExperimentWindow(ManagedWindowBase):
         )
         self.setWindowTitle(title or getattr(cls, 'name', cls.__name__) or cls.__name__)
         self.setWindowIcon(
-            icon or self.style().standardIcon(
+            QtGui.QIcon(icon) if icon else self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
             )
         )
@@ -99,7 +99,7 @@ class ExperimentWindow(ManagedWindowBase):
         self.log.setLevel(config.Logging.console_level)
         self.log.info(f"{self.__class__.__name__} connected to logging")
 
-    def queue(self, procedure: Type[Procedure] = None):
+    def queue(self, procedure: Type[Procedure] | None = None):
         if procedure is None:
             procedure = self.make_procedure()
 
@@ -109,7 +109,7 @@ class ExperimentWindow(ManagedWindowBase):
                                    prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")
 
-        if hasattr(procedure, 'pre_startup'):
+        if hasattr(procedure, 'pre_startup') and callable(procedure.pre_startup):
             procedure.pre_startup()
 
         results = Results(procedure, filename)

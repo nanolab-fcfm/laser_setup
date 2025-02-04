@@ -51,10 +51,16 @@ class ProgressBar(QtWidgets.QDialog):
             )
 
 
-class TextWidget(TabWidget, QtWidgets.QWidget):
-    def __init__(self, name: str = None, parent=None, file: str = None, font_size: int = 14):
+class TextTabWidget(TabWidget, QtWidgets.QWidget):
+    def __init__(
+        self,
+        name: str,
+        parent=None,
+        file: str | None = None,
+        font_size: int = 14
+    ):
         super().__init__(name, parent)
-        self.view = QtWidgets.QTextEdit(self, readOnly=True)
+        self.view = QtWidgets.QTextEdit(self)
         self.view.setReadOnly(True)
         self.view.setStyleSheet(f"""
             font-size: {int(font_size)}px;
@@ -79,9 +85,15 @@ class LogWidget(LogWidget):
     fmt = '%(asctime)s: %(message)s (%(name)s, %(levelname)s)'
     datefmt = '%I:%M:%S %p'
 
+    tab_widget: QtWidgets.QTabWidget | None = None
+    tab_index: int | None = None
     _original_color = None
 
     def _blink(self):
+        if self.tab_index is None or self._blink_color is None or \
+           self._original_color is None:
+            return
+
         self.tab_widget.tabBar().setTabTextColor(
             self.tab_index,
             self._original_color if self._blink_state else QtGui.QColor(self._blink_color)
@@ -91,14 +103,15 @@ class LogWidget(LogWidget):
     def _blinking_start(self, message):
         tab_index_unset = self.tab_index is None
         super()._blinking_start(message)
-        if tab_index_unset:
+        if tab_index_unset and self.tab_index is not None:
             self._original_color = self.tab_widget.tabBar().tabTextColor(self.tab_index)
 
     def _blinking_stop(self, index):
         super()._blinking_stop(index)
         if index == self.tab_index:
             # For some reason this fixes _blink_color being None at the wrong time
-            self._blink_color = ''
+            # self._blink_color = ''
+            pass
 
 
 class LogsWidget(QtWidgets.QWidget):
@@ -111,7 +124,8 @@ class LogsWidget(QtWidgets.QWidget):
         self._layout()
 
     def _setup_ui(self):
-        self.view = QtWidgets.QPlainTextEdit(self, readOnly=True)
+        self.view = QtWidgets.QPlainTextEdit(self)
+        self.view.setReadOnly(True)
         self.handler = LogHandler()
         self.handler.setFormatter(HTMLFormatter(fmt=self.fmt, datefmt=self.datefmt))
         self.handler.connect(self.view.appendHtml)
@@ -127,7 +141,7 @@ class SQLiteWidget(QtWidgets.QWidget):
     """Widget to display and interact with the contents of a SQLite database."""
     select_text = "Select a table..."
 
-    def __init__(self, database: str, default_table: str = None, parent=None):
+    def __init__(self, database: str, default_table: str | None = None, parent=None):
         super().__init__(parent)
 
         # Initialize database connection
@@ -148,40 +162,26 @@ class SQLiteWidget(QtWidgets.QWidget):
         self.view = QtWidgets.QTableView(self)
         self.view.setModel(self.model)
         self.view.resizeColumnsToContents()
-
-        # Enable sorting on columns
         self.view.setSortingEnabled(True)
-
-        # Make the table read-only
         self.view.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
+
+        self.table_selector = QtWidgets.QComboBox(self)
+        self.table_selector.addItem(self.select_text)
+
+        self.populate_table_selector()
+
+        self.table_selector.currentIndexChanged.connect(self.change_table)
 
         # Layout setup
         vbox = QtWidgets.QVBoxLayout(self)
         vbox.setSpacing(0)
         vbox.addWidget(self.view)
-        self.setLayout(vbox)
 
-        # Add a combo box to select different tables
-        self.add_table_selector()
-
-    def add_table_selector(self):
-        """Add a combo box to select different tables."""
-        self.table_selector = QtWidgets.QComboBox(self)
-        self.table_selector.addItem(self.select_text)
-
-        # Populate combo box with available tables
-        self.populate_table_selector()
-
-        # Connect table selection change event
-        self.table_selector.currentIndexChanged.connect(self.change_table)
-
-        # Layout for the combo box
         hbox = QtWidgets.QHBoxLayout()
         hbox.addWidget(QtWidgets.QLabel(self.select_text))
         hbox.addWidget(self.table_selector)
-
-        # Add combo box to layout
-        self.layout().addLayout(hbox)
+        vbox.addLayout(hbox)
+        self.setLayout(vbox)
 
     def populate_table_selector(self):
         """Populate the combo box with available table names."""
