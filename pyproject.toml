@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "laser_setup"
 description = "Experimental setup for Laser, I-V and Transfer Curve measurements"
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     'bendev==0.3.1',
     'GitPython',
@@ -22,7 +22,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -57,3 +56,12 @@ dev = [
     "sphinx>=7.4.7",
     "sphinx-rtd-theme>=3.0.2",
 ]
+
+[tool.pyright]
+typeCheckingMode = "off"
+
+[tool.pyright.defineConstant]
+PYQT5 = false
+PYSIDE2 = false
+PYQT6 = true
+PYSIDE6 = false
