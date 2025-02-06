@@ -63,13 +63,6 @@ class IV(ChipProcedure):
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
         self.connect_instruments()
 
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            self.meter.measure_current(
-                current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
-            )
-            return
-
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
@@ -92,8 +85,6 @@ class IV(ChipProcedure):
             self.tenma_laser.output = True
         time.sleep(1.)
 
-        self.__class__.startup_executed = True
-
     def execute(self):
         log.info("Starting the measurement")
         self.meter.clear_buffer()
@@ -101,7 +92,9 @@ class IV(ChipProcedure):
         # Set the Vg
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)
+            self.tenma_neg.ramp_to_voltage(0)
         elif self.vg < 0:
+            self.tenma_pos.ramp_to_voltage(0)
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
         # Set the laser if toggled and wait for burn-in
@@ -128,6 +121,3 @@ class IV(ChipProcedure):
             current = self.meter.current
 
             self.emit('results', dict(zip(self.DATA_COLUMNS, [vsd, current])))
-
-        if self.laser_toggle:
-            self.tenma_laser.apply_voltage(0.)

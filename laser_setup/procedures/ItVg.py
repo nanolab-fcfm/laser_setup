@@ -49,16 +49,12 @@ class ItVg(ChipProcedure):
         ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'Vg (V)']
 
-    def startup(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
-        self.connect_instruments()
 
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            self.meter.measure_current(
-                current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
-            )
-            return
+    def startup(self):
+        self.connect_instruments()
 
         # Keithley 2450 meter
         self.meter.reset()
@@ -82,8 +78,6 @@ class ItVg(ChipProcedure):
             self.tenma_laser.output = True
         time.sleep(1.)
 
-        self.__class__.startup_executed = True
-
     def execute(self):
         log.info("Starting the measurement")
         self.meter.clear_buffer()
@@ -97,7 +91,9 @@ class ItVg(ChipProcedure):
 
         if self.vg_ramp[0] > 0:
             self.tenma_pos.ramp_to_voltage(self.vg_ramp[0])
+            self.tenma_neg.ramp_to_voltage(0)
         elif self.vg_ramp[0] < 0:
+            self.tenma_pos.ramp_to_voltage(0)
             self.tenma_neg.ramp_to_voltage(-self.vg_ramp[0])
 
         def measuring_loop(t_end: float, vg: float):
@@ -127,6 +123,3 @@ class ItVg(ChipProcedure):
             self.tenma_pos.voltage = vg * (vg >= 0)
 
             measuring_loop(self.step_time * (i + 1) + self.burn_in_t * self.laser_toggle, vg)
-
-        self.tenma_neg.ramp_to_voltage(0.)
-        self.tenma_pos.ramp_to_voltage(0.)

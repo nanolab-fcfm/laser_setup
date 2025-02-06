@@ -24,13 +24,7 @@ class FakeProcedure(BaseProcedure):
     DATA = [[0], [0]]
 
     def startup(self):
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            return
-
-        log.info(f"Starting fake procedure{self.chained_exec*' in chained mode'}.")
-
-        self.__class__.startup_executed = True
+        log.info("Starting fake procedure.")
 
     def execute(self):
         log.info("Executing fake procedure.")
@@ -50,13 +44,7 @@ class FakeProcedure(BaseProcedure):
             tc = time.time()
 
     def shutdown(self):
-        if not self.should_stop() and self.chained_exec:
-            log.info("Skipping shutdown")
-            return
-
-        log.info(f"Shutting down fake procedure{self.chained_exec*' in chained mode'}.")
-
-        self.__class__.startup_executed = False
+        log.info("Shutting down fake procedure.")
 
     def get_estimates(self):
         estimates = [
@@ -98,20 +86,16 @@ class FakeIVg(IVg):
     # Fix Data not defined for get_estimates. TODO: Find a better way to handle this.
     DATA = [[], []]
 
-    def startup(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
 
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            return
-
+    def startup(self):
         self.tenma_neg.output = True
         self.tenma_pos.output = True
         if self.laser_toggle:
             self.tenma_laser.output = True
         time.sleep(1.)
-
-        self.__class__.startup_executed = True
 
     def execute(self):
         log.info("Starting the measurement")

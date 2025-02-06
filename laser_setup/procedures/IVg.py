@@ -36,7 +36,6 @@ class IVg(ChipProcedure):
     burn_in_t = Parameters.Laser.burn_in_t
 
     # Additional Parameters, preferably don't change
-    N_avg = Parameters.Instrument.N_avg     # deprecated
     vg_step = Parameters.Control.vg_step
     step_time = Parameters.Control.step_time
     Irange = Parameters.Instrument.Irange
@@ -52,19 +51,12 @@ class IVg(ChipProcedure):
     # Fix Data not defined for get_estimates. TODO: Find a better way to handle this.
     DATA = [[], []]
 
-    def startup(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
-        self.connect_instruments()
 
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            # TENMA sources to 0V
-            self.tenma_neg.apply_voltage(0.)
-            self.tenma_pos.apply_voltage(0.)
-            self.meter.measure_current(
-                current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
-            )
-            return
+    def startup(self):
+        self.connect_instruments()
 
         # Keithley 2450 meter
         self.meter.reset()
@@ -87,8 +79,6 @@ class IVg(ChipProcedure):
         if self.laser_toggle:
             self.tenma_laser.output = True
         time.sleep(1.)
-
-        self.__class__.startup_executed = True
 
     def execute(self):
         log.info("Starting the measurement")
@@ -127,8 +117,6 @@ class IVg(ChipProcedure):
                 'results',
                 dict(zip(self.DATA_COLUMNS, [vg, self.__class__.DATA[1][-1]]))
             )
-        if self.laser_toggle:
-            self.tenma_laser.apply_voltage(0.)
 
     def shutdown(self):
         self.__class__.DATA = [[], []]

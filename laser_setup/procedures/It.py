@@ -56,13 +56,6 @@ class It(ChipProcedure):
     def startup(self):
         self.connect_instruments()
 
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            self.meter.measure_current(
-                current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
-            )
-            return
-
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
@@ -83,16 +76,17 @@ class It(ChipProcedure):
         self.tenma_laser.output = True
         time.sleep(1.)
 
-        self.__class__.startup_executed = True
-
     def execute(self):
         log.info("Starting the measurement")
         self.meter.clear_buffer()
 
         self.meter.source_voltage = self.vds
+
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)
+            self.tenma_neg.ramp_to_voltage(0)
         elif self.vg < 0:
+            self.tenma_pos.ramp_to_voltage(0)
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
         def measuring_loop(t_end: float, laser_v: float):

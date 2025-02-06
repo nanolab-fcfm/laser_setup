@@ -25,12 +25,6 @@ class Tt(ChipProcedure):
     INPUTS = ChipProcedure.INPUTS + ['sampling_t', 'laser_T']
     DATA_COLUMNS = ['Time (s)', 'Plate Temperature (degC)', 'Ambient Temperature (degC)',  "Clock"]
 
-    def startup(self):
-        """Connect to the temperature sensor."""
-        self.connect_instruments()
-        self.__class__.startup_executed = True
-        log.info("Temperature sensor connected and ready.")
-
     def execute(self):
         """Perform the temperature measurement over time."""
         log.info("Starting temperature measurement.")
@@ -39,7 +33,7 @@ class Tt(ChipProcedure):
 
         while True:
             if self.should_stop():
-                log.warning('Measurement aborted by user.')
+                log.warning('Measurement aborted.')
                 break
 
             elapsed_time = time.time() - start_time

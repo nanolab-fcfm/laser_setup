@@ -31,9 +31,12 @@ class ITt(It):
         self.meter.clear_buffer()
 
         self.meter.source_voltage = self.vds
+
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)
+            self.tenma_neg.ramp_to_voltage(0)
         elif self.vg < 0:
+            self.tenma_pos.ramp_to_voltage(0)
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
         def measuring_loop(t_end: float, laser_v: float):

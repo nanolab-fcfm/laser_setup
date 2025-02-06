@@ -38,18 +38,6 @@ class Pwl(BaseProcedure):
     DATA_COLUMNS = ['Wavelength (nm)', 'Power (W)', 'Time (s)']
     SEQUENCER_INPUTS = ['wl_start', 'wl_end', 'wl_step']
 
-    def startup(self):
-        """
-        Initializes instruments and prepares them for measurement.
-        """
-        self.connect_instruments()
-
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            return
-
-        self.__class__.startup_executed = True
-
     def execute(self):
         """
         Performs the wavelength sweep and records power measurements.
@@ -94,4 +82,6 @@ class Pwl(BaseProcedure):
             )))
             avg_array[:] = 0
 
+    def shutdown(self):
         self.light_source.lamp = False
+        super().shutdown()

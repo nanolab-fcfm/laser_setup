@@ -47,18 +47,12 @@ class Pt(BaseProcedure):
     def startup(self):
         self.connect_instruments()
 
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            return
-
         # TENMA sources
         self.tenma_laser.apply_voltage(0.)
 
         self.tenma_laser.output = True
         time.sleep(1.)
         self.power_meter.wavelength = self.laser_wl
-
-        self.__class__.startup_executed = True
 
     def execute(self):
         log.info("Starting the measurement")
