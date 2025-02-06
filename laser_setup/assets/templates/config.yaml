@@ -181,7 +181,7 @@ Qt:
     common_procedure: ${class:laser_setup.procedures.ChipProcedure}
 
     # Inputs in common_procedure that should be shown for each procedure
-    inputs_ignored: ['show_more', 'chained_exec']
+    inputs_ignored: ['show_more', 'skip_startup', 'skip_shutdown']
 
 
 ############################################

@@ -101,16 +101,25 @@ class BaseProcedure(Procedure):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Wrap methods to skip execution
-        self.startup = self._wrap_skip(self.startup, 'skip_startup')
+        self.startup = self._wrap_skip(self.startup, 'skip_startup', self.connect_instruments)
         self.shutdown = self._wrap_skip(self.shutdown, 'skip_shutdown')
 
-    def _wrap_skip(self, method, flag_name: str):
+    def _wrap_skip(self, method, flag_name: str, fallback=None):
+        """Wraps a method to skip execution if a flag is set to True.
+        If the flag is set to True, it will execute the fallback function
+        if it is callable, or return the fallback value. Otherwise, it will run
+        the method as usual.
+
+        :param method: Method to wrap
+        :param flag_name: Name of the flag to check as an attribute
+        :param fallback: Function to execute or value to return if the flag is True
+        """
         @wraps(method)
         def wrapper(*args, **kwargs):
             if getattr(self, flag_name, False):
                 log.info(f"Skipping {method.__name__} for {self.__class__.__name__}")
-                self.connect_instruments()
-                return
+                return fallback(*args, **kwargs) if callable(fallback) else fallback
+
             return method(*args, **kwargs)
         return wrapper
 
