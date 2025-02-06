@@ -16,6 +16,18 @@ from .widgets import LogWidget, ProgressBar, TextTabWidget
 log = logging.getLogger(__name__)
 
 
+class Results(Results):
+    def __init__(self, procedure, data_filename):
+        """Overwrites the Results class to exclude parameters from the save file.
+        Excludes parameters in the EXCLUDE list attribute of the procedure class.
+        """
+        if isinstance(procedure, Procedure):
+            for key in getattr(procedure, 'EXCLUDE', []):
+                procedure._parameters.pop(key, None)
+
+        super().__init__(procedure, data_filename)
+
+
 class ExperimentWindow(ManagedWindowBase):
     """The main window for an experiment. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
