@@ -1,11 +1,12 @@
 """
-This package contains all the modules that are used in the
-experiment scripts. It is used to setup Pymeasure's config
-and logging, and to import the modules that are used in the
-experiment scripts.
+Laser Setup
+===========
+A GUI for running PyMeasure procedures and controlling instruments.
 
-To overwrite the default config file, create a file called
-'./config/config.ini'.
+This package is built on top of the PyMeasure package.
+It provides a framework for creating custom procedures and
+scripts. The package is designed to be easily extendable and
+customizable.
 """
 import logging
 from pathlib import Path
