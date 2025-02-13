@@ -2,7 +2,7 @@ import logging
 import random
 import time
 from types import SimpleNamespace
-from typing import Dict, TypeVar
+from typing import TypeVar
 from uuid import uuid4
 
 from pymeasure.adapters import FakeAdapter
@@ -22,22 +22,22 @@ class PendingInstrument(SimpleNamespace, Instrument):
     """
     def __init__(
         self,
-        cls: type[AnyInstrument] = Instrument,
-        adapter: str = None,
-        name: str = None,
+        instrument: type[AnyInstrument] = Instrument,
+        adapter: str | None = None,
+        name: str | None = None,
         includeSCPI: bool = False,
         **kwargs
     ):
         """Initializes the PendingInstrument.
 
-        :param cls: The class of the instrument to be initialized.
+        :param instrument: The class of the instrument to be initialized.
         :param adapter: The adapter string for the instrument connection.
         :param name: The name of the instrument.
         :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param kwargs: Additional keyword arguments for instrument configuration.
         """
         super().__init__(
-            cls=cls,
+            instrument=instrument,
             adapter=adapter,
             name=name,
             includeSCPI=includeSCPI,
@@ -57,31 +57,33 @@ class InstrumentManager:
     :method shutdown_all: Safely shuts down all instruments.
     """
     def __init__(self):
-        self.instances: Dict[str, type[AnyInstrument]] = {}
+        self.instances: dict[str, Instrument] = {}
 
     def __repr__(self) -> str:
         return f"InstrumentManager({self.instances})"
 
     @staticmethod
-    def help(cls: type[AnyInstrument], return_str=False) -> str | None:
+    def help(instrument: type[Instrument], return_str=False) -> str | None:
         """Returns all available controls and measurements for the given
         instrument class. For each control and measurement, it shows the
         description, command sent to the instrument, and the values that
         can be set (either a range or a list of values).
 
-        :param cls: The instrument class to get the help from.
+        :param instrument: The instrument class to get the help from.
         :param return_str: Whether to return the help string or print it.
         """
         help_str = "Available controls and measurements for "\
-            f"{cls.__name__} (not including methods):\n\n"
+            f"{instrument.__name__} (not including methods):\n\n"
 
-        for name in dir(cls):
-            attr = getattr(cls, name)
+        for name in dir(instrument):
+            attr = getattr(instrument, name)
             if isinstance(attr, property):
                 prop_type = "control" if attr.fset.__doc__ else "measurement"
                 attr_doc = f"{attr.__doc__.strip()}" if attr.__doc__ else ""
                 help_str += f"{name} ({prop_type}): {attr_doc}\n\n"
-                if attr.fget.__module__ == 'pymeasure.instruments.common_base':
+                if attr.fget.__module__ == 'pymeasure.instruments.common_base' and \
+                   attr.fget.__defaults__ is not None and \
+                   attr.fset.__defaults__ is not None:
                     help_str += 8*" " + \
                         f"fget='{attr.fget.__defaults__[0]}', " \
                         f"fset='{attr.fset.__defaults__[0]}', " \
@@ -91,44 +93,46 @@ class InstrumentManager:
 
     @staticmethod
     def setup_adapter(
-        cls: type[AnyInstrument],
-        adapter: str,
+        instrument: type[AnyInstrument],
+        adapter: str | None = None,
         debug: bool = False,
         **kwargs
-    ) -> AnyInstrument:
+    ) -> AnyInstrument | 'DebugInstrument':
         """Sets up the adapter for the given instrument class. If the setup fails,
         it raises an exception, unless debug mode is enabled (-d flag), in which
         case it replaces the adapter with a FakeAdapter. Returns the instrument
         without saving it in the dictionary.
 
-        :param cls: The instrument class to set up.
+        :param instrument: The instrument class to set up.
         :param adapter: The adapter to use for the communication.
         :param debug: Flag indicating whether to use the DebugInstrument as a fallback.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         :return: The instrument object.
         """
         try:
-            instrument: AnyInstrument = cls(adapter=adapter, **kwargs)
+            instance = instrument(adapter=adapter, **kwargs)
         except Exception as e:
             if debug:
-                log.warning(f"Could not connect to {cls.__name__}: {e} Using DebugInstrument.")
-                instrument = DebugInstrument(**kwargs)
+                log.warning(
+                    f"Could not connect to {instrument.__name__}: {e} Using DebugInstrument."
+                )
+                instance = DebugInstrument(**kwargs)
             else:
                 raise
 
-        return instrument
+        return instance
 
     def connect(
         self,
-        cls: type[AnyInstrument],
-        adapter: str | None = None,
+        instrument: type[AnyInstrument],
+        adapter: str | None,
         name: str | None = '',
         includeSCPI: bool | None = False,
         **kwargs
-    ) -> AnyInstrument:
+    ) -> AnyInstrument | 'DebugInstrument' | Instrument:
         """Connects to an instrument and saves it in the dictionary.
 
-        :param cls: The instrument class to set up.
+        :param instrument: The instrument class to set up.
         :param adapter: The adapter to use for the communication. If None, the result
             depends on the instrument class.
         :param name: The name of the instrument. If '', it uses the class name
@@ -138,7 +142,7 @@ class InstrumentManager:
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         """
         if name == '':
-            name = f"{cls.__name__}/{adapter}"
+            name = f"{instrument.__name__}/{adapter}"
 
         if name not in self.instances:
             if name is not None:
@@ -150,9 +154,9 @@ class InstrumentManager:
                 kwargs['includeSCPI'] = includeSCPI
 
             try:
-                instrument = self.setup_adapter(cls, adapter=adapter, **kwargs)
-                self.instances[name] = instrument
-                log.debug(f"Connected '{name}' as {cls.__name__} via {instrument.adapter}")
+                instance = self.setup_adapter(instrument, adapter=adapter, **kwargs)
+                self.instances[name] = instance
+                log.debug(f"Connected '{name}' as {instrument.__name__} via {instance.adapter}")
 
             except Exception as e:
                 log.error(f"Failed to connect to instrument '{name}': {e}")

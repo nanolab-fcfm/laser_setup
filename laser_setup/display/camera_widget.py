@@ -3,7 +3,10 @@ import os
 from ..Qt import QtCore, QtGui, QtWidgets, Worker
 
 os.environ['OPENCV_LOG_LEVEL'] = 'OFF'
-import cv2  # noqa: E402
+try:
+    import cv2  # noqa: E402
+except ImportError:
+    cv2 = None
 
 
 class CameraWidget(QtWidgets.QWidget):
@@ -33,6 +36,11 @@ class CameraWidget(QtWidgets.QWidget):
         self.cameras = []
         self.current_camera_index = None
         self.cap = None
+
+        # If OpenCV is not available, display a message
+        if cv2 is None:
+            self.video_label.setText("OpenCV not found. Camera feed unavailable.")
+            return
 
         # Initialize timer for frame capture
         self.timer = QtCore.QTimer()
@@ -151,5 +159,6 @@ class CameraWidget(QtWidgets.QWidget):
         """Handle the widget closing event to release resources."""
         if self.cap:
             self.cap.release()
-        self.timer.stop()
+        if hasattr(self, 'timer') and self.timer.isActive():
+            self.timer.stop()
         event.accept()

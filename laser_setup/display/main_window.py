@@ -25,19 +25,30 @@ class MainWindow(QtWidgets.QMainWindow):
     """The main window for program. It contains buttons to open
     the experiment windows, sequence windows, and run scripts.
     """
-
     def __init__(
         self,
+        procedures: ProceduresType,
+        sequences: SequencesType,
+        scripts: ScriptsType,
         title: str = 'Main Window',
-        size: list[int, int] = [640, 480],
-        widget_size: list[int, int] = [640, 480],
-        icon: str = '',
+        size: tuple[int, int] = (640, 480),
+        widget_size: tuple[int, int] = (640, 480),
+        icon: str | None = None,
         readme_file: str | Path = 'README.md',
-        procedures: ProceduresType = None,
-        sequences: SequencesType = None,
-        scripts: ScriptsType = None,
         **kwargs
     ):
+        """Initializes the main window with the given procedures, sequences, and scripts.
+
+        :param procedures: List of procedures to display in the Procedures menu.
+        :param sequences: Dictionary with the sequences to display in the Sequences menu.
+        :param scripts: List of scripts to display in the Scripts menu.
+        :param title: Title of the window.
+        :param size: Size of the window.
+        :param widget_size: Size of the widgets.
+        :param icon: Icon of the window.
+        :param readme_file: Path to the README file.
+        :param kwargs: Additional arguments for the QMainWindow.
+        """
         self.widget_size = widget_size
         self.readme_path = Path(readme_file)
         self.procedures = procedures
@@ -47,7 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         super().__init__(**kwargs)
         self.setWindowTitle(title)
-        self.setWindowIcon(icon or self.style().standardIcon(
+        self.setWindowIcon(QtGui.QIcon(icon) if icon else self.style().standardIcon(
             QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
         ))
         self.resize(*size)
@@ -55,6 +66,152 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.windows: dict[type[Procedure] | str, QtWidgets.QMainWindow] = {}
         self._layout = QtWidgets.QGridLayout(self.centralWidget())
+
+        self.menu_bar = self.create_menu_bar()
+        self.status_bar = self.statusBar()
+
+        thread = QtCore.QThread(parent=self)
+        worker = Worker(get_status_message, thread)
+        worker.finished.connect(lambda msg: self.status_bar.showMessage(msg, 3000))
+        thread.start()
+
+        # README Widget
+        readme = QtWidgets.QTextBrowser(parent=self)
+        readme.setOpenExternalLinks(True)
+        readme.setStyleSheet("""
+            font-size: 12pt;
+        """)
+        if self.readme_path.is_file():
+            readme_text = self.readme_path.read_text()
+        else:
+            readme_text = metadata('laser_setup').get('Description')
+        readme.setMarkdown(readme_text)
+        self._layout.addWidget(readme)
+
+        # Reload window button
+        self.reload = QtWidgets.QPushButton('Reload')
+        self.reload.clicked.connect(
+            lambda: os.execl(sys.executable, sys.executable, '-m', 'laser_setup', *sys.argv[1:])
+        )   # TODO: fix bug where the terminal misbehaves after reload
+        self.reload.setShortcut('Ctrl+R')
+        self.status_bar.addPermanentWidget(self.reload)
+
+    def open_sequence(self, name: str, procedure_list: list[type[Procedure]]):
+        window = SequenceWindow(procedure_list, title=name,
+                                parent=self, **instantiate(config.Qt.SequenceWindow))
+        window.show()
+
+    def open_procedure(self, cls: type[Procedure]):
+        self.windows[cls] = ExperimentWindow(
+            cls, **instantiate(config.Qt.ExperimentWindow)
+        )
+        self.windows[cls].show()
+
+    def run_script(self, f: Callable):
+        """Runs the given script function in the main thread."""
+        try:
+            f(parent=self)
+        except TypeError:
+            f()
+        self.suggest_reload()
+
+    def open_widget(self, widget: QtWidgets.QWidget, title: str):
+        """Opens a widget in a new window."""
+        widget.setWindowFlags(QtCore.Qt.WindowType.Window)
+        widget.setWindowTitle(title)
+        widget.resize(*self.widget_size)
+        widget.show()
+
+    def suggest_reload(self):
+        self.reload.setStyleSheet('background-color: red;')
+        self.reload.setText('Reload to apply changes')
+        self.reload.setShortcut('Ctrl+R')
+
+    def error_dialog(self, message: str):
+        error_dialog = QtWidgets.QMessageBox(parent=self)
+        error_dialog.setText(f"An error occurred:\n{message}\nPlease reload the program.")
+        error_dialog.setIcon(QtWidgets.QMessageBox.Icon.Critical)
+        self.open_widget(error_dialog, 'Error')
+        error_dialog.exec()
+        self.reload.click()
+
+    def select_from_list(self, title: str, items: list[str], label: str = '') -> str | None:
+        item, ok = QtWidgets.QInputDialog.getItem(self, title, label, items, 0, False)
+        if ok:
+            return item
+        return None
+
+    def question_box(self, title: str, text: str) -> bool:
+        MessageBox = QtWidgets.QMessageBox
+        buttons = MessageBox.StandardButton.Yes | MessageBox.StandardButton.No
+        reply = MessageBox.question(self, title, text, buttons)
+        return reply == MessageBox.StandardButton.Yes
+
+    def text_window(self, title: str, text: str):
+        """Displays a text window with the given title and text. adds a scroll bar"""
+        text_edit = QtWidgets.QTextEdit(parent=self)
+        text_edit.setReadOnly(True)
+        text_edit.setPlainText(text)
+        self.open_widget(text_edit, title)
+
+    def open_camera(self):
+        """Opens the camera widget."""
+        self.camera_widget = CameraWidget(parent=self)
+        self.open_widget(self.camera_widget, 'Cameras')
+
+    def open_terminal(self):
+        """Opens an interactive console. Loads common modules and instruments."""
+        from ..instruments import FakeAdapter  # noqa: F401
+        instruments = InstrumentManager()
+
+        header = (
+            "Interactive console. To instantiate an instrument, use the "
+            "'instruments.connect' method.\n"
+        )
+        if '-d' in sys.argv or '--debug' in sys.argv:
+            header += (
+                "\nDebug mode (the InstrumentManager will use a FakeAdapter if "
+                "it can't connect to an instrument).\n"
+            )
+        self.console_widget = ConsoleWidget(
+            namespace=globals() | locals(), text=header, parent=self
+        )
+        self.open_widget(self.console_widget, 'Console')
+
+    def open_database(self, db_name: str):
+        db_path = Path(config.Dir.data_dir) / db_name
+        if not db_path.exists():
+            ans = self.question_box(
+                'Database not found', f'Database {db_path} not found. Create new database?'
+            )
+            if not ans:
+                return
+            parameters_to_db.create_db(parent=self)
+
+        self.db_widget = SQLiteWidget(db_path.as_posix(), parent=self)
+        self.open_widget(self.db_widget, db_name)
+
+    def closeEvent(self, event):
+        """Ensures all running threads are properly stopped."""
+        for child in self.findChildren(QtCore.QThread):
+            if child.isRunning():
+                child.quit()
+                child.wait()
+        super().closeEvent(event)
+
+    def create_menu_bar(self) -> QtWidgets.QMenuBar:
+        """Creates the menu bar with the following options:
+        - Procedures
+        - Sequences
+        - Scripts
+        - View
+        - Settings
+        - Help
+
+        This method can be overridden to add more options.
+
+        :return: The menu bar.
+        """
         menu = self.menuBar()
 
         procedure_menu = menu.addMenu('&Procedures')
@@ -134,135 +291,7 @@ class MainWindow(QtWidgets.QMainWindow):
             ))
             instrument_help.addAction(action)
 
-        self.status_bar = self.statusBar()
-
-        thread = QtCore.QThread(parent=self)
-        worker = Worker(get_status_message, thread)
-        worker.finished.connect(lambda msg: self.status_bar.showMessage(msg, 3000))
-        thread.start()
-
-        # README Widget
-        readme = QtWidgets.QTextBrowser(parent=self)
-        readme.setOpenExternalLinks(True)
-        readme.setStyleSheet("""
-            font-size: 12pt;
-        """)
-        if self.readme_path.is_file():
-            readme_text = self.readme_path.read_text()
-        else:
-            readme_text = metadata('laser_setup').get('Description')
-        readme.setMarkdown(readme_text)
-        self._layout.addWidget(readme)
-
-        # Reload window button
-        self.reload = QtWidgets.QPushButton('Reload')
-        self.reload.clicked.connect(
-            lambda: os.execl(sys.executable, sys.executable, '-m', 'laser_setup', *sys.argv[1:])
-        )   # TODO: fix bug where the terminal misbehaves after reload
-        self.reload.setShortcut('Ctrl+R')
-        self.status_bar.addPermanentWidget(self.reload)
-
-    def open_sequence(self, name: str, procedure_list: list[type[Procedure]]):
-        window = SequenceWindow(procedure_list, title=name,
-                                parent=self, **instantiate(config.Qt.SequenceWindow))
-        window.show()
-
-    def open_procedure(self, cls: type[Procedure]):
-        self.windows[cls] = ExperimentWindow(
-            cls, **instantiate(config.Qt.ExperimentWindow)
-        )
-        self.windows[cls].show()
-
-    def run_script(self, f: Callable):
-        """Runs the given script function in the main thread."""
-        try:
-            f(parent=self)
-        except TypeError:
-            f()
-        self.suggest_reload()
-
-    def open_widget(self, widget: QtWidgets.QWidget, title: str):
-        """Opens a widget in a new window."""
-        widget.setWindowFlags(QtCore.Qt.WindowType.Window)
-        widget.setWindowTitle(title)
-        widget.resize(*self.widget_size)
-        widget.show()
-
-    def suggest_reload(self):
-        self.reload.setStyleSheet('background-color: red;')
-        self.reload.setText('Reload to apply changes')
-        self.reload.setShortcut('Ctrl+R')
-
-    def error_dialog(self, message: str):
-        error_dialog = QtWidgets.QMessageBox(parent=self)
-        error_dialog.setText(f"An error occurred:\n{message}\nPlease reload the program.")
-        error_dialog.setIcon(QtWidgets.QMessageBox.Icon.Critical)
-        self.open_widget(error_dialog, 'Error')
-        error_dialog.exec()
-        self.reload.click()
-
-    def select_from_list(self, title: str, items: list[str], label: str = '') -> str:
-        item, ok = QtWidgets.QInputDialog.getItem(self, title, label, items, 0, False)
-        if ok:
-            return item
-        return None
-
-    def question_box(self, title: str, text: str) -> bool:
-        MessageBox = QtWidgets.QMessageBox
-        buttons = MessageBox.StandardButton.Yes | MessageBox.StandardButton.No
-        reply = MessageBox.question(self, title, text, buttons)
-        return reply == MessageBox.StandardButton.Yes
-
-    def text_window(self, title: str, text: str):
-        """Displays a text window with the given title and text. adds a scroll bar"""
-        text_edit = QtWidgets.QTextEdit(parent=self)
-        text_edit.setPlainText(text)
-        self.open_widget(text_edit, title)
-
-    def open_camera(self):
-        """Opens the camera widget."""
-        self.camera_widget = CameraWidget(parent=self)
-        self.open_widget(self.camera_widget, 'Cameras')
-
-    def open_terminal(self):
-        """Opens an interactive console. Loads common modules and instruments."""
-        from ..instruments import FakeAdapter  # noqa: F401
-        instruments = InstrumentManager()
-
-        header = (
-            "Interactive console. To instantiate an instrument, use the "
-            "'instruments.connect' method.\n"
-        )
-        if '-d' in sys.argv or '--debug' in sys.argv:
-            header += (
-                "\nDebug mode (the InstrumentManager will use a FakeAdapter if "
-                "it can't connect to an instrument).\n"
-            )
-        self.console_widget = ConsoleWidget(
-            namespace=globals() | locals(), text=header, parent=self
-        )
-        self.open_widget(self.console_widget, 'Console')
-
-    def open_database(self, db_name: str):
-        db_path = Path(config.Dir.data_dir) / db_name
-        if not db_path.exists():
-            ans = self.question_box(
-                'Database not found', f'Database {db_path} not found. Create new database?'
-            )
-            if not ans:
-                return
-            parameters_to_db.create_db(parent=self)
-
-        self.db_widget = SQLiteWidget(db_path.as_posix(), parent=self)
-        self.open_widget(self.db_widget, db_name)
-
-    def closeEvent(self, event):
-        """Ensures all running threads are properly stopped."""
-        for child in self.findChildren(QtCore.QThread):
-            if child.isRunning():
-                child.quit()
-                child.wait()
-        super().closeEvent(event)
+        return menu
 
 
 def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):

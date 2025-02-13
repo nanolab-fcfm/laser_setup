@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
-from typing import Any, Optional, Type, TypeVar
+from typing import Any, Type, TypeVar
 
 from hydra.utils import instantiate as hydra_instantiate
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 log = logging.getLogger(__name__)
 T = TypeVar('T')
@@ -26,11 +26,11 @@ def safeget(dic: dict | DictConfig, *keys, default: Any = None) -> Any:
 
 def load_yaml(
     file_path: str | Path,
-    struct: Optional[Type[T]] = None,
-    flags: Optional[dict[str, bool]] = None,
+    struct: Type[T] | None = None,
+    flags: dict[str, bool] | None = None,
     _instantiate: bool = False,
     **kwargs,
-) -> T | DictConfig:
+) -> T | DictConfig | ListConfig:
     """Load a YAML file and return its contents as a dictionary.
 
     :param file_path: Path to the YAML file.
@@ -71,7 +71,10 @@ def save_yaml(dictionary: dict | DictConfig, file_path: str | Path, **kwargs):
     OmegaConf.save(dictionary, file_path, **kwargs)
 
 
-def instantiate(config: DictConfig, level: int = 2) -> Any:
+def instantiate(
+    config: T | DictConfig | ListConfig,
+    level: int = 2
+) -> Any | T | DictConfig | ListConfig:
     """Instantiate a dictionary with `hydra.utils.instantiate`.
 
     :param config: Dictionary with the configuration.

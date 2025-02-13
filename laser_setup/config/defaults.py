@@ -11,6 +11,7 @@ class DefaultPaths:
     allowed_files: str = 'YAML files (*.yaml)'
     config: Path = assets / 'templates' / 'config.yaml'
     parameters: Path = assets / 'templates' / 'parameters.yaml'
+    instruments: Path = assets / 'templates' / 'instruments.yaml'
     splash: Path = assets / 'img' / 'splash.png'
 
 
@@ -68,8 +69,8 @@ SequencesType = dict[str, list[Any]]
 class MainWindowConfig:
     title: str = 'Laser Setup'
     readme_file: str = 'README.md'
-    size: list[int] = field(default_factory=lambda: [640, 480])
-    widget_size: list[int] = field(default_factory=lambda: [640, 480])
+    size: tuple[int, int] = (640, 480)
+    widget_size: tuple[int, int] = (640, 480)
     icon: str | None = None
     scripts: ScriptsType = field(
         default_factory=lambda: [
@@ -93,10 +94,10 @@ class SequenceWindowConfig:
 
 @dataclass
 class QtConfig:
-    GUI: GUIConfig = GUIConfig
-    MainWindow: MainWindowConfig = MainWindowConfig
-    ExperimentWindow: ExperimentWindowConfig = ExperimentWindowConfig
-    SequenceWindow: SequenceWindowConfig = SequenceWindowConfig
+    GUI: GUIConfig = field(default_factory=GUIConfig)
+    MainWindow: MainWindowConfig = field(default_factory=MainWindowConfig)
+    ExperimentWindow: ExperimentWindowConfig = field(default_factory=ExperimentWindowConfig)
+    SequenceWindow: SequenceWindowConfig = field(default_factory=SequenceWindowConfig)
 
 
 @dataclass
@@ -125,13 +126,13 @@ class TelegramConfig:
 
 @dataclass
 class AppConfig:
-    Dir: DirConfig = DirConfig
-    Adapters: AdapterConfig = AdapterConfig
-    Qt: QtConfig = QtConfig
-    Filename: FilenameConfig = FilenameConfig
-    Logging: LoggingConfig = LoggingConfig
+    Dir: DirConfig = field(default_factory=DirConfig)
+    Adapters: AdapterConfig = field(default_factory=AdapterConfig)
+    Qt: QtConfig = field(default_factory=QtConfig)
+    Filename: FilenameConfig = field(default_factory=FilenameConfig)
+    Logging: LoggingConfig = field(default_factory=LoggingConfig)
     matplotlib_rcParams: dict[str, str] = field(
         default_factory=lambda: {'axes.grid': 'True', 'figure.autolayout': 'True'}
     )
-    Telegram: TelegramConfig = TelegramConfig
+    Telegram: TelegramConfig = field(default_factory=TelegramConfig)
     _session: dict = field(default_factory=dict)
