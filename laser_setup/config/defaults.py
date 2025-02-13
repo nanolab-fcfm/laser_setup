@@ -40,6 +40,8 @@ class AdapterConfig:
 class GUIConfig:
     style: str = 'Fusion'
     dark_mode: bool = True
+    font: str = ''
+    font_size: int = 12
     splash_image: str = DefaultPaths.splash.as_posix()
 
 

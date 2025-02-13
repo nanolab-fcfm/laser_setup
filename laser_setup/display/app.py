@@ -107,6 +107,11 @@ def display_window(procedure: type[Procedure] | None = None, **kwargs):
         QtCore.QLocale.Language.English,
         QtCore.QLocale.Country.UnitedStates
     ))
+    font = app.font()
+    if config.Qt.GUI.font:
+        font.setFamily(config.Qt.GUI.font)
+    font.setPointSize(config.Qt.GUI.font_size)
+    app.setFont(font)
 
     if procedure is None:
         from .windows.main_window import MainWindow

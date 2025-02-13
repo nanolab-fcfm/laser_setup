@@ -65,6 +65,10 @@ Qt:
     # toggle dark mode. If False, the computer's theme will be used
     dark_mode: true
 
+    # Font options. If empty it uses the style's default font
+    font: ''
+    font_size: 12
+
     # Splash screen image. Leave empty to disable
     splash_image: ./assets/img/nanolab_logo.png
 
