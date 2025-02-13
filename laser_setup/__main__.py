@@ -1,4 +1,5 @@
 from .config import config, instantiate
+from .display.app import display_window
 from .parser import experiment_list, parser, script_list
 
 
@@ -6,19 +7,19 @@ def main():
     args = parser.parse_args()
 
     if args.procedure is None:
-        from .display import MainWindow, display_window
-        display_window(MainWindow)
+        display_window()
 
     elif args.procedure in experiment_list:
-        from .display import ExperimentWindow, display_window
         idx = experiment_list.index(args.procedure)
-        display_window(ExperimentWindow, instantiate(
+        display_window(instantiate(
             config.Qt.MainWindow.procedures[idx].target, level=1
         ))
 
     elif args.procedure in script_list:
         idx = script_list.index(args.procedure)
-        instantiate(config.Qt.MainWindow.scripts[idx].target, level=1)()
+        func = instantiate(config.Qt.MainWindow.scripts[idx].target, level=1)
+        if callable(func):
+            func()
 
     else:
         # This should never happen

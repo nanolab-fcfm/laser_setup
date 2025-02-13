@@ -8,15 +8,16 @@ from typing import Callable
 
 from pymeasure.experiment import Procedure
 
-from ..cli import parameters_to_db
-from ..config import ConfigHandler, DefaultPaths, config, instantiate
-from ..config.defaults import ProceduresType, ScriptsType, SequencesType
-from ..instruments import InstrumentManager, Instruments
+from ...cli import parameters_to_db
+from ...config import ConfigHandler, config, instantiate
+from ...config.defaults import ProceduresType, ScriptsType, SequencesType
+from ...instruments import InstrumentManager, Instruments
 from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
-from ..utils import get_status_message, remove_empty_data
-from .experiment_window import ExperimentWindow, SequenceWindow
-from .widgets import LogsWidget, SQLiteWidget
-from .camera_widget import CameraWidget
+from ...utils import get_status_message
+from .experiment_window import ExperimentWindow
+from .sequence_window import SequenceWindow
+from ..widgets import LogsWidget, SQLiteWidget
+from ..widgets.camera_widget import CameraWidget
 
 log = logging.getLogger(__name__)
 
@@ -78,11 +79,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # README Widget
         readme = QtWidgets.QTextBrowser(parent=self)
         readme.setOpenExternalLinks(True)
-        readme.setStyleSheet("""
-            font-size: 12pt;
-        """)
         if self.readme_path.is_file():
-            readme_text = self.readme_path.read_text()
+            readme_text = self.readme_path.read_text('utf-8')
         else:
             readme_text = metadata('laser_setup').get('Description')
         readme.setMarkdown(readme_text)
@@ -161,7 +159,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_terminal(self):
         """Opens an interactive console. Loads common modules and instruments."""
-        from ..instruments import FakeAdapter  # noqa: F401
+        from ...instruments import FakeAdapter  # noqa: F401
         instruments = InstrumentManager()
 
         header = (
@@ -292,77 +290,3 @@ class MainWindow(QtWidgets.QMainWindow):
             instrument_help.addAction(action)
 
         return menu
-
-
-def display_window(Window: type[QtWidgets.QMainWindow], *args, **kwargs):
-    """Displays the window for the given class. Allows for the
-    window to be run from the GUI, by queuing it in the manager.
-    It also allows for existing data to be loaded and displayed.
-
-    :param Window: The Qt Window subclass to display.
-    :param args: The arguments to pass to the window class.
-    """
-    app = QtWidgets.QApplication(sys.argv)
-    splash_image = Path(config.Qt.GUI.splash_image)
-    if not splash_image.exists():
-        splash_image = DefaultPaths.splash
-
-    pixmap = QtGui.QPixmap(splash_image.as_posix())
-    pixmap = pixmap.scaledToHeight(480)
-    splash = QtWidgets.QSplashScreen(pixmap)
-    splash.show()
-
-    # Get available styles with QtWidgets.QStyleFactory.keys()
-    app.setStyle(config.Qt.GUI.style)
-    if config.Qt.GUI.dark_mode:
-        app.setPalette(get_dark_palette())
-    QtCore.QLocale.setDefault(QtCore.QLocale(
-        QtCore.QLocale.Language.English,
-        QtCore.QLocale.Country.UnitedStates
-    ))
-
-    if issubclass(Window, MainWindow):
-        kwargs.update(**instantiate(config.Qt.MainWindow))
-
-    elif issubclass(Window, ExperimentWindow):
-        kwargs.update(**instantiate(config.Qt.ExperimentWindow))
-
-    window = Window(*args, **kwargs)
-    splash.finish(window)
-    window.show()
-    app.exec()
-    remove_empty_data()
-    sys.exit()
-
-
-def display_experiment(cls: type[Procedure], title: str = ''):
-    """Wrapper around display_window for ExperimentWindow.
-    TODO: Remove this function and use display_window directly.
-    """
-    display_window(ExperimentWindow, cls, title)
-
-
-def get_dark_palette():
-    palette = QtGui.QPalette()
-    palette_dict = {
-        'Window': (50, 50, 50),
-        'WindowText': (200, 200, 200),
-        'Text': (200, 200, 200),
-        'Button': (30, 30, 30),
-        'ButtonText': (200, 200, 200),
-        'Base': (35, 35, 35),
-        'AlternateBase': (45, 45, 45),
-        'Link': (42, 130, 218),
-        'Highlight': (42, 130, 218),
-        'HighlightedText': (240, 240, 240),
-    }
-
-    for role, color in palette_dict.items():
-        palette.setColor(
-            getattr(QtGui.QPalette.ColorRole, role), QtGui.QColor(*color)
-        )
-    return palette
-
-
-def main():
-    display_window(MainWindow)

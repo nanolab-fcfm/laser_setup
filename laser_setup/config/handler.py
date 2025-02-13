@@ -6,7 +6,7 @@ from pathlib import Path
 
 from omegaconf import DictConfig, OmegaConf
 
-from ..Qt import QtWidgets, make_app
+from ..display.Qt import QtWidgets, make_app
 from .defaults import AppConfig, DefaultPaths
 from .utils import load_yaml, safeget, save_yaml
 
