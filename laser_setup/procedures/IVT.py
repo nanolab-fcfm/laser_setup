@@ -1,12 +1,10 @@
-import time
 import logging
+import time
 
 from .. import config
+from ..instruments import (TENMA, Keithley2450, PendingInstrument,
+                           PT100SerialSensor)
 from ..utils import voltage_ds_sweep_ramp
-from ..utils import get_latest_DP
-from ..instruments import TENMA, Keithley2450, PendingInstrument, PT100SerialSensor
-from ..parameters import Parameters
-from .BaseProcedure import ChipProcedure
 from .IV import IV
 
 log = logging.getLogger(__name__)
@@ -26,6 +24,10 @@ class IVT(IV):
         PT100SerialSensor, config['Adapters']['pt100_port']
     )
     DATA_COLUMNS = IV.DATA_COLUMNS + ['Plate T (degC)', 'Ambient T (degC)',  "Clock (ms)"]
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
 
     def execute(self):
         log.info("Starting the measurement")
@@ -60,7 +62,9 @@ class IVT(IV):
 
             current = self.meter.current
 
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [vsd, current, *self.temperature_sensor.data])))
+            self.emit('results', dict(zip(
+                self.DATA_COLUMNS, [vsd, current, *self.temperature_sensor.data])
+            ))
 
         if self.laser_toggle:
             self.tenma_laser.apply_voltage(0.)
