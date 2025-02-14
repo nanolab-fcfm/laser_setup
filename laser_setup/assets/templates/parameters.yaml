@@ -61,7 +61,7 @@ Chip:
     default: other
     name: Chip group name
     # #description: "Chip group name"
-    choices: [other, Coni, Fiona, Margarita, Miguel, "Pepe (no ALD)", Unbonded, "8", Box1, Rosita]
+    choices: ['other', 'Alfredo Godofredo', 'Johann Sebastian Mastropiero', 'Coni', 'Fiona', 'Margarita', 'Miguel', 'Rosita', 'Miguel-B24', 'Pepe (no ALD)', 'Lucho', 'Unbonded', '8', 'Box1', 'Box2', 'Box3', 'Box4', 'Box 1 bonding']
 
   chip_number:
     _target_: *IntegerParameter
