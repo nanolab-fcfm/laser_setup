@@ -4,7 +4,7 @@ import logging
 from .. import config
 from ..utils import voltage_ds_sweep_ramp
 from ..utils import get_latest_DP
-from ..instruments import TENMA, Keithley2450, PendingInstrument
+from ..instruments import TENMA, Keithley2450, PendingInstrument, PT100SerialSensor
 from ..parameters import Parameters
 from .BaseProcedure import ChipProcedure
 from .IV import IV
@@ -12,7 +12,7 @@ from .IV import IV
 log = logging.getLogger(__name__)
 
 
-class IV(IV):
+class IVT(IV):
     """Measures an IV with a Keithley 2450. The source drain voltage is
     controlled by the same instrument.
     """
