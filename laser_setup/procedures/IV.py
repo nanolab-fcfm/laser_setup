@@ -59,8 +59,11 @@ class IV(ChipProcedure):
         self._parameters['vg'].value = float(eval(vg))
         self.vg = self._parameters['vg'].value
 
-    def startup(self):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
+
+    def startup(self):
         self.connect_instruments()
 
         # Keithley 2450 meter

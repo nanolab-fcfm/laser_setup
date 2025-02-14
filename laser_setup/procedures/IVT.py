@@ -25,10 +25,6 @@ class IVT(IV):
     )
     DATA_COLUMNS = IV.DATA_COLUMNS + ['Plate T (degC)', 'Ambient T (degC)',  "Clock (ms)"]
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
-
     def execute(self):
         log.info("Starting the measurement")
         self.meter.clear_buffer()
