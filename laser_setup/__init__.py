@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from types import SimpleNamespace
 
+from . import patches  # noqa: F401, patches PyMeasure classes
 from pymeasure.experiment.config import set_mpl_rcparams
 from pymeasure.log import setup_logging
 
