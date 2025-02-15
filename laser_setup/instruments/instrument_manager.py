@@ -223,7 +223,7 @@ class DebugInstrument(FakeInstrument):
 
     def __init__(self, name="Debug instrument", **kwargs):
         super().__init__(name=name, **kwargs)
-        self._tstart = 0.
+        self._tstart = time.time()
         self._voltage = 0.
         self._current = 0.
         self._units = {'voltage': 'V',
@@ -270,6 +270,11 @@ class DebugInstrument(FakeInstrument):
     def ramp_to_voltage(self, value):
         """Ramp to a voltage."""
         self.voltage = value
+
+    @property
+    def data(self):
+        """Temperature data."""
+        return random.uniform(15., 25.), random.uniform(15., 25.), self.get_time()
 
     def __repr__(self):
         return "<DebugAdapter>"

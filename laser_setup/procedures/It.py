@@ -1,10 +1,11 @@
-import time
 import logging
+import time
 
 from .. import config
-from ..utils import get_latest_DP
-from ..instruments import TENMA, Keithley2450, PendingInstrument
+from ..instruments import (TENMA, Keithley2450, PendingInstrument,
+                           PT100SerialSensor)
 from ..parameters import Parameters
+from ..utils import get_latest_DP
 from .BaseProcedure import ChipProcedure
 
 log = logging.getLogger(__name__)
@@ -13,7 +14,8 @@ log = logging.getLogger(__name__)
 class It(ChipProcedure):
     """Measures a time-dependant current with a Keithley 2450. The gate voltage
     is controlled by two TENMA sources. The laser is controlled by another
-    TENMA source.
+    TENMA source. The plate and ambient temperatures are measured using a
+    PT100 sensor
     """
     name = 'I vs t'
     # Instruments
@@ -21,6 +23,9 @@ class It(ChipProcedure):
     tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
     tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
+    temperature_sensor: PT100SerialSensor = PendingInstrument(
+        PT100SerialSensor, config['Adapters']['pt100_port']
+    )
 
     # Important Parameters
     vds = Parameters.Control.vds
@@ -30,16 +35,21 @@ class It(ChipProcedure):
     laser_T = Parameters.Laser.laser_T
 
     # Additional Parameters, preferably don't change
+    sense_T = Parameters.Instrument.sense_T
     sampling_t = Parameters.Control.sampling_t
-    N_avg = Parameters.Instrument.N_avg     # deprecated
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
     INPUTS = ChipProcedure.INPUTS + [
-        'vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'Irange', 'NPLC'
+        'vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'sense_T', 'Irange', 'NPLC'
     ]
-    DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)']
+    DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)'] + PT100SerialSensor.DATA_COLUMNS
+    EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
 
     def pre_startup(self):
         vg = str(self.vg)
@@ -91,6 +101,7 @@ class It(ChipProcedure):
 
         def measuring_loop(t_end: float, laser_v: float):
             keithley_time = self.meter.get_time()
+            temperature_data = ()
             while keithley_time < t_end:
                 if self.should_stop():
                     log.warning('Measurement aborted')
@@ -100,10 +111,12 @@ class It(ChipProcedure):
 
                 keithley_time = self.meter.get_time()
                 current = self.meter.current
+                if self.sense_T:
+                    temperature_data = self.temperature_sensor.data
 
-                self.emit(
-                    'results', dict(zip(self.DATA_COLUMNS, [keithley_time, current, laser_v]))
-                )
+                self.emit('results', dict(zip(
+                    self.DATA_COLUMNS, [keithley_time, current, laser_v, *temperature_data]
+                )))
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.

@@ -43,6 +43,7 @@ class InstrumentParameters:
     Irange: FloatParameter
     NPLC: FloatParameter
     sensor: Metadata
+    sense_T: BooleanParameter
 
 
 @dataclass

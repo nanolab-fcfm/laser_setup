@@ -1,13 +1,14 @@
-import time
 import logging
+import time
 
 import numpy as np
 from scipy.signal import find_peaks
 
 from .. import config
-from ..utils import voltage_sweep_ramp
-from ..instruments import TENMA, Keithley2450, PendingInstrument
+from ..instruments import (TENMA, Keithley2450, PendingInstrument,
+                           PT100SerialSensor)
 from ..parameters import Parameters
+from ..utils import voltage_sweep_ramp
 from .BaseProcedure import ChipProcedure
 
 log = logging.getLogger(__name__)
@@ -15,7 +16,8 @@ log = logging.getLogger(__name__)
 
 class IVg(ChipProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
-    controlled by two TENMA sources.
+    controlled by two TENMA sources. The plate and ambient temperatures are
+    measured using a PT100 sensor.
     """
     name = 'I vs Vg'
 
@@ -23,6 +25,9 @@ class IVg(ChipProcedure):
     tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
     tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
+    temperature_sensor: PT100SerialSensor = PendingInstrument(
+        PT100SerialSensor, config['Adapters']['pt100_port']
+    )
 
     # Important Parameters
     vds = Parameters.Control.vds
@@ -36,6 +41,7 @@ class IVg(ChipProcedure):
     burn_in_t = Parameters.Laser.burn_in_t
 
     # Additional Parameters, preferably don't change
+    sense_T = Parameters.Instrument.sense_T
     vg_step = Parameters.Control.vg_step
     step_time = Parameters.Control.step_time
     Irange = Parameters.Instrument.Irange
@@ -43,17 +49,18 @@ class IVg(ChipProcedure):
 
     INPUTS = ChipProcedure.INPUTS + [
         'vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl',
-        'laser_v', 'burn_in_t', 'Irange', 'NPLC'
+        'laser_v', 'burn_in_t', 'sense_T', 'Irange', 'NPLC'
     ]
-    DATA_COLUMNS = ['Vg (V)', 'I (A)']
+    DATA_COLUMNS = ['Vg (V)', 'I (A)'] + PT100SerialSensor.DATA_COLUMNS
     # SEQUENCER_INPUTS = ['vds']
+    EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
 
-    # Fix Data not defined for get_estimates. TODO: Find a better way to handle this.
     DATA = [[], []]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
+        self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
 
     def startup(self):
         self.connect_instruments()
@@ -95,6 +102,8 @@ class IVg(ChipProcedure):
             )
             time.sleep(self.burn_in_t)
 
+        temperature_data = ()
+
         # Set the Vg ramp and the measuring loop
         self.vg_ramp = voltage_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
         self.__class__.DATA[0] = list(self.vg_ramp)
@@ -111,12 +120,14 @@ class IVg(ChipProcedure):
             time.sleep(self.step_time)
 
             current = self.meter.current
+            if self.sense_T:
+                temperature_data = self.temperature_sensor.data
 
             self.__class__.DATA[1].append(current)
-            self.emit(
-                'results',
-                dict(zip(self.DATA_COLUMNS, [vg, self.__class__.DATA[1][-1]]))
-            )
+            self.emit('results', dict(zip(
+                self.DATA_COLUMNS,
+                [vg, self.__class__.DATA[1][-1], *temperature_data]
+            )))
 
     def shutdown(self):
         self.__class__.DATA = [[], []]

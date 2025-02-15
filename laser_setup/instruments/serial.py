@@ -13,6 +13,8 @@ class PT100SerialSensor(Instrument):
     """Instrument class for the PT100 temperature sensor using PyMeasure's
     SerialAdapter.
     """
+    DATA_COLUMNS = ['Plate T (degC)', 'Ambient T (degC)',  'Clock (ms)']
+
     def __init__(
         self,
         adapter: str,

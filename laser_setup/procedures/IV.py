@@ -1,11 +1,11 @@
-import time
 import logging
+import time
 
 from .. import config
-from ..utils import voltage_ds_sweep_ramp
-from ..utils import get_latest_DP
-from ..instruments import TENMA, Keithley2450, PendingInstrument
+from ..instruments import (TENMA, Keithley2450, PendingInstrument,
+                           PT100SerialSensor)
 from ..parameters import Parameters
+from ..utils import get_latest_DP, voltage_ds_sweep_ramp
 from .BaseProcedure import ChipProcedure
 
 log = logging.getLogger(__name__)
@@ -13,7 +13,8 @@ log = logging.getLogger(__name__)
 
 class IV(ChipProcedure):
     """Measures an IV with a Keithley 2450. The source drain voltage is
-    controlled by the same instrument.
+    controlled by two TENMA sources. The plate and ambient temperatures are
+    measured using a PT100 sensor.
     """
     name = 'I vs V'
 
@@ -21,6 +22,9 @@ class IV(ChipProcedure):
     tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
     tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
+    temperature_sensor: PT100SerialSensor = PendingInstrument(
+        PT100SerialSensor, config['Adapters']['pt100_port']
+    )
 
     # Important Parameters
     vg = Parameters.Control.vg_dynamic
@@ -34,7 +38,7 @@ class IV(ChipProcedure):
     burn_in_t = Parameters.Laser.burn_in_t
 
     # Additional Parameters, preferably don't change
-    N_avg = Parameters.Instrument.N_avg     # deprecated
+    sense_T = Parameters.Instrument.sense_T
     vsd_step = Parameters.Control.vsd_step
     step_time = Parameters.Control.step_time
     Irange = Parameters.Instrument.Irange
@@ -42,10 +46,11 @@ class IV(ChipProcedure):
 
     INPUTS = ChipProcedure.INPUTS + [
         'vg', 'vsd_start', 'vsd_end', 'vsd_step', 'step_time', 'laser_toggle', 'laser_wl',
-        'laser_v', 'burn_in_t', 'Irange', 'NPLC'
+        'laser_v', 'burn_in_t', 'sense_T', 'Irange', 'NPLC'
     ]
-    DATA_COLUMNS = ['Vsd (V)', 'I (A)']
+    DATA_COLUMNS = ['Vsd (V)', 'I (A)'] + PT100SerialSensor.DATA_COLUMNS
     SEQUENCER_INPUTS = ['laser_v', 'vg', 'vds']
+    EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
 
     def pre_startup(self):
         vg = str(self.vg)
@@ -62,6 +67,7 @@ class IV(ChipProcedure):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
+        self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
 
     def startup(self):
         self.connect_instruments()
@@ -108,6 +114,8 @@ class IV(ChipProcedure):
             )
             time.sleep(self.burn_in_t)
 
+        temperature_data = ()
+
         # Set the Vsd ramp and the measuring loop
         self.vsd_ramp = voltage_ds_sweep_ramp(self.vsd_start, self.vsd_end, self.vsd_step)
         for i, vsd in enumerate(self.vsd_ramp):
@@ -122,5 +130,9 @@ class IV(ChipProcedure):
             time.sleep(self.step_time)
 
             current = self.meter.current
+            if self.sense_T:
+                temperature_data = self.temperature_sensor.data
 
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [vsd, current])))
+            self.emit('results', dict(zip(
+                self.DATA_COLUMNS, [vsd, current, *temperature_data]
+            )))
