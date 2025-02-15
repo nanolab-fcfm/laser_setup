@@ -4,7 +4,7 @@ import logging
 from contextlib import contextmanager
 from functools import wraps
 
-from pymeasure.experiment import Procedure, Results
+from pymeasure.experiment import Procedure, Results, Parameter
 
 log = logging.getLogger(__name__)
 
@@ -33,15 +33,20 @@ def supress_logs(logger_name: str, level: int = logging.WARNING):
 
 
 @wraps(_original_init)
-def __init__(self, procedure: Procedure, data_filename: str):
+def __init__(self: Results, procedure: Procedure, data_filename: str):
     """Overwrites the Results class to exclude parameters from the save file.
     Excludes parameters in the EXCLUDE list attribute of the procedure class.
+    Restores those parameters to their default values after saving for consistency.
     """
+    unsaved_parameters: dict[str, Parameter] = {}
     if isinstance(procedure, Procedure):
         for key in getattr(procedure, Results.EXCLUDE, []):
-            procedure._parameters.pop(key, None)
+            if key in procedure._parameters:
+                unsaved_parameters[key] = procedure._parameters.pop(key)
+                unsaved_parameters[key].value = unsaved_parameters[key].default
 
     _original_init(self, procedure, data_filename)
+    procedure._parameters.update(unsaved_parameters)
 
 
 @staticmethod
