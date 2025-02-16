@@ -2,10 +2,9 @@ import logging
 import random
 import time
 from types import SimpleNamespace
-from typing import TypeVar
-from uuid import uuid4
+from typing import TypeVar, Iterator
 
-from pymeasure.adapters import FakeAdapter
+from pymeasure.adapters import Adapter, FakeAdapter
 from pymeasure.instruments import Instrument
 from pymeasure.instruments.fakes import FakeInstrument
 
@@ -23,17 +22,20 @@ class PendingInstrument(SimpleNamespace, Instrument):
     def __init__(
         self,
         instrument: type[AnyInstrument] = Instrument,
-        adapter: str | None = None,
+        adapter: str | int | Adapter | None = None,
         name: str | None = None,
         includeSCPI: bool = False,
+        _instance_id: str | None = None,
         **kwargs
     ):
         """Initializes the PendingInstrument.
 
         :param instrument: The class of the instrument to be initialized.
-        :param adapter: The adapter string for the instrument connection.
+        :param adapter: The adapter to be used for the instrument.
         :param name: The name of the instrument.
         :param includeSCPI: Flag indicating whether to include SCPI commands.
+        :param _instance_id: A unique identifier used by the instrument manager. If not
+            provided, it is generated automatically.
         :param kwargs: Additional keyword arguments for instrument configuration.
         """
         super().__init__(
@@ -41,26 +43,27 @@ class PendingInstrument(SimpleNamespace, Instrument):
             adapter=adapter,
             name=name,
             includeSCPI=includeSCPI,
+            _instance_id=_instance_id,
             **kwargs
         )
 
 
 class InstrumentManager:
     """Manages multiple instruments at the same time using a dictionary to store them.
-    Instruments can persist between multiple instances of procedures. It also emits
-    signals when an instrument is connected, shutdown, or when all instruments are
-    shutdown.
+    Instruments can persist between multiple instances of procedures. The manager
+    can connect to and shut down instruments.
 
+    :method help: Prints or returns all available controls and measurements for the
+        given instrument class.
     :method connect: Connects to an instrument and saves it in the instances dictionary.
     :method setup_adapter: Returns an instance of the given instrument class.
     :method shutdown: Safely shuts down the instrument with the given name.
     :method shutdown_all: Safely shuts down all instruments.
     """
+    id_template = "{instrument.__name__}/{adapter}"
+
     def __init__(self):
         self.instances: dict[str, Instrument] = {}
-
-    def __repr__(self) -> str:
-        return f"InstrumentManager({self.instances})"
 
     @staticmethod
     def help(instrument: type[Instrument], return_str=False) -> str | None:
@@ -126,8 +129,9 @@ class InstrumentManager:
         self,
         instrument: type[AnyInstrument],
         adapter: str | None,
-        name: str | None = '',
+        name: str | None = None,
         includeSCPI: bool | None = False,
+        _instance_id: str | None = None,
         **kwargs
     ) -> AnyInstrument | 'DebugInstrument' | Instrument:
         """Connects to an instrument and saves it in the dictionary.
@@ -135,66 +139,95 @@ class InstrumentManager:
         :param instrument: The instrument class to set up.
         :param adapter: The adapter to use for the communication. If None, the result
             depends on the instrument class.
-        :param name: The name of the instrument. If '', it uses the class name
-            and adapter. If None, it uses the default name.
+        :param name: The name of the instrument.
         :param includeSCPI: Flag indicating whether to include SCPI commands. If None,
             it uses the default value.
+        :param _instance_id: A unique identifier. If not provided, it uses the class name
+            and adapter.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         """
-        if name == '':
-            name = f"{instrument.__name__}/{adapter}"
+        if not _instance_id:
+            _instance_id = self.id_template.format(instrument=instrument, adapter=adapter)
 
-        if name not in self.instances:
+        if _instance_id not in self:
             if name is not None:
                 kwargs['name'] = name
-            else:
-                name = uuid4().hex
 
             if includeSCPI is not None:
                 kwargs['includeSCPI'] = includeSCPI
 
             try:
                 instance = self.setup_adapter(instrument, adapter=adapter, **kwargs)
-                self.instances[name] = instance
-                log.debug(f"Connected '{name}' as {instrument.__name__} via {instance.adapter}")
+                self[_instance_id] = instance
+                log.debug(
+                    f"Connected '{_instance_id}' as {instrument.__name__} via {instance.adapter}"
+                )
 
             except Exception as e:
-                log.error(f"Failed to connect to instrument '{name}': {e}")
+                log.error(f"Failed to connect to instrument '{_instance_id}': {e}")
                 raise
 
         else:
-            log.info(f"Instrument '{name}' already exists.")
+            log.info(f"Instrument '{_instance_id}' already exists.")
 
-        return self.instances[name]
+        return self[_instance_id]
 
-    def shutdown(self, name: str):
-        """Safely shuts down the instrument with the given name.
+    def shutdown(self, instance_id: str):
+        """Safely shuts down the instrument with the given id.
 
-        :param name: The name of the instrument to shutdown.
+        :param instance_id: The id of the instrument to shutdown.
         """
-        try:
-            _ = self.instances[name]
-        except KeyError:
-            log.error(f"Instrument '{name}' not found.")
+        if instance_id not in self:
+            log.warning(f"Instrument '{instance_id}' not found for shutdown.")
             return
 
         try:
-            if not isinstance(self.instances[name].adapter, FakeAdapter):
-                self.instances[name].shutdown()
-            del self.instances[name]
-            log.debug(f"Instrument '{name}' was shut down.")
+            if not isinstance(self[instance_id].adapter, FakeAdapter):
+                self[instance_id].shutdown()
+            del self[instance_id]
+            log.debug(f"Instrument '{instance_id}' was shut down.")
         except Exception as e:
-            log.error(f"Error shutting down instrument '{name}': {e}")
+            log.error(f"Error shutting down instrument '{instance_id}': {e}")
 
     def shutdown_all(self):
         """Safely shuts down all instruments."""
-        if not self.instances:
+        if not self:
             log.info("No instruments to shut down")
             return
 
         log.info("Shutting down all instruments.")
-        for name in list(self.instances):
-            self.shutdown(name)
+        for instance_id in list(self):
+            self.shutdown(instance_id)
+
+    def items(self) -> Iterator[tuple[str, Instrument]]:
+        return self.instances.items()
+
+    def __getitem__(self, key: str) -> Instrument:
+        return self.instances[key]
+
+    def __setitem__(self, key: str, value: Instrument):
+        if key in self:
+            raise KeyError(f"Instrument '{key}' already exists. Cannot overwrite.")
+        else:
+            self.instances[key] = value
+
+    def __delitem__(self, key: str):
+        del self.instances[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.instances
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.instances)
+
+    def __bool__(self) -> bool:
+        return bool(self.instances)
+
+    def __len__(self) -> int:
+        return len(self.instances)
+
+    def __repr__(self) -> str:
+        return f"InstrumentManager({self.instances})"
 
 
 class DebugInstrument(FakeInstrument):
