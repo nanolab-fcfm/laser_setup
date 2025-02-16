@@ -164,6 +164,12 @@ Instrument:
     fget: power_meter.sensor_name
     name: Sensor model
 
+  sense_T:
+    _target_: *BooleanParameter
+    default: true
+    name: Use temperature sensor
+    #description: "Use the temperature sensor"
+
 
 Control:
   sampling_t:

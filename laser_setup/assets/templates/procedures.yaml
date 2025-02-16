@@ -1,5 +1,7 @@
 It:
   update_parameters:
+    procedure_version:
+      value: 2.0.0
     laser_T:
       value: 120.
     vg:
@@ -7,6 +9,8 @@ It:
 
 IVg:
   update_parameters:
+    procedure_version:
+      value: 2.0.0
     laser_wl:
       group_by: &laser_toggle {laser_toggle: true}
     laser_v:
@@ -16,6 +20,8 @@ IVg:
 
 IV:
   update_parameters:
+    procedure_version:
+      value: 2.0.0
     laser_wl:
       group_by: *laser_toggle
     laser_v:
