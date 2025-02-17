@@ -254,6 +254,11 @@ class DebugInstrument(FakeInstrument):
     wavelength: float = 0.
     sensor_name: str = 'sensor'
 
+    # Clicker
+    CT: int = 0
+    TT: int = 0
+    gone: bool = False
+
     def __init__(self, name="Debug instrument", **kwargs):
         super().__init__(name=name, **kwargs)
         self._tstart = time.time()
@@ -309,5 +314,14 @@ class DebugInstrument(FakeInstrument):
         """Temperature data."""
         return random.uniform(15., 25.), random.uniform(15., 25.), self.get_time()
 
+    def set_target_temperature(self, value):
+        """Set the target temperature."""
+        self.TT = int(value)
+        self.gone = False
+
+    def go(self):
+        """Go."""
+        self.gone = True
+
     def __repr__(self):
-        return "<DebugAdapter>"
+        return "<DebugInstrument>"
