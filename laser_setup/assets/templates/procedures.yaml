@@ -1,7 +1,7 @@
 It:
   update_parameters:
     procedure_version:
-      value: 2.0.0
+      value: 2.1.0
     laser_T:
       value: 120.
     vg:

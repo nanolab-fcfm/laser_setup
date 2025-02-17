@@ -15,7 +15,7 @@ class It(ChipProcedure):
     """Measures a time-dependant current with a Keithley 2450. The gate voltage
     is controlled by two TENMA sources. The laser is controlled by another
     TENMA source. The plate and ambient temperatures are measured using a
-    PT100 sensor
+    PT100 sensor. The clicker is used to control the plate temperature.
     """
     name = 'I vs t'
     # Instruments
