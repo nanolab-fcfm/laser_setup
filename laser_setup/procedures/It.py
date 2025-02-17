@@ -100,11 +100,10 @@ class It(ChipProcedure):
 
         self.meter.source_voltage = self.vds
 
-        # Clicker
         if self.sense_T:
             if bool(self.initial_T):
                 self.clicker.CT = self.initial_T
-            self.clicker.TT = self.target_T
+            self.clicker.set_target_temperature(self.target_T)
 
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)

@@ -1,7 +1,6 @@
 import logging
 import threading
 import time
-from functools import wraps
 
 import numpy as np
 from pymeasure.adapters import SerialAdapter
@@ -13,6 +12,7 @@ log = logging.getLogger(__name__)
 
 class Clicker(Instrument):
     gone = False
+
     CT = Instrument.control(
         "RCT",
         "SCT%d",
@@ -30,14 +30,6 @@ class Clicker(Instrument):
         values=[10, 350],
         cast=int,
     )
-
-    def _TT_fset_wrap(self, func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            log.info(f"Setting target temperature to {args[0]}")
-            self.gone = False
-            return func(*args, **kwargs)
-        return wrapper
 
     def __init__(
         self,
@@ -57,15 +49,24 @@ class Clicker(Instrument):
             **kwargs
         )
         log.info(f"{self.name} initialized on port {adapter} at {baudrate} baud.")
-        self.TT.fset = self._TT_fset_wrap(self.TT.fset)
 
     def go(self):
         """Sends the 'GO' command to the clicker, setting the plate temperature
-        to the target temperature.
+        to the target temperature. Only sends the command if the 'gone' flag is
+        False.
         """
         if not self.gone:
             self.write('GO')
             self.gone = True
+
+    def set_target_temperature(self, T: int):
+        """Sets the target temperature for the clicker. Sets the 'gone' flag to
+        False.
+
+        :param T: The target temperature in degrees Celsius.
+        """
+        self.TT = int(T)
+        self.gone = False
 
     def shutdown(self):
         self.adapter.close()
