@@ -2,7 +2,7 @@ import logging
 import time
 
 from .. import config
-from ..instruments import (TENMA, Keithley2450, PendingInstrument,
+from ..instruments import (TENMA, Clicker, Keithley2450, PendingInstrument,
                            PT100SerialSensor)
 from ..parameters import Parameters
 from ..utils import get_latest_DP
@@ -26,22 +26,29 @@ class It(ChipProcedure):
     temperature_sensor: PT100SerialSensor = PendingInstrument(
         PT100SerialSensor, config['Adapters']['pt100_port']
     )
+    clicker: Clicker = PendingInstrument(Clicker, config['Adapters']['clicker'])
 
     # Important Parameters
     vds = Parameters.Control.vds
     vg = Parameters.Control.vg_dynamic
     laser_wl = Parameters.Laser.laser_wl
     laser_v = Parameters.Laser.laser_v
-    laser_T = Parameters.Laser.laser_T
+    laser_T = Parameters.Laser.laser_T  # Sampling period, NOT temperature
+
+    # Temperature parameters
+    sense_T = Parameters.Instrument.sense_T
+    initial_T = Parameters.Control.initial_T
+    target_T = Parameters.Control.target_T
+    T_start_t = Parameters.Control.T_start_t
 
     # Additional Parameters, preferably don't change
-    sense_T = Parameters.Instrument.sense_T
     sampling_t = Parameters.Control.sampling_t
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
     INPUTS = ChipProcedure.INPUTS + [
-        'vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'sense_T', 'Irange', 'NPLC'
+        'vds', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'sense_T',
+        'initial_T', 'target_T', 'T_start_t', 'Irange', 'NPLC'
     ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)'] + PT100SerialSensor.DATA_COLUMNS
     EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
@@ -50,6 +57,7 @@ class It(ChipProcedure):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
+        self.clicker = None if not self.sense_T else self.clicker
 
     def pre_startup(self):
         vg = str(self.vg)
@@ -92,6 +100,12 @@ class It(ChipProcedure):
 
         self.meter.source_voltage = self.vds
 
+        # Clicker
+        if self.sense_T:
+            if bool(self.initial_T):
+                self.clicker.CT = self.initial_T
+            self.clicker.TT = self.target_T
+
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)
             self.tenma_neg.ramp_to_voltage(0)
@@ -113,6 +127,8 @@ class It(ChipProcedure):
                 current = self.meter.current
                 if self.sense_T:
                     temperature_data = self.temperature_sensor.data
+                    if keithley_time > self.T_start_t:
+                        self.clicker.go()
 
                 self.emit('results', dict(zip(
                     self.DATA_COLUMNS, [keithley_time, current, laser_v, *temperature_data]

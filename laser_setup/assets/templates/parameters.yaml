@@ -269,3 +269,28 @@ Control:
     default: 0.1
     name: Laser voltage step
     units: V
+
+  initial_T:
+    _target_: *IntegerParameter
+    default: 0
+    name: Initial temperature
+    units: C
+    minimum: 0
+    maximum: 350
+    group_by: sense_T
+
+  target_T:
+    _target_: *IntegerParameter
+    default: 25
+    name: Target temperature
+    units: C
+    minimum: 10
+    maximum: 350
+    group_by: sense_T
+
+  T_start_t:
+    _target_: *FloatParameter
+    default: 120.
+    name: Hot plate start time
+    units: s
+    group_by: sense_T

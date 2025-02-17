@@ -62,6 +62,9 @@ class ControlParameters:
     vl_start: FloatParameter
     vl_end: FloatParameter
     vl_step: FloatParameter
+    initial_T: IntegerParameter
+    target_T: IntegerParameter
+    T_start_t: FloatParameter
 
 
 @dataclass

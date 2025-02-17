@@ -1,12 +1,75 @@
-import time
 import logging
-import numpy as np
 import threading
+import time
+from functools import wraps
 
-from pymeasure.instruments import Instrument
+import numpy as np
 from pymeasure.adapters import SerialAdapter
+from pymeasure.instruments import Instrument
+from pymeasure.instruments.validators import truncated_range
 
 log = logging.getLogger(__name__)
+
+
+class Clicker(Instrument):
+    gone = False
+    CT = Instrument.control(
+        "RCT",
+        "SCT%d",
+        """Sets the current plate temperature in degrees Celsius.""",
+        validator=truncated_range,
+        values=[10, 350],
+        cast=int,
+    )
+
+    TT = Instrument.control(
+        "RTT",
+        "STT%d",
+        """Sets the target plate temperature in degrees Celsius.""",
+        validator=truncated_range,
+        values=[10, 350],
+        cast=int,
+    )
+
+    def _TT_fset_wrap(self, func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            log.info(f"Setting target temperature to {args[0]}")
+            self.gone = False
+            return func(*args, **kwargs)
+        return wrapper
+
+    def __init__(
+        self,
+        adapter: str,
+        name: str = "ESP8266 Clicker",
+        baudrate: int = 115200,
+        timeout: float = 0.15,
+        includeSCPI=False,
+        **kwargs
+    ):
+        adapter = SerialAdapter(port=adapter, baudrate=baudrate, timeout=timeout,
+                                read_termination='\r\n', write_termination='\n')
+        super().__init__(
+            adapter,
+            name=name,
+            includeSCPI=includeSCPI,
+            **kwargs
+        )
+        log.info(f"{self.name} initialized on port {adapter} at {baudrate} baud.")
+        self.TT.fset = self._TT_fset_wrap(self.TT.fset)
+
+    def go(self):
+        """Sends the 'GO' command to the clicker, setting the plate temperature
+        to the target temperature.
+        """
+        if not self.gone:
+            self.write('GO')
+            self.gone = True
+
+    def shutdown(self):
+        self.adapter.close()
+        super().shutdown()
 
 
 class PT100SerialSensor(Instrument):

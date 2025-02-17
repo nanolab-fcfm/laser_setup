@@ -64,7 +64,7 @@ def save_yaml(dictionary: dict | DictConfig, file_path: str | Path, **kwargs):
 
     :param dictionary: Dictionary to save.
     :param file_path: Path to the YAML file.
-    :param kwargs: Additional arguments for `OmegaConf.save
+    :param kwargs: Additional arguments for `OmegaConf.save`.
     """
     file_path = Path(file_path)
     file_path.parent.mkdir(parents=True, exist_ok=True)

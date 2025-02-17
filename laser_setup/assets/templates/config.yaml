@@ -48,6 +48,9 @@ Adapters:
   # Temperature sensor
   pt100_port: COM8
 
+  # temperature sensor clicker
+  clicker: COM5
+
   # Light source
   light_source: COM6
 
