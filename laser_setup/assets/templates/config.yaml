@@ -88,7 +88,7 @@ Qt:
     # File to open in the Info tab
     info_file: ./docs/led_protocol.md
 
-    icon: null
+    icon: ''
 
 
   MainWindow:
@@ -101,7 +101,7 @@ Qt:
 
     widget_size: [640, 480]
 
-    icon: null
+    icon: ''
 
     scripts:
       # List of names and scripts to show in the Scripts tab
