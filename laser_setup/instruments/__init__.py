@@ -15,6 +15,7 @@ Instruments: list[type[Instrument]] = [
     Keithley2450,
     Keithley6517B,
     PT100SerialSensor,
+    Clicker,
     TENMA,
     Bentham,
     ThorlabsPM100USB
