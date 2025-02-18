@@ -28,7 +28,7 @@ Chip:
     _target_: *ListParameter
     default: other
     name: Chip group name
-    # #description: "Chip group name"
+    description: The cool name assigned to the chip
     choices: ['other', 'Alfredo Godofredo', 'Johann Sebastian Mastropiero', 'Coni', 'Fiona', 'Margarita', 'Miguel', 'Rosita', 'Miguel-B24', 'Pepe (no ALD)', 'Lucho', 'Unbonded', '8', 'Box1', 'Box2', 'Box3', 'Box4', 'Box 1 bonding']
 
   chip_number:
@@ -49,6 +49,7 @@ Laser:
     _target_: *BooleanParameter
     default: false
     name: Laser toggle
+    description: Turn the laser on or off. Controlled by the tenma_laser
 
   laser_wl:
     _target_: *ListParameter
@@ -67,12 +68,14 @@ Laser:
     _target_: *FloatParameter
     default: 120.
     name: Laser ON+OFF period
+    description: One period of the laser ON+OFF cycle
     units: s
 
   burn_in_t:
     _target_: *FloatParameter
     default: 60.
     name: Burn-in time
+    description: Time to wait before starting the measurement
     units: s
 
   fiber:
@@ -105,14 +108,14 @@ Instrument:
     _target_: *IntegerParameter
     default: 2
     name: N_avg
-    #description: Number of averages per measurement
+    description: Number of averages per data point
     group_by: show_more
 
   Irange:
     _target_: *FloatParameter
     default: 0.001
     name: Irange
-    #description: Current range
+    description: Current range
     units: A
     minimum: 0
     maximum: 0.105
@@ -122,7 +125,7 @@ Instrument:
     _target_: *FloatParameter
     default: 1.0
     name: NPLC
-    #description: Number of power line cycles
+    description: Number of power line cycles
     minimum: 0.01
     maximum: 10
     group_by: show_more
@@ -136,7 +139,7 @@ Instrument:
     _target_: *BooleanParameter
     default: true
     name: Use temperature sensor
-    #description: "Use the temperature sensor"
+    description: Connects to the temperature sensor
 
 
 Control:
@@ -144,6 +147,7 @@ Control:
     _target_: *FloatParameter
     default: 0.
     name: Sampling time (excluding Keithley)
+    description: Time to wait before taking a measurement
     units: s
     group_by: show_more
 
@@ -151,6 +155,7 @@ Control:
     _target_: *FloatParameter
     default: 0.075
     name: VDS
+    description: Drain-Source voltage
     units: V
     decimals: 10
 
@@ -158,6 +163,7 @@ Control:
     _target_: *FloatParameter
     default: 0.
     name: VG
+    description: Gate voltage
     units: V
     minimum: -100.
     maximum: 100.
@@ -166,13 +172,17 @@ Control:
     _target_: *Parameter
     default: "DP + 0. V"
     name: VG
-    #description: "Dynamically evaluated VG value. Use 'DP' for the sample's previously measured Dirac Point."
+    description: |
+      Dynamically evaluated VG value.
+      Use 'DP' for the sample's previously measured Dirac Point.
+      If no DP is found, the value will be 0. V.
 
   # Voltage ramps
   step_time:
     _target_: *FloatParameter
     default: 0.01
     name: Step time
+    description: Time to wait between steps
     units: s
     group_by: show_more
 
@@ -180,21 +190,18 @@ Control:
     _target_: *FloatParameter
     default: -35.
     name: VG start
-    #description: "Initial Gate voltage"
     units: V
 
   vg_end:
     _target_: *FloatParameter
     default: 35.
     name: VG end
-    #description: "Final Gate voltage"
     units: V
 
   vg_step:
     _target_: *FloatParameter
     default: 0.2
     name: VG step
-    #description: "Gate voltage step"
     units: V
     group_by: show_more
 
@@ -202,21 +209,18 @@ Control:
     _target_: *FloatParameter
     default: -1.
     name: VSD start
-    #description: "Initial Source-Drain voltage"
     units: V
 
   vsd_end:
     _target_: *FloatParameter
     default: 1.
     name: VSD end
-    #description: "Final Source-Drain voltage"
     units: V
 
   vsd_step:
     _target_: *FloatParameter
     default: 0.01
     name: VSD step
-    #description: "Source-Drain voltage step"
     units: V
     group_by: show_more
 
@@ -242,6 +246,7 @@ Control:
     _target_: *IntegerParameter
     default: 0
     name: Initial (current) T
+    description: Current plate temperature, to be set manually
     units: C
     minimum: 0
     maximum: 350
@@ -251,6 +256,7 @@ Control:
     _target_: *IntegerParameter
     default: 25
     name: Target T
+    description: Target temperature
     units: C
     minimum: 10
     maximum: 350
@@ -260,6 +266,7 @@ Control:
     _target_: *FloatParameter
     default: 120.
     name: T step start time
+    description: Time at which the temperature target is set
     units: s
     group_by: sense_T
 
