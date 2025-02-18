@@ -3,7 +3,6 @@ import argparse
 
 from . import __version__
 from .config import config
-from .config.defaults import MenuItemConfig
 
 experiment_list = [i.alias for i in config.Qt.MainWindow.procedures]
 script_list = [i.alias for i in config.Qt.MainWindow.scripts]
@@ -19,17 +18,3 @@ parser.add_argument('-d', '--debug', action='store_true',
 
 args = parser.parse_args()
 config._session['args'] = vars(args)
-
-if args.debug:
-    config.Qt.MainWindow.procedures.extend((
-        MenuItemConfig(
-            name='Fake Procedure',
-            target='${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
-            alias='FakeProcedure'
-        ),
-        MenuItemConfig(
-            name='Fake IVg',
-            target='${class:laser_setup.procedures.FakeProcedure.FakeIVg}',
-            alias='FakeIVg'
-        )
-    ))
