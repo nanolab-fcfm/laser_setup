@@ -25,13 +25,12 @@ class LaserCalibration(BaseProcedure):
     )
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
 
-    procedure_version = Parameters.Base.procedure_version
-
     laser_wl = Parameters.Laser.laser_wl
     fiber = Parameters.Laser.fiber
     vl_start = Parameters.Control.vl_start
     vl_end = Parameters.Control.vl_end
     vl_step = Parameters.Control.vl_step
+    # beam_area = algo
     step_time = Parameters.Control.step_time
     N_avg = Parameters.Instrument.N_avg
 

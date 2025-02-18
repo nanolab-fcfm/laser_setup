@@ -9,15 +9,6 @@ AnyParameter = TypeVar('AnyParameter', Parameter, Metadata)
 
 
 @dataclass
-class BaseParameters:
-    procedure_version: Parameter
-    show_more: BooleanParameter
-    info: Parameter
-    chained_exec: BooleanParameter
-    start_time: Metadata
-
-
-@dataclass
 class ChipParameters:
     chip_group: ListParameter
     chip_number: IntegerParameter
@@ -72,7 +63,6 @@ class ControlParameters:
 
 @dataclass
 class ParameterCatalog:
-    Base: BaseParameters
     Chip: ChipParameters
     Control: ControlParameters
     Instrument: InstrumentParameters

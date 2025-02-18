@@ -23,8 +23,6 @@ class Pt(BaseProcedure):
     )
     tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
 
-    procedure_version = Parameters.Base.procedure_version
-
     # Important Parameters
     laser_wl = Parameters.Laser.laser_wl
     fiber = Parameters.Laser.fiber

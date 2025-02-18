@@ -22,38 +22,6 @@ _types:
   - &ListParameter pymeasure.experiment.ListParameter
   - &Metadata pymeasure.experiment.Metadata
 
-Base:
-  procedure_version:
-    # When modified, increment <parameter name>.<parameter property>.<procedure startup/shutdown>
-    _target_: *Parameter
-    default: 1.5.0
-    name: Procedure version
-    #description: "Procedure version, used for compatibility checks"
-
-  show_more:
-    _target_: *BooleanParameter
-    default: false
-    name: Show more
-    #description: "Show more information"
-
-  info:
-    _target_: *Parameter
-    default: None
-    name: Information
-    #description: "Information about the procedure"
-
-  chained_exec:
-    _target_: *BooleanParameter
-    default: false
-    name: Chained execution
-    #description: "Execute multiple procedures of the same type in sequence, skipping shutdown and startup"
-
-  start_time:
-    _target_: *Metadata
-    fget: time.time
-    name: Start time
-    #description: "Start time of the procedure"
-
 
 Chip:
   chip_group:

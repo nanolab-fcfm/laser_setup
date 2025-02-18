@@ -22,8 +22,6 @@ class Pwl(BaseProcedure):
     )
     light_source: Bentham = PendingInstrument(Bentham, config['Adapters']['light_source'])
 
-    procedure_version = Parameters.Base.procedure_version
-
     # Parameters
     wl_start = Parameters.Laser.wl_start
     wl_end = Parameters.Laser.wl_end
