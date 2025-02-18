@@ -73,6 +73,9 @@ class BaseProcedure(Procedure):
                 instr_dict = vars(attr) | {'debug': config._session.args.debug}
                 setattr(self, key, self.instruments.connect(**instr_dict))
 
+    def startup(self):
+        self.connect_instruments()
+
     def shutdown(self):
         self.instruments.shutdown_all()
 

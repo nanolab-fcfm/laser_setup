@@ -294,3 +294,25 @@ Control:
     name: Hot plate start time
     units: s
     group_by: sense_T
+
+  T_start:
+    _target_: *IntegerParameter
+    default: 10
+    name: Hot plate start temperature
+    units: C
+    minimum: 10
+    maximum: 350
+
+  T_end:
+    _target_: *IntegerParameter
+    default: 25
+    name: Hot plate end temperature
+    units: C
+    minimum: 10
+    maximum: 350
+
+  T_step:
+    _target_: *IntegerParameter
+    default: 5
+    name: Hot plate temperature step
+    units: C

@@ -65,6 +65,9 @@ class ControlParameters:
     initial_T: IntegerParameter
     target_T: IntegerParameter
     T_start_t: FloatParameter
+    T_start: IntegerParameter
+    T_end: IntegerParameter
+    T_step: IntegerParameter
 
 
 @dataclass

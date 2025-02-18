@@ -65,8 +65,13 @@ ItVg:
 
 Tt:
   update_parameters:
+    procedure_version:
+      value: 2.0.0
     sampling_t:
       value: 0.15
+    step_time:
+      group_by: {}
+      value: 10.
 
 LaserCalibration:
   update_parameters:
