@@ -71,7 +71,7 @@ Tt:
       value: 0.15
     step_time:
       group_by: {}
-      value: 10.
+      value: 1800
 
 LaserCalibration:
   update_parameters:

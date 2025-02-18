@@ -273,7 +273,7 @@ Control:
   initial_T:
     _target_: *IntegerParameter
     default: 0
-    name: Initial temperature
+    name: Initial (current) T
     units: C
     minimum: 0
     maximum: 350
@@ -282,7 +282,7 @@ Control:
   target_T:
     _target_: *IntegerParameter
     default: 25
-    name: Target temperature
+    name: Target T
     units: C
     minimum: 10
     maximum: 350
@@ -291,14 +291,14 @@ Control:
   T_start_t:
     _target_: *FloatParameter
     default: 120.
-    name: Hot plate start time
+    name: T step start time
     units: s
     group_by: sense_T
 
   T_start:
     _target_: *IntegerParameter
     default: 10
-    name: Hot plate start temperature
+    name: T start
     units: C
     minimum: 10
     maximum: 350
@@ -306,7 +306,7 @@ Control:
   T_end:
     _target_: *IntegerParameter
     default: 25
-    name: Hot plate end temperature
+    name: T end
     units: C
     minimum: 10
     maximum: 350
@@ -314,5 +314,5 @@ Control:
   T_step:
     _target_: *IntegerParameter
     default: 5
-    name: Hot plate temperature step
+    name: T step
     units: C
