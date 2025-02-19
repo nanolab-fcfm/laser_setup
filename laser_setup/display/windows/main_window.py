@@ -12,12 +12,12 @@ from ...cli import parameters_to_db
 from ...config import ConfigHandler, config, instantiate
 from ...config.defaults import ProceduresType, ScriptsType, SequencesType
 from ...instruments import InstrumentManager, Instruments
-from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
 from ...utils import get_status_message
+from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
+from ..widgets import ConfigWidget, LogsWidget, SQLiteWidget
+from ..widgets.camera_widget import CameraWidget
 from .experiment_window import ExperimentWindow
 from .sequence_window import SequenceWindow
-from ..widgets import LogsWidget, SQLiteWidget
-from ..widgets.camera_widget import CameraWidget
 
 log = logging.getLogger(__name__)
 
@@ -203,7 +203,7 @@ class MainWindow(QtWidgets.QMainWindow):
         - Sequences
         - Scripts
         - View
-        - Settings
+        - Config
         - Help
 
         This method can be overridden to add more options.
@@ -272,9 +272,14 @@ class MainWindow(QtWidgets.QMainWindow):
         console_action = view_menu.addAction('Terminal', self.open_terminal)
         console_action.setShortcut('Ctrl+Shift+T')
 
-        settings_menu = menu.addMenu('&Settings')
-        settings_menu.addAction('Edit config', self.config_handler.edit_config)
-        settings_menu.addAction('Load config', self.config_handler.import_config)
+        config_menu = menu.addMenu('&Config')
+        self.config_widget = ConfigWidget(parent=self)
+        self.config_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
+        config_menu.addAction(
+            'Edit config', partial(self.open_widget, self.config_widget, 'Config')
+        )
+        config_menu.addAction('Load config', self.config_handler.import_config)
+        config_menu.addAction('Open config file', self.config_handler.edit_config)
 
         # Help
         help_menu = menu.addMenu('&Help')

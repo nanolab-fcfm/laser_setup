@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from ..display.Qt import QtWidgets
+
 
 class DefaultPaths:
     """Default paths for the configuration files."""
@@ -17,12 +19,30 @@ class DefaultPaths:
 
 @dataclass
 class DirConfig:
-    global_config_file: str = os.getenv('CONFIG') or 'config/config.yaml'
-    local_config_file: str = 'config/config.yaml'
-    parameters_file: str = DefaultPaths.parameters.as_posix()
-    procedure_config_file: str = ''
-    data_dir: str = 'data'
-    database: str = 'database.db'
+    global_config_file: str = field(
+        default=os.getenv('CONFIG') or 'config/config.yaml',
+        metadata={'title': 'Global configuration file', 'readonly': True}
+    )
+    local_config_file: str = field(
+        default='config/config.yaml',
+        metadata={'title': 'Local configuration file', 'readonly': True}
+    )
+    parameters_file: str = field(
+        default=DefaultPaths.parameters.as_posix(),
+        metadata={'title': 'Parameters file', 'type': 'file'}
+    )
+    procedure_config_file: str = field(
+        default='',
+        metadata={'title': 'Procedures file', 'type': 'file'}
+    )
+    data_dir: str = field(
+        default='data',
+        metadata={'title': 'Data directory', 'type': 'file'}
+    )
+    database: str = field(
+        default='database.db',
+        metadata={'title': 'Database file', 'type': 'str'}
+    )
 
 
 @dataclass
@@ -39,21 +59,54 @@ class AdapterConfig:
 
 @dataclass
 class GUIConfig:
-    style: str = 'Fusion'
-    dark_mode: bool = True
-    font: str = ''
-    font_size: int = 12
-    splash_image: str = DefaultPaths.splash.as_posix()
+    style: str = field(
+        default='Fusion',
+        metadata={'title': 'Style', 'type': 'list', 'limits': QtWidgets.QStyleFactory.keys()}
+    )
+    dark_mode: bool = field(
+        default=True,
+        metadata={'title': 'Dark mode', 'type': 'bool'}
+    )
+    font: str = field(
+        default='Segoe UI',
+        metadata={'title': 'Font', 'type': 'font'}
+    )
+    font_size: int = field(
+        default=12,
+        metadata={'title': 'Font size', 'type': 'int'}
+    )
+    splash_image: str = field(
+        default=DefaultPaths.splash.as_posix(),
+        metadata={'title': 'Splash image', 'type': 'file'}
+    )
 
 
 @dataclass
 class ExperimentWindowConfig:
-    title: str | None = None
-    inputs_in_scrollarea: bool = True
-    enable_file_input: bool = True
-    dock_plot_number: int = 2
-    info_file: str = ''
-    icon: str | None = None
+    title: str = field(
+        default='',
+        metadata={'title': 'Title', 'type': 'str'}
+    )
+    inputs_in_scrollarea: bool = field(
+        default=True,
+        metadata={'title': 'Inputs in scroll area', 'type': 'bool'}
+    )
+    enable_file_input: bool = field(
+        default=True,
+        metadata={'title': 'Enable file input', 'type': 'bool'}
+    )
+    dock_plot_number: int = field(
+        default=2,
+        metadata={'title': 'Number of plots in dock tab', 'type': 'int'}
+    )
+    info_file: str = field(
+        default='',
+        metadata={'title': 'Info file', 'type': 'file'}
+    )
+    icon: str = field(
+        default='',
+        metadata={'title': 'Icon', 'type': 'file'}
+    )
 
 
 @dataclass
@@ -70,11 +123,26 @@ SequencesType = dict[str, list[Any]]
 
 @dataclass
 class MainWindowConfig:
-    title: str = 'Laser Setup'
-    readme_file: str = 'README.md'
-    size: tuple[int, int] = (640, 480)
-    widget_size: tuple[int, int] = (640, 480)
-    icon: str | None = None
+    title: str = field(
+        default='Laser Setup',
+        metadata={'title': 'Title'}
+    )
+    readme_file: str = field(
+        default='README.md',
+        metadata={'title': 'Readme file', 'type': 'file'}
+    )
+    size: tuple[int, int] = field(
+        default=(640, 480),
+        metadata={'title': 'Size'}
+    )
+    widget_size: tuple[int, int] = field(
+        default=(640, 480),
+        metadata={'title': 'Widget size'}
+    )
+    icon: str = field(
+        default='',
+        metadata={'title': 'Icon', 'type': 'file'}
+    )
     scripts: ScriptsType = field(
         default_factory=lambda: [
             MenuItemConfig(
@@ -82,60 +150,103 @@ class MainWindowConfig:
                 target='${function:laser_setup.cli.init_config.init_config}',
                 alias='init'
             )
-        ]
+        ],
+        metadata={'title': 'Scripts'}
     )
-    procedures: ProceduresType = field(default_factory=list)
-    sequences: SequencesType = field(default_factory=dict)
+    procedures: ProceduresType = field(
+        default_factory=lambda: [
+            MenuItemConfig(
+                name='Fake Procedure',
+                target='${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
+                alias='FakeProcedure'
+            )
+        ],
+        metadata={'title': 'Procedures'}
+    )
+    sequences: SequencesType = field(
+        default_factory=lambda: {
+            'TestSequence': [
+                '${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
+                '${class:laser_setup.procedures.Wait}'
+            ]
+        },
+        metadata={'title': 'Sequences'}
+    )
 
 
 @dataclass
 class SequenceWindowConfig:
-    abort_timeout: int = 30
-    common_procedure: Any = ''
-    inputs_ignored: list[str] = field(default_factory=list)
+    abort_timeout: float = field(
+        default=30.,
+        metadata={'title': 'Abort timeout'}
+    )
+    common_procedure: Any = field(
+        default='${class:laser_setup.procedures.BaseProcedure}',
+        metadata={'title': 'Common procedure'}
+    )
+    inputs_ignored: list[str] = field(
+        default_factory=list,
+        metadata={'title': 'Inputs ignored'}
+    )
 
 
 @dataclass
 class QtConfig:
     GUI: GUIConfig = field(default_factory=GUIConfig)
-    MainWindow: MainWindowConfig = field(default_factory=MainWindowConfig)
-    ExperimentWindow: ExperimentWindowConfig = field(default_factory=ExperimentWindowConfig)
-    SequenceWindow: SequenceWindowConfig = field(default_factory=SequenceWindowConfig)
+    MainWindow: MainWindowConfig = field(
+        default_factory=MainWindowConfig,
+        metadata={'title': 'Main Window'}
+    )
+    ExperimentWindow: ExperimentWindowConfig = field(
+        default_factory=ExperimentWindowConfig,
+        metadata={'title': 'Experiment Window'}
+    )
+    SequenceWindow: SequenceWindowConfig = field(
+        default_factory=SequenceWindowConfig,
+        metadata={'title': 'Sequence Window'}
+    )
 
 
 @dataclass
 class FilenameConfig:
-    prefix: str = ''
-    suffix: str = ''
-    ext: str = 'csv'
-    dated_folder: bool = True
-    index: bool = True
-    datetimeformat: str = '%Y-%m-%d'
+    prefix: str = field(default='', metadata={'title': 'Prefix'})
+    suffix: str = field(default='', metadata={'title': 'Suffix'})
+    ext: str = field(default='csv', metadata={'title': 'Extension'})
+    dated_folder: bool = field(
+        default=True,
+        metadata={'title': 'Dated folder'}
+    )
+    index: bool = field(default=True, metadata={'title': 'Index'})
+    datetimeformat: str = field(
+        default='%Y-%m-%d',
+        metadata={'title': 'Datetime format'}
+    )
 
 
 @dataclass
 class LoggingConfig:
-    console: bool = True
-    console_level: str = 'INFO'
-    filename: str = 'log/std.log'
-    file_level: str = 'INFO'
+    console: bool = field(default=True, metadata={'title': 'Console'})
+    console_level: str = field(default='INFO', metadata={'title': 'Console level'})
+    filename: str = field(default='log/std.log', metadata={'title': 'Filename', 'type': 'file'})
+    file_level: str = field(default='INFO', metadata={'title': 'File level'})
 
 
 @dataclass
 class TelegramConfig:
-    token: Optional[str] = ''
-    chat_ids: list[str] = field(default_factory=list)
+    token: Optional[str] = field(default='', metadata={'title': 'Token'})
+    chat_ids: list[str] = field(default_factory=list, metadata={'title': 'Chat IDs'})
 
 
 @dataclass
 class AppConfig:
-    Dir: DirConfig = field(default_factory=DirConfig)
-    Adapters: AdapterConfig = field(default_factory=AdapterConfig)
+    Dir: DirConfig = field(default_factory=DirConfig, metadata={'title': 'Directories'})
+    Adapters: AdapterConfig = field(default_factory=AdapterConfig, metadata={'expanded': False})
     Qt: QtConfig = field(default_factory=QtConfig)
     Filename: FilenameConfig = field(default_factory=FilenameConfig)
     Logging: LoggingConfig = field(default_factory=LoggingConfig)
     matplotlib_rcParams: dict[str, str] = field(
-        default_factory=lambda: {'axes.grid': 'True', 'figure.autolayout': 'True'}
+        default_factory=lambda: {'axes.grid': 'True', 'figure.autolayout': 'True'},
+        metadata={'title': 'Matplotlib rcParams'}
     )
     Telegram: TelegramConfig = field(default_factory=TelegramConfig)
-    _session: dict = field(default_factory=dict)
+    _session: dict = field(default_factory=dict, metadata={'title': 'Session', 'readonly': True})

@@ -164,3 +164,29 @@ class ConfigHandler:
             self.parent.reload.click()
         except AttributeError:
             pass
+
+    def save_config(
+        self,
+        config: AppConfig | DictConfig | dict = None,
+        save_path: Path | str = None,
+        **kwargs
+    ):
+        """Save the configuration to the selected path.
+
+        :param config: Configuration to save. If not provided, it will save the
+            current configuration.
+        :param save_path: The save patth. If not provided, it will use stored one
+            in the session.
+        :param kwargs: Additional arguments for `save_yaml`.
+        """
+        if config is not None:
+            self.config = OmegaConf.merge(self.config, config)
+
+        if save_path is not None:
+            self.save_path = Path(save_path)
+
+        config_container = OmegaConf.to_container(self.config)
+        config_container.pop('_session', None)
+
+        save_yaml(config_container, self.save_path, **kwargs)
+        log.info(f'Config saved to {self.save_path.as_posix()}')

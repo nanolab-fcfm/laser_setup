@@ -69,15 +69,15 @@ Qt:
     dark_mode: true
 
     # Font options. If empty it uses the style's default font
-    font: ''
+    # font: ''
     font_size: 12
 
-    # Splash screen image. Leave empty to disable
-    splash_image: ./assets/img/nanolab_logo.png
+    # Splash screen image. Leave empty to set default
+    # splash_image: ''
 
 
   ExperimentWindow:
-    title: ''
+    # title: ''
 
     # Whether to add a scrollbar
     inputs_in_scrollarea: true
@@ -91,7 +91,7 @@ Qt:
     # File to open in the Info tab
     info_file: ./docs/led_protocol.md
 
-    icon: ''
+    # icon: ''
 
 
   MainWindow:
@@ -104,7 +104,7 @@ Qt:
 
     widget_size: [640, 480]
 
-    icon: ''
+    # icon: ''
 
     scripts:
       # List of names and scripts to show in the Scripts tab
@@ -192,9 +192,9 @@ Filename:
   # Configure the data filenames. With this config,
   # a file would be created at {config.Dir.data}/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
   # File prefix. Leave empty to use the procedure class name instead
-  prefix: ''
+  # prefix: ''
 
-  suffix: ''
+  # suffix: ''
   ext: csv
   dated_folder: true
   index: true

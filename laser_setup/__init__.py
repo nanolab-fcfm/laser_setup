@@ -29,7 +29,7 @@ if config.Logging.filename:
 
 setup_logging(log, **config.Logging)
 
-log.info(f"Using config file: {config._session['config_path_used']}")
+log.info(f"Using config file: {Path(config._session['config_path_used']).as_posix()}")
 
 # Setup matplotlib.rcParams from config
 _rcparams = {'matplotlib.rcParams': config.matplotlib_rcParams}
