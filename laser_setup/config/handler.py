@@ -28,12 +28,12 @@ class ConfigHandler:
 
     def __init__(
         self,
-        parent: QtWidgets.QWidget = None,
-        config: AppConfig | DictConfig = None
+        parent: QtWidgets.QWidget | None = None,
+        config: AppConfig | DictConfig | None = None
     ):
         self.config = config or self.load_config()
-        self.save_path = Path(config._session['save_path'])
-        self.config_path_used = config._session['config_path_used']
+        self.save_path = Path(self.config._session['save_path'])
+        self.config_path_used = self.config._session['config_path_used']
 
         self.app = make_app()
         if parent is None:

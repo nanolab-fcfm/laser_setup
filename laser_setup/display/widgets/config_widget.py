@@ -10,7 +10,7 @@ from ...display.Qt import QtWidgets
 
 
 class ConfigWidget(QtWidgets.QWidget):
-    def __init__(self, parent=None, **kwargs):
+    def __init__(self, parent: QtWidgets.QWidget | None = None, **kwargs):
         super().__init__(parent, **kwargs)
         self.config_handler = ConfigHandler(parent=parent, config=config)
 
