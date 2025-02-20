@@ -1,10 +1,14 @@
+import sys
 from pathlib import Path
 
 from pymeasure.experiment import Procedure
 
+from .. import __version__
 from ..config import config, instantiate, DefaultPaths
 from ..utils import remove_empty_data
 from .Qt import QtCore, QtGui, QtWidgets, make_app
+
+_app_id = "NanoLabFCFM.LaserSetup.v" + __version__
 
 
 class ShortcutFilter(QtCore.QObject):
@@ -88,6 +92,7 @@ def display_window(procedure: type[Procedure] | None = None, **kwargs):
     :param procedure: The procedure to display in the experiment window.
     :param kwargs: Additional keyword arguments to pass to the window.
     """
+    _patch_taskbar_icon()
     app = make_app()
     shortcut_filter = ShortcutFilter(app)
     app.installEventFilter(shortcut_filter)
@@ -133,3 +138,12 @@ def display_window(procedure: type[Procedure] | None = None, **kwargs):
     window.show()
     app.exec()
     remove_empty_data()
+
+
+def _patch_taskbar_icon():
+    """Patches the taskbar icon for Windows to show the application icon."""
+    if sys.platform != 'win32':
+        return
+
+    import ctypes
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(_app_id)
