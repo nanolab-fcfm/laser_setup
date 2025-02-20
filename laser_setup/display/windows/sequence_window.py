@@ -1,7 +1,7 @@
 import logging
 import time
 from functools import partial
-from typing import Type
+from typing import Type, Literal
 
 from pymeasure.display.widgets import InputsWidget
 
@@ -20,11 +20,11 @@ class SequenceWindow(QtWidgets.QMainWindow):
     common to all procedures in the sequence. To avoid this behavior for a
     specific parameter, add it to the inputs_ignored list.
 
-    :attr abort_timeout: int: Timeout for the abort message box.
-    :attr inputs_ignored: list[str]: List of inputs to ignore when grouping parameters.
-    :attr common_procedure: type[BaseProcedure]: Class to group common parameters.
+    :attr status_dict: Dictionary with the status labels and colors.
+    :attr is_running: Flag to indicate if the sequence is running.
+    :attr is_aborted: Flag to indicate if the sequence was aborted.
     """
-    status_dict: dict[str, str] = {
+    status_dict: dict[str, dict[Literal['label', 'color'], str]] = {
         'queued': {'label': '🠞', 'color': ''},
         'running': {'label': '⏳', 'color': 'yellow'},
         'aborted': {'label': '⛔', 'color': 'red'},
@@ -42,6 +42,15 @@ class SequenceWindow(QtWidgets.QMainWindow):
         inputs_ignored: list[str] = [],
         **kwargs
     ):
+        """Initialize the SequenceWindow with the given procedure list.
+
+        :param procedure_list: List of procedures to execute.
+        :param title: Title of the window.
+        :param abort_timeout: Timeout for the abort message box.
+        :param common_procedure: Class to group common parameters.
+        :param inputs_ignored: List of inputs to ignore when grouping parameters.
+        :param kwargs: Additional keyword arguments to pass to the window.
+        """
         super().__init__(**kwargs)
         self.procedure_list = procedure_list
         self.abort_timeout = int(abort_timeout)
