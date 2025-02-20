@@ -7,7 +7,7 @@ from pymeasure.display.widgets import InputsWidget
 
 from ...config import config, instantiate
 from ...procedures import BaseProcedure
-from ..Qt import QtCore, QtWidgets
+from ..Qt import QtCore, QtGui, QtWidgets
 from .experiment_window import ExperimentWindow, ProgressBar
 
 log = logging.getLogger(__name__)
@@ -109,6 +109,10 @@ class SequenceWindow(QtWidgets.QMainWindow):
         self.timer.timeout.connect(self._update_timers)
         self.timer.start(1000)
 
+        self.animation_timer = QtCore.QTimer(self)
+        self.animation_timer.timeout.connect(self._rotate_status)
+        self.animation_timer.start(250)
+
     def _set_font_factor(self, item: QtWidgets.QWidget, factor: float):
         font = item.font()
         font.setPointSizeF(font.pointSizeF() * factor)
@@ -125,11 +129,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         title = QtWidgets.QLabel(class_name)
         vlayout.addWidget(title)
 
-        status = QtWidgets.QLabel(
-            '<div style="display:inline-block; transform: rotate(0deg);">'
-            f'{self.status_dict["queued"]["label"]}</div>'
-        )
-        status.setTextFormat(QtCore.Qt.TextFormat.RichText)
+        status = RotatingLabel(self.status_dict["queued"]["label"])
 
         self._set_font_factor(status, 2.0)
         vlayout.addWidget(status)
@@ -153,8 +153,10 @@ class SequenceWindow(QtWidgets.QMainWindow):
         return vlayout
 
     def set_status(self, idx: int, status: str):
-        self.item_data[idx]["status"].setText(self.status_dict[status]["label"])
-        self.item_data[idx]["status"].setStyleSheet(f"color: {self.status_dict[status]['color']};")
+        status_label: RotatingLabel = self.item_data[idx]["status"]
+        status_label.setText(self.status_dict[status]["label"])
+        status_label.setStyleSheet(f"color: {self.status_dict[status]['color']};")
+        status_label.set_angle(0)
 
     def queue(self):
         log.info("Queueing the procedures.")
@@ -205,14 +207,14 @@ class SequenceWindow(QtWidgets.QMainWindow):
             self.procedure_start_times[i] = time.time()
             self.procedure_done[i] = False
 
+            window.manager.aborted.connect(partial(self.aborted_procedure, window))
+            window.manager.failed.connect(partial(self.failed_procedure, window))
+            window.manager.finished.connect(window.close)
+
             window.manager.running.connect(partial(self.set_status, i+1, 'running'))
             window.manager.finished.connect(partial(self.set_status, i+1, 'finished'))
             window.manager.failed.connect(partial(self.set_status, i+1, 'aborted'))
             window.manager.aborted.connect(partial(self.set_status, i+1, 'aborted'))
-
-            window.manager.aborted.connect(partial(self.aborted_procedure, window))
-            window.manager.failed.connect(partial(self.failed_procedure, window))
-            window.manager.finished.connect(window.close)
 
             window.manager.finished.connect(partial(self._finish_procedure, i))
             window.manager.aborted.connect(partial(self._finish_procedure, i))
@@ -308,3 +310,36 @@ class SequenceWindow(QtWidgets.QMainWindow):
 
         else:
             time.sleep(wait_time)
+
+    def _rotate_status(self):
+        try:
+            idx = next(i for i, done in enumerate(self.procedure_done) if not done)
+        except (StopIteration, IndexError):
+            return
+
+        status: RotatingLabel = self.item_data[idx+1]["status"]
+        status.set_angle(status._angle + 15)
+
+
+class RotatingLabel(QtWidgets.QLabel):
+    """A QLabel that rotates its text."""
+    def __init__(self, text='', parent=None):
+        super().__init__(text, parent)
+        self._angle = 0
+
+    def set_angle(self, angle: int):
+        self._angle = angle
+        self.update()
+
+    def paintEvent(self, event: QtGui.QPaintEvent):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        painter.save()
+        center = self.rect().center()
+        painter.translate(center)
+        painter.rotate(self._angle)
+        painter.translate(-center)
+        painter.setFont(self.font())
+        painter.setPen(self.palette().color(QtGui.QPalette.ColorRole.WindowText))
+        painter.drawText(self.rect(), self.alignment(), self.text())
+        painter.restore()
