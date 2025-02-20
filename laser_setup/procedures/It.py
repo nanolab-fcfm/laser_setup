@@ -52,7 +52,7 @@ class It(ChipProcedure):
     ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)'] + PT100SerialSensor.DATA_COLUMNS
     EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
-    SEQUENCER_INPUTS = ['laser_v', 'vg']
+    SEQUENCER_INPUTS = ['laser_v', 'vg', 'target_T']
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
