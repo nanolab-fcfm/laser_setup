@@ -83,6 +83,10 @@ class ItWl(ChipProcedure):
 
         self.meter.source_voltage = self.vds
 
+        # Turn off the light source
+        self.light_source.filt = 1
+        self.light_source.move
+
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)
             self.tenma_neg.ramp_to_voltage(0)
