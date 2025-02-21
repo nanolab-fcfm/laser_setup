@@ -34,8 +34,12 @@ ItWl:
   update_parameters:
     procedure_version:
       value: 1.0.0
-    laser_wl:
+    wl:
       value: 530.
+    step_time:
+      value: 60
+    burn_in_t:
+      value: 60
 
 Pt:
   update_parameters:
