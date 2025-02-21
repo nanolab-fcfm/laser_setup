@@ -137,6 +137,7 @@ class Bentham(Instrument):
 
     def shutdown(self):
         self.lamp = False
+        self.reboot()
         self.adapter.close()
         super().shutdown()
 
