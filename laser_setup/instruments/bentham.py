@@ -15,6 +15,14 @@ class Bentham(Instrument):
     """
     wavelength_range = [280., 1100.]
 
+    mono = Instrument.control(
+        ":MONO?", ":MONO %.1f",
+        """Sets the monochromator to the specified wavelength. Gets the current
+        and target wavelengths in nm.""",
+        validator=truncated_range,
+        values=wavelength_range,
+    )
+
     goto = Instrument.control(
         ":MONO:GOTO?", ":MONO:GOTO? %.1f",
         """Sets new targets for all components of the monochromator and if
@@ -116,9 +124,8 @@ class Bentham(Instrument):
 
     def set_wavelength(self, wavelength: float, timeout: float = 10.):
         """Sets the wavelength to the specified value."""
-        self.write(":MONO:FILT 1")
+        self.mono = wavelength
         self.move
-        self.wavelength = wavelength
         self.filt = wavelength
         self.move
 

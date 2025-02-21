@@ -62,6 +62,7 @@ class ItWl(ChipProcedure):
         time.sleep(0.5)
         self.tenma_neg.output = True
         self.tenma_pos.output = True
+        self.light_source.lamp = True
         time.sleep(1.)
 
     def pre_startup(self):
@@ -111,6 +112,5 @@ class ItWl(ChipProcedure):
         )
         measuring_loop(self.burn_in_t, 0.)
         log.info('Turning on the light source')
-        self.light_source.goto = self.wl
-        self.light_source.lamp = True
+        self.light_source.set_wavelength(self.wl)
         measuring_loop(self.step_time, self.wl)
