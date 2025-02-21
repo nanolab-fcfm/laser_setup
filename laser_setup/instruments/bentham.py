@@ -129,8 +129,12 @@ class Bentham(Instrument):
         return self.adapter.query(command, timeout, read_interval)
 
     def shutdown(self):
+        self.lamp = False
         self.adapter.close()
         super().shutdown()
+
+    def reboot(self):
+        self.adapter.write("SYSTEM:REBOOT")
 
     def reconnect(self):
         self.adapter.reconnect()

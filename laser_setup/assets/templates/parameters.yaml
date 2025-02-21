@@ -84,6 +84,12 @@ Laser:
     name: Optical fiber
     choices: [other, "F1 (M92L02)", "F2 (M92L02)", "F3 (M96L02)", "F4 (M96L02)"]
 
+  wl:
+    _target_: *FloatParameter
+    default: 400.0
+    name: Wavelength
+    units: nm
+
   wl_start:
     _target_: *FloatParameter
     default: 400.0

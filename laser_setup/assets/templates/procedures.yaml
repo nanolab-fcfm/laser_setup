@@ -30,6 +30,13 @@ IV:
       group_by: *laser_toggle
       value: 600
 
+ItWl:
+  update_parameters:
+    procedure_version:
+      value: 1.0.0
+    laser_wl:
+      value: 530.
+
 Pt:
   update_parameters:
     procedure_version:

@@ -23,6 +23,7 @@ class LaserParameters:
     laser_T: FloatParameter
     burn_in_t: FloatParameter
     fiber: ListParameter
+    wl: FloatParameter
     wl_start: FloatParameter
     wl_end: FloatParameter
     wl_step: FloatParameter
