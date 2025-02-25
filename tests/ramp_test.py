@@ -25,3 +25,6 @@ if __name__ == '__main__':
     plt.show()
     with open('file.txt', mode='w') as f:
         f.write(str(msg))
+        
+    blt.output["max_voltage"] = max(array)
+    blt.output["msg"] = msg
