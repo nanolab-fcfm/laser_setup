@@ -20,9 +20,9 @@ if __name__ == '__main__':
     plt.scatter(array, ramp)
     plt.show()
     
-    fig, ax = plt.subplots()
-    ax.scatter(array, array, c='red')
-    plt.show()
+    # fig, ax = plt.subplots()
+    # ax.scatter(array, array, c='red')
+    # plt.show()
     with open('file.txt', mode='w') as f:
         f.write(str(msg))
         
