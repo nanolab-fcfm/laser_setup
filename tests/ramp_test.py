@@ -15,5 +15,10 @@ def test_ramp():
 
 if __name__ == '__main__':
     ramp = test_ramp()
-    plt.scatter(np.linspace(v_start, v_stop, len(ramp)), ramp)
+    array = np.linspace(v_start, v_stop, len(ramp))
+    plt.scatter(array, ramp)
+    plt.show()
+    
+    fig, ax = plt.subplots()
+    ax.scatter(array, array, c='red')
     plt.show()
