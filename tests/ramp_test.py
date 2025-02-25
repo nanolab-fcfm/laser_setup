@@ -10,7 +10,7 @@ spacing = blt.params["spacing"]
 
 
 def test_ramp():
-    ramp = voltage_sweep_ramp(v_start, v_stop, v_points)
+    ramp = voltage_sweep_ramp(v_start, v_stop, spacing)
     return ramp
 
 if __name__ == '__main__':
