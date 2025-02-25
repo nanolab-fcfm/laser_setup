@@ -7,6 +7,7 @@ from laser_setup.utils import voltage_sweep_ramp
 v_start = blt.params["v_start"]
 v_stop = blt.params["v_stop"]
 spacing = blt.params["spacing"]
+msg = input("What's your name? ")
 
 
 def test_ramp():
@@ -23,4 +24,4 @@ if __name__ == '__main__':
     ax.scatter(array, array, c='red')
     plt.show()
     with open('file.txt', mode='w') as f:
-        f.write("hey!")
+        f.write(str(msg))
