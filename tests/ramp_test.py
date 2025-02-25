@@ -6,7 +6,7 @@ from laser_setup.utils import voltage_sweep_ramp
 
 v_start = blt.params["v_start"]
 v_stop = blt.params["v_stop"]
-v_points = blt.params["v_points"]
+spacing = blt.params["spacing"]
 
 
 def test_ramp():
