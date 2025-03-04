@@ -121,10 +121,26 @@ Instrument:
     _target_: *FloatParameter
     default: 0.001
     name: Irange
-    description: Current range
+    description: |-
+      Max current range for the Keithley.
+      Higher values will return 9.9e37 (overflow).
+      Set to 0 for auto-range.
     units: A
-    minimum: 0
-    maximum: 0.105
+    minimum: 0.00000001
+    maximum: 1.
+    group_by: show_more
+
+  Vrange:
+    _target_: *FloatParameter
+    default: 1.
+    name: Vrange
+    description: |-
+      Max voltage range for the Keithley.
+      Higher values will return 9.9e37 (overflow).
+      Set to 0 for auto-range.
+    units: V
+    minimum: 0.02
+    maximum: 200
     group_by: show_more
 
   NPLC:
@@ -163,6 +179,8 @@ Control:
     name: VDS
     description: Drain-Source voltage
     units: V
+    minimum: -210.
+    maximum: 210.
     decimals: 10
 
   vg:
@@ -178,10 +196,18 @@ Control:
     _target_: *Parameter
     default: "DP + 0. V"
     name: VG
-    description: |
+    description: |-
       Dynamically evaluated VG value.
       Use 'DP' for the sample's previously measured Dirac Point.
-      If no DP is found, the value will be 0. V.
+      If no DP is found, the value will be 0. V
+
+  current:
+    _target_: *FloatParameter
+    default: 0.001
+    name: Current
+    units: A
+    minimum: -1.05
+    maximum: 1.05
 
   # Voltage ramps
   step_time:

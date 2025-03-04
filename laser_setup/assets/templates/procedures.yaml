@@ -18,6 +18,17 @@ IVg:
     burn_in_t:
       group_by: *laser_toggle
 
+Vt:
+  update_parameters:
+    procedure_version:
+      value: 1.0.0
+    laser_wl:
+      group_by: *laser_toggle
+    laser_v:
+      group_by: *laser_toggle
+    burn_in_t:
+      group_by: *laser_toggle
+
 IV:
   update_parameters:
     procedure_version:

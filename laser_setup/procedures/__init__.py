@@ -1,6 +1,7 @@
 from .BaseProcedure import BaseProcedure, ChipProcedure, Procedure
 from .IVg import IVg
 from .It import It
+from .Vt import Vt
 from .ItVg import ItVg
 from .IV import IV
 from .Pt import Pt

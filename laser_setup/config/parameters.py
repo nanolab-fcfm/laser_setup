@@ -33,6 +33,7 @@ class LaserParameters:
 class InstrumentParameters:
     N_avg: IntegerParameter
     Irange: FloatParameter
+    Vrange: FloatParameter
     NPLC: FloatParameter
     sensor: Metadata
     sense_T: BooleanParameter
@@ -44,6 +45,7 @@ class ControlParameters:
     vds: FloatParameter
     vg: FloatParameter
     vg_dynamic: Parameter
+    current: FloatParameter
     step_time: FloatParameter
     vg_start: FloatParameter
     vg_end: FloatParameter

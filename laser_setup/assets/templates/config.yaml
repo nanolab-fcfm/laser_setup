@@ -138,6 +138,10 @@ Qt:
         alias: It
         target: ${class:laser_setup.procedures.It}
 
+      - name: V vs t
+        alias: Vt
+        target: ${class:laser_setup.procedures.Vt}
+
       - name: I vs t (Vg)
         alias: ItVg
         target: ${class:laser_setup.procedures.ItVg}
