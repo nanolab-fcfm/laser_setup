@@ -77,10 +77,10 @@ class It(ChipProcedure):
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
+        self.meter.apply_voltage(compliance_current=self.Irange * 1.1)
         self.meter.measure_current(
             current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
         )
-        self.meter.apply_voltage()
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
