@@ -126,21 +126,21 @@ Instrument:
       Higher values will return 9.9e37 (overflow).
       Set to 0 for auto-range.
     units: A
-    minimum: 0.00000001
+    minimum: 0.
     maximum: 1.
     group_by: show_more
 
   Vrange:
     _target_: *FloatParameter
-    default: 1.
+    default: 0.5
     name: Vrange
     description: |-
       Max voltage range for the Keithley.
       Higher values will return 9.9e37 (overflow).
       Set to 0 for auto-range.
     units: V
-    minimum: 0.02
-    maximum: 200
+    minimum: 0.
+    maximum: 200.
     group_by: show_more
 
   NPLC:
