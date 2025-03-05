@@ -45,7 +45,7 @@ class ControlParameters:
     vds: FloatParameter
     vg: FloatParameter
     vg_dynamic: Parameter
-    current: FloatParameter
+    ids: FloatParameter
     step_time: FloatParameter
     vg_start: FloatParameter
     vg_end: FloatParameter

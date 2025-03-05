@@ -29,7 +29,7 @@ class Vt(ChipProcedure):
     clicker: Clicker = PendingInstrument(Clicker, config['Adapters']['clicker'])
 
     # Important Parameters
-    current = Parameters.Control.current
+    ids = Parameters.Control.ids
     vg = Parameters.Control.vg_dynamic
     laser_wl = Parameters.Laser.laser_wl
     laser_v = Parameters.Laser.laser_v
@@ -47,7 +47,7 @@ class Vt(ChipProcedure):
     NPLC = Parameters.Instrument.NPLC
 
     INPUTS = ChipProcedure.INPUTS + [
-        'current', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'sense_T',
+        'ids', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'sense_T',
         'initial_T', 'target_T', 'T_start_t', 'Vrange', 'NPLC'
     ]
     DATA_COLUMNS = ['t (s)', 'VDS (V)', 'VL (V)'] + PT100SerialSensor.DATA_COLUMNS
@@ -98,7 +98,7 @@ class Vt(ChipProcedure):
         log.info("Starting the measurement")
         self.meter.clear_buffer()
 
-        self.meter.source_current = self.current
+        self.meter.source_current = self.ids
 
         if self.sense_T:
             if bool(self.initial_T):

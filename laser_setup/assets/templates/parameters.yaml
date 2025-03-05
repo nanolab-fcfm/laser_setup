@@ -201,10 +201,10 @@ Control:
       Use 'DP' for the sample's previously measured Dirac Point.
       If no DP is found, the value will be 0. V
 
-  current:
+  ids:
     _target_: *FloatParameter
     default: 0.001
-    name: Current
+    name: Drain-Source current
     units: A
     minimum: -1.05
     maximum: 1.05
