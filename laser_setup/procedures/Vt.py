@@ -80,6 +80,7 @@ class Vt(ChipProcedure):
         self.meter.measure_voltage(
             voltage=self.Vrange, nplc=self.NPLC, auto_range=not bool(self.Vrange)
         )
+        self.meter.apply_current()
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
