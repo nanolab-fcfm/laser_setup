@@ -132,7 +132,7 @@ Instrument:
 
   Vrange:
     _target_: *FloatParameter
-    default: 0.5
+    default: 2.
     name: Vrange
     description: |-
       Max voltage range for the Keithley.
@@ -203,7 +203,7 @@ Control:
 
   ids:
     _target_: *FloatParameter
-    default: 0.001
+    default: 1.e-4
     name: Drain-Source current
     units: A
     minimum: -1.05
