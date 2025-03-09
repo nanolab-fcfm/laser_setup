@@ -1,3 +1,4 @@
+import inspect
 import logging
 import random
 import time
@@ -91,21 +92,10 @@ class InstrumentManager:
         :param return_str: Whether to return the help string or print it.
         """
         help_str = "Available controls and measurements for "\
-            f"{instrument_class.__name__} (not including methods):\n\n"
+            f"{instrument_class.__name__} (excluding methods):\n\n"
 
-        for name in dir(instrument_class):
-            attr = getattr(instrument_class, name)
-            if isinstance(attr, property):
-                prop_type = "control" if attr.fset.__doc__ else "measurement"
-                attr_doc = f"{attr.__doc__.strip()}" if attr.__doc__ else ""
-                help_str += f"{name} ({prop_type}): {attr_doc}\n\n"
-                if attr.fget.__module__ == 'pymeasure.instruments.common_base' and \
-                   attr.fget.__defaults__ is not None and \
-                   attr.fset.__defaults__ is not None:
-                    help_str += 8*" " + \
-                        f"fget='{attr.fget.__defaults__[0]}', " \
-                        f"fset='{attr.fset.__defaults__[0]}', " \
-                        f"values={attr.fget.__defaults__[1]}\n\n"
+        for name, attr in inspect.getmembers(instrument_class, lambda x: isinstance(x, property)):
+            help_str += InstrumentManager._get_property_help(attr, name)
 
         return help_str if return_str else print(help_str)
 
@@ -272,6 +262,39 @@ class InstrumentManager:
         log.info("Shutting down all instruments.")
         for instance_id in list(self):
             self.shutdown(instance_id)
+
+    @staticmethod
+    def _get_property_help(attr: property, name: str) -> str:
+        """Returns the help string for a property."""
+        # property_types = ("property", "control", "measurement", "setting")
+
+        if not attr.fget.__qualname__.startswith("CommonBase.control.<locals>"):
+            prop_type = "property"
+
+        elif attr.fset.__defaults__[0] is None:
+            # property doesn't have set_command
+            prop_type = "measurement"
+
+        elif attr.fget.__defaults__[0] is None:
+            # property doesn't have get_command
+            prop_type = "setting"
+
+        else:
+            prop_type = "control"
+
+        help_str = f"## {name} ({prop_type}):"
+        if docstring := inspect.getdoc(attr):
+            help_str += f"\n{docstring.strip()}"
+
+        if prop_type in ("measurement", "control"):
+            help_str += f"\n\nGetter: '{attr.fget.__defaults__[0]}'"
+
+        if prop_type in ("setting", "control"):
+            help_str += f"\n\nSetter: '{attr.fset.__defaults__[0]}'" \
+                        f"\n\nValues: {attr.fset.__defaults__[2]}"
+
+        help_str += "\n\n"
+        return help_str
 
     def items(self) -> Iterator[tuple[str, Instrument]]:
         return self.instrument_dict.items()

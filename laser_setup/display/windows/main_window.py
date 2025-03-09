@@ -149,7 +149,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """Displays a text window with the given title and text. adds a scroll bar"""
         text_edit = QtWidgets.QTextEdit(parent=self)
         text_edit.setReadOnly(True)
-        text_edit.setPlainText(text)
+        text_edit.setMarkdown(text)
         self.open_widget(text_edit, title)
 
     def open_camera(self):
