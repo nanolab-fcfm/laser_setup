@@ -5,7 +5,7 @@ import numpy as np
 from scipy.signal import find_peaks
 
 from .. import config
-from ..instruments import (TENMA, Keithley2450, PendingInstrument,
+from ..instruments import (TENMA, InstrumentManager, Keithley2450,
                            PT100SerialSensor)
 from ..parameters import Parameters
 from ..utils import voltage_sweep_ramp
@@ -21,11 +21,12 @@ class IVg(ChipProcedure):
     """
     name = 'I vs Vg'
 
-    meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
-    tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
-    tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
-    tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
-    temperature_sensor: PT100SerialSensor = PendingInstrument(
+    instruments = InstrumentManager()
+    meter = instruments.queue(Keithley2450, config['Adapters']['keithley2450'])
+    tenma_neg = instruments.queue(TENMA, config['Adapters']['tenma_neg'])
+    tenma_pos = instruments.queue(TENMA, config['Adapters']['tenma_pos'])
+    tenma_laser = instruments.queue(TENMA, config['Adapters']['tenma_laser'])
+    temperature_sensor = instruments.queue(
         PT100SerialSensor, config['Adapters']['pt100_port']
     )
 
@@ -57,10 +58,10 @@ class IVg(ChipProcedure):
 
     DATA = [[], []]
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def connect_instruments(self):
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
         self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
+        super().connect_instruments()
 
     def startup(self):
         self.connect_instruments()

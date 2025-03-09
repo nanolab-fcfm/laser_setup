@@ -19,7 +19,7 @@ As well as all instruments available in the [PyMeasure library](https://pymeasur
 - A robust main GUI window (see [laser_setup.display.main_window.py](laser_setup/display/main_window.py)) that displays available procedures and scripts.
 - An experiment window (laser_setup.display.experiment_window.py) for running PyMeasure-based procedures with plots, logs, and parameter inputs.
 - Sequences: run multiple procedures in series using the SequenceWindow.
-- InstrumentManager (laser_setup.instruments.instrument_manager.py) for centralized instrument setup and teardown.
+- InstrumentManager (laser_setup.instruments.manager.py) for centralized instrument setup and teardown.
 
 ### Running Specific Procedures
 

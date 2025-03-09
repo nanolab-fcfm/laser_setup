@@ -7,7 +7,7 @@ from pymeasure.experiment import (BooleanParameter, Metadata, Parameter,
                                   Procedure)
 
 from ..config import config, load_yaml
-from ..instruments import InstrumentManager, PendingInstrument
+from ..instruments import InstrumentManager
 from ..parameters import Parameters
 from ..utils import send_telegram_alert
 
@@ -35,14 +35,14 @@ class BaseProcedure(Procedure):
     :attr DATA_COLUMNS: List of data columns
     :attr SEQUENCER_INPUTS: List of inputs for the sequencer
 
-    :method connect_instruments: Connects all PendingInstruments to the
+    :method connect_instruments: Connects all queued instruments via the
         InstrumentManager
     :method shutdown: Shuts down all instruments
     :method __init_subclass__: Updates parameters and class attributes
         for subclasses, based on the procedures config file
     """
     name: str = ""
-    # Instrument Manager
+
     instruments = InstrumentManager()
 
     procedure_version = Parameter("Procedure version", default="1.0.0")
@@ -62,21 +62,26 @@ class BaseProcedure(Procedure):
     EXCLUDE = ['show_more', 'skip_startup', 'skip_shutdown']
 
     def connect_instruments(self):
-        """Takes all PendingInstruments and connects them to the
-        InstrumentManager, replacing the PendingInstrument with the
-        connected instrument.
+        """Connects all queued instruments via the InstrumentManager,
+        replacing the InstrumentProxy instances with actual instrument instances.
+        This method is called even if skip_startup is set to True.
+
+        Override this method to handle instrument connections differently.
         """
-        log.info("Setting up instruments")
-        all_attrs = vars(self.__class__) | vars(self)
-        for key, attr in all_attrs.items():
-            if isinstance(attr, PendingInstrument):
-                instr_dict = vars(attr) | {'debug': config._session.args.debug}
-                setattr(self, key, self.instruments.connect(**instr_dict))
+        self.instruments.connect_all(self, debug=config._session.args.debug)
 
     def startup(self):
+        """Startup method that handles the initialization of instruments and
+        other components before the measurement starts. Override this method
+        in a subclass.
+        """
         self.connect_instruments()
 
     def shutdown(self):
+        """Shutdown method that handles the cleanup of instruments and other
+        components after the measurement finishes. Override this method in a
+        subclass.
+        """
         self.instruments.shutdown_all()
 
     def __init_subclass__(cls: type['BaseProcedure'], **kwargs):

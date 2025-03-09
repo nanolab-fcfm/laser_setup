@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 from .. import config
-from ..instruments import Bentham, PendingInstrument, ThorlabsPM100USB
+from ..instruments import Bentham, InstrumentManager, ThorlabsPM100USB
 from ..parameters import Parameters
 from ..procedures import BaseProcedure
 
@@ -17,10 +17,9 @@ class Pwl(BaseProcedure):
     """
     name = 'P vs wl'
 
-    power_meter: ThorlabsPM100USB = PendingInstrument(
-        ThorlabsPM100USB, config['Adapters']['power_meter']
-    )
-    light_source: Bentham = PendingInstrument(Bentham, config['Adapters']['light_source'])
+    instruments = InstrumentManager()
+    power_meter = instruments.queue(ThorlabsPM100USB, config['Adapters']['power_meter'])
+    light_source = instruments.queue(Bentham, config['Adapters']['light_source'])
 
     # Parameters
     wl_start = Parameters.Laser.wl_start

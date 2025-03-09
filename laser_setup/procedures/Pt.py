@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 from .. import config
-from ..instruments import TENMA, ThorlabsPM100USB, PendingInstrument
+from ..instruments import TENMA, ThorlabsPM100USB, InstrumentManager
 from ..parameters import Parameters
 from ..procedures import BaseProcedure
 
@@ -18,10 +18,9 @@ class Pt(BaseProcedure):
     """
     name = 'P vs t'
 
-    power_meter: ThorlabsPM100USB = PendingInstrument(
-        ThorlabsPM100USB, config['Adapters']['power_meter']
-    )
-    tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
+    instruments = InstrumentManager()
+    power_meter = instruments.queue(ThorlabsPM100USB, config['Adapters']['power_meter'])
+    tenma_laser = instruments.queue(TENMA, config['Adapters']['tenma_laser'])
 
     # Important Parameters
     laser_wl = Parameters.Laser.laser_wl
@@ -37,8 +36,9 @@ class Pt(BaseProcedure):
     sampling_t = Parameters.Control.sampling_t
     Irange = Parameters.Instrument.Irange
 
-    # TODO: if needed, add BaseProcedure.INPUTS to the INPUTS list
-    INPUTS = ['laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t', 'Irange']
+    INPUTS = BaseProcedure.INPUTS + [
+        'laser_wl', 'fiber', 'laser_v', 'laser_T', 'N_avg', 'sampling_t', 'Irange'
+    ]
     DATA_COLUMNS = ['t (s)', 'P (W)', 'VL (V)']
     SEQUENCER_INPUTS = ['laser_v', 'vg']
 

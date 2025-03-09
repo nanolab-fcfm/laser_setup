@@ -1,51 +1,48 @@
 import logging
 import random
 import time
-from types import SimpleNamespace
-from typing import TypeVar, Iterator
+from typing import Generic, Iterator, Optional, TypeVar, cast
 
 from pymeasure.adapters import Adapter, FakeAdapter
 from pymeasure.instruments import Instrument
 from pymeasure.instruments.fakes import FakeInstrument
 
 log = logging.getLogger(__name__)
-AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
+T = TypeVar('T', bound=Instrument)
 
 
-class PendingInstrument(SimpleNamespace, Instrument):
-    """A placeholder for an instrument that is pending initialization.
+class InstrumentProxy(Generic[T]):
+    """A proxy for an instrument that is pending initialization.
 
     This class holds the configuration for an instrument that will be connected
-    and initialized at a later stage. It allows for the deferred setup of instruments,
-    enabling dynamic and flexible instrument management within procedures.
+    and initialized at a later stage. It behaves like the actual instrument class
+    for type checking purposes, but defers initialization until connect() is called.
     """
     def __init__(
         self,
-        instrument: type[AnyInstrument] = Instrument,
-        adapter: str | int | Adapter | None = None,
-        name: str | None = None,
+        instrument_class: type[T],
+        adapter: Optional[str | int | Adapter] = None,
+        name: Optional[str] = None,
         includeSCPI: bool = False,
-        _instance_id: str | None = None,
         **kwargs
     ):
-        """Initializes the PendingInstrument.
+        """Initializes the InstrumentProxy.
 
-        :param instrument: The class of the instrument to be initialized.
+        :param instrument_class: The class of the instrument to be initialized.
         :param adapter: The adapter to be used for the instrument.
         :param name: The name of the instrument.
         :param includeSCPI: Flag indicating whether to include SCPI commands.
-        :param _instance_id: A unique identifier used by the instrument manager. If not
-            provided, it is generated automatically.
         :param kwargs: Additional keyword arguments for instrument configuration.
         """
-        super().__init__(
-            instrument=instrument,
-            adapter=adapter,
-            name=name,
-            includeSCPI=includeSCPI,
-            _instance_id=_instance_id,
-            **kwargs
-        )
+        self.instrument_class = instrument_class
+        self.adapter = adapter
+        self.name = name
+        self.includeSCPI = includeSCPI
+        self.kwargs = kwargs
+        self._instance_id = None
+
+    def __repr__(self) -> str:
+        return f"InstrumentProxy({self.instrument_class.__name__}, {self.adapter})"
 
 
 class InstrumentManager:
@@ -53,20 +50,38 @@ class InstrumentManager:
     Instruments can persist between multiple instances of procedures. The manager
     can connect to and shut down instruments.
 
-    :method help: Prints or returns all available controls and measurements for the
-        given instrument class.
-    :method connect: Connects to an instrument and saves it in the instances dictionary.
-    :method setup_adapter: Returns an instance of the given instrument class.
-    :method shutdown: Safely shuts down the instrument with the given name.
-    :method shutdown_all: Safely shuts down all instruments.
+    The manager should be created as a class attribute in every procedure
+    class, so that the instruments are shared between all instances of only that
+    procedure.
+
+    To use the manager, first queue the instruments in the procedure class, then
+    call the connect_all method whenever you want to connect to the instruments.
+
+    Example:
+
+        class MyProcedure(BaseProcedure):
+            instruments = InstrumentManager()
+            meter: Keithley2450 = instruments.queue(Keithley2450, 'COM4')
+
+            param = Parameter("Example parameter", default="foo")
+
+            def startup(self):
+                instruments.connect_all(self)
+
+            def execute(self):
+                ...
+
+            def shutdown(self):
+                instruments.shutdown_all()
     """
     id_template = "{instrument.__name__}/{adapter}"
 
     def __init__(self):
-        self.instances: dict[str, Instrument] = {}
+        """Initializes the InstrumentManager."""
+        self.instrument_dict: dict[str, Instrument] = {}
 
     @staticmethod
-    def help(instrument: type[Instrument], return_str=False) -> str | None:
+    def help(instrument_class: type[Instrument], return_str=False) -> str | None:
         """Returns all available controls and measurements for the given
         instrument class. For each control and measurement, it shows the
         description, command sent to the instrument, and the values that
@@ -76,10 +91,10 @@ class InstrumentManager:
         :param return_str: Whether to return the help string or print it.
         """
         help_str = "Available controls and measurements for "\
-            f"{instrument.__name__} (not including methods):\n\n"
+            f"{instrument_class.__name__} (not including methods):\n\n"
 
-        for name in dir(instrument):
-            attr = getattr(instrument, name)
+        for name in dir(instrument_class):
+            attr = getattr(instrument_class, name)
             if isinstance(attr, property):
                 prop_type = "control" if attr.fset.__doc__ else "measurement"
                 attr_doc = f"{attr.__doc__.strip()}" if attr.__doc__ else ""
@@ -94,13 +109,45 @@ class InstrumentManager:
 
         return help_str if return_str else print(help_str)
 
+    def queue(
+        self,
+        instrument_class: type[T],
+        adapter: Optional[str | int | Adapter] = None,
+        name: Optional[str] = None,
+        includeSCPI: bool = False,
+        **kwargs
+    ) -> T:
+        """Queue an instrument for later connection.
+
+        Returns a proxy that acts like the instrument for type checking purposes.
+        The actual connection will be established when connect_all() is called.
+
+        :param instrument_class: The instrument class to set up.
+        :param adapter: The adapter to use for the communication.
+        :param name: The name of the instrument.
+        :param includeSCPI: Flag indicating whether to include SCPI commands.
+        :param kwargs: Additional keyword arguments to pass to the instrument class.
+        :return: A proxy object that represents the queued instrument.
+        """
+        proxy = InstrumentProxy(
+            instrument_class=instrument_class,
+            adapter=adapter,
+            name=name,
+            includeSCPI=includeSCPI,
+            **kwargs
+        )
+
+        instance_id = self.id_template.format(instrument=instrument_class, adapter=adapter)
+        proxy._instance_id = instance_id
+        return cast(T, proxy)
+
     @staticmethod
     def setup_adapter(
-        instrument: type[AnyInstrument],
-        adapter: str | None = None,
+        instrument_class: type[T],
+        adapter: Optional[str | int | Adapter] = None,
         debug: bool = False,
         **kwargs
-    ) -> AnyInstrument | 'DebugInstrument':
+    ) -> T | 'DebugInstrument':
         """Sets up the adapter for the given instrument class. If the setup fails,
         it raises an exception, unless debug mode is enabled (-d flag), in which
         case it replaces the adapter with a FakeAdapter. Returns the instrument
@@ -110,14 +157,14 @@ class InstrumentManager:
         :param adapter: The adapter to use for the communication.
         :param debug: Flag indicating whether to use the DebugInstrument as a fallback.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
-        :return: The instrument object.
+        :return: The instrument object or a DebugInstrument if debug=True and connection fails.
         """
         try:
-            instance = instrument(adapter=adapter, **kwargs)
+            instance = instrument_class(adapter=adapter, **kwargs)
         except Exception as e:
             if debug:
                 log.warning(
-                    f"Could not connect to {instrument.__name__}: {e} Using DebugInstrument."
+                    f"Could not connect to {instrument_class.__name__}: {e} Using DebugInstrument."
                 )
                 instance = DebugInstrument(**kwargs)
             else:
@@ -125,50 +172,77 @@ class InstrumentManager:
 
         return instance
 
+    def connect_all(self, obj: any, debug: bool = False) -> None:
+        """Connects all InstrumentProxy instances in the given object.
+
+        Searches for all InstrumentProxy attributes in the object and connects them,
+        replacing the proxy with the actual instrument instance.
+
+        :param obj: The object to search for InstrumentProxy instances.
+        :param debug: Flag indicating whether to use debug mode for connection errors.
+        """
+        all_attrs: dict = vars(obj.__class__) | vars(obj)
+        for key, attr in all_attrs.items():
+            if isinstance(attr, InstrumentProxy):
+                instrument = self.connect(
+                    instrument_class=attr.instrument_class,
+                    adapter=attr.adapter,
+                    name=attr.name,
+                    includeSCPI=attr.includeSCPI,
+                    _instance_id=attr._instance_id,
+                    debug=debug,
+                    **attr.kwargs
+                )
+                setattr(obj, key, instrument)
+
     def connect(
         self,
-        instrument: type[AnyInstrument],
-        adapter: str | None,
-        name: str | None = None,
-        includeSCPI: bool | None = False,
-        _instance_id: str | None = None,
+        instrument_class: type[T],
+        adapter: Optional[str | int | Adapter] = None,
+        name: Optional[str] = None,
+        includeSCPI: bool = False,
+        _instance_id: Optional[str] = None,
+        debug: bool = False,
         **kwargs
-    ) -> AnyInstrument | 'DebugInstrument' | Instrument:
+    ) -> T | 'DebugInstrument':
         """Connects to an instrument and saves it in the dictionary.
 
-        :param instrument: The instrument class to set up.
-        :param adapter: The adapter to use for the communication. If None, the result
-            depends on the instrument class.
+        Core method for establishing connections to instruments. If the instrument
+        is already connected, it returns the existing instance.
+
+        :param instrument_class: The instrument class to set up.
+        :param adapter: The adapter to use for the communication.
         :param name: The name of the instrument.
-        :param includeSCPI: Flag indicating whether to include SCPI commands. If None,
-            it uses the default value.
+        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param _instance_id: A unique identifier. If not provided, it uses the class name
             and adapter.
+        :param debug: Flag indicating whether to use debug mode if connection fails.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
+        :return: The instrument instance or DebugInstrument if debug=True and connection fails.
         """
         if not _instance_id:
-            _instance_id = self.id_template.format(instrument=instrument, adapter=adapter)
+            _instance_id = self.id_template.format(instrument=instrument_class, adapter=adapter)
 
         if _instance_id not in self:
             if name is not None:
                 kwargs['name'] = name
 
-            if includeSCPI is not None:
-                kwargs['includeSCPI'] = includeSCPI
+            kwargs['includeSCPI'] = includeSCPI
 
             try:
-                instance = self.setup_adapter(instrument, adapter=adapter, **kwargs)
+                instance = self.setup_adapter(
+                    instrument_class, adapter=adapter, debug=debug, **kwargs
+                )
                 self[_instance_id] = instance
                 log.debug(
-                    f"Connected '{_instance_id}' as {instrument.__name__} via {instance.adapter}"
+                    f"Connected '{_instance_id}' as {instrument_class.__name__} "
+                    f"via {instance.adapter}"
                 )
-
             except Exception as e:
                 log.error(f"Failed to connect to instrument '{_instance_id}': {e}")
                 raise
-
         else:
-            log.info(f"Instrument '{_instance_id}' already exists.")
+            log.debug(f"Using existing instrument '{_instance_id}'")
 
         return self[_instance_id]
 
@@ -200,34 +274,34 @@ class InstrumentManager:
             self.shutdown(instance_id)
 
     def items(self) -> Iterator[tuple[str, Instrument]]:
-        return self.instances.items()
+        return self.instrument_dict.items()
 
     def __getitem__(self, key: str) -> Instrument:
-        return self.instances[key]
+        return self.instrument_dict[key]
 
     def __setitem__(self, key: str, value: Instrument):
         if key in self:
             raise KeyError(f"Instrument '{key}' already exists. Cannot overwrite.")
         else:
-            self.instances[key] = value
+            self.instrument_dict[key] = value
 
     def __delitem__(self, key: str):
-        del self.instances[key]
+        del self.instrument_dict[key]
 
     def __contains__(self, key: str) -> bool:
-        return key in self.instances
+        return key in self.instrument_dict
 
     def __iter__(self) -> Iterator[str]:
-        return iter(self.instances)
+        return iter(self.instrument_dict)
 
     def __bool__(self) -> bool:
-        return bool(self.instances)
+        return bool(self.instrument_dict)
 
     def __len__(self) -> int:
-        return len(self.instances)
+        return len(self.instrument_dict)
 
     def __repr__(self) -> str:
-        return f"InstrumentManager({self.instances})"
+        return f"InstrumentManager({self.instrument_dict})"
 
 
 class DebugInstrument(FakeInstrument):
@@ -301,7 +375,7 @@ class DebugInstrument(FakeInstrument):
         time.sleep(self.wait_for)
         return random.uniform(1e-9, 1e-6)
 
-    def apply_voltage(self, value):
+    def apply_voltage(self, value=0., **kwargs):
         """Apply a voltage."""
         self.voltage = value
 

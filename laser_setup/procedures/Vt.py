@@ -2,8 +2,8 @@ import logging
 import time
 
 from .. import config
-from ..instruments import (TENMA, Clicker, Keithley2450, PendingInstrument,
-                           PT100SerialSensor)
+from ..instruments import (TENMA, Clicker, Keithley2450, PT100SerialSensor,
+                           InstrumentManager)
 from ..parameters import Parameters
 from ..utils import get_latest_DP
 from .BaseProcedure import ChipProcedure
@@ -18,15 +18,17 @@ class Vt(ChipProcedure):
     PT100 sensor. The clicker is used to control the plate temperature.
     """
     name = 'V vs t'
+
     # Instruments
-    meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
-    tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
-    tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
-    tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
-    temperature_sensor: PT100SerialSensor = PendingInstrument(
+    instruments = InstrumentManager()
+    meter = instruments.queue(Keithley2450, config['Adapters']['keithley2450'])
+    tenma_neg = instruments.queue(TENMA, config['Adapters']['tenma_neg'])
+    tenma_pos = instruments.queue(TENMA, config['Adapters']['tenma_pos'])
+    tenma_laser = instruments.queue(TENMA, config['Adapters']['tenma_laser'])
+    temperature_sensor = instruments.queue(
         PT100SerialSensor, config['Adapters']['pt100_port']
     )
-    clicker: Clicker = PendingInstrument(Clicker, config['Adapters']['clicker'])
+    clicker = instruments.queue(Clicker, config['Adapters']['clicker'])
 
     # Important Parameters
     ids = Parameters.Control.ids
@@ -54,10 +56,10 @@ class Vt(ChipProcedure):
     EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
     SEQUENCER_INPUTS = ['ids', 'laser_v', 'vg', 'target_T']
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def connect_instruments(self):
         self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
         self.clicker = None if not self.sense_T else self.clicker
+        super().connect_instruments()
 
     def pre_startup(self):
         vg = str(self.vg)

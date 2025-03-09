@@ -1,10 +1,10 @@
-import time
 import logging
+import time
 
 from .. import config
-from ..utils import up_down_ramp
-from ..instruments import TENMA, Keithley2450, PendingInstrument
+from ..instruments import TENMA, InstrumentManager, Keithley2450
 from ..parameters import Parameters
+from ..utils import up_down_ramp
 from .BaseProcedure import ChipProcedure
 
 log = logging.getLogger(__name__)
@@ -18,10 +18,11 @@ class ItVg(ChipProcedure):
     """
     name = 'I vs t (Vg)'
 
-    meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
-    tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
-    tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
-    tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
+    instruments = InstrumentManager()
+    meter = instruments.queue(Keithley2450, config['Adapters']['keithley2450'])
+    tenma_neg = instruments.queue(TENMA, config['Adapters']['tenma_neg'])
+    tenma_pos = instruments.queue(TENMA, config['Adapters']['tenma_pos'])
+    tenma_laser = instruments.queue(TENMA, config['Adapters']['tenma_laser'])
 
     # Important Parameters
     vds = Parameters.Control.vds
@@ -49,9 +50,9 @@ class ItVg(ChipProcedure):
         ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'Vg (V)']
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def connect_instruments(self):
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
+        super().connect_instruments()
 
     def startup(self):
         self.connect_instruments()

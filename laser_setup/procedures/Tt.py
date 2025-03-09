@@ -4,7 +4,7 @@ import time
 import numpy as np
 
 from .. import config
-from ..instruments import Clicker, PendingInstrument, PT100SerialSensor
+from ..instruments import Clicker, PT100SerialSensor, InstrumentManager
 from ..parameters import Parameters
 from .BaseProcedure import BaseProcedure
 
@@ -17,10 +17,11 @@ class Tt(BaseProcedure):
     """
     name = 'T vs t'
 
-    temperature_sensor: PT100SerialSensor = PendingInstrument(
+    instruments = InstrumentManager()
+    temperature_sensor = instruments.queue(
         PT100SerialSensor, config['Adapters']['pt100_port'], includeSCPI=False
     )
-    clicker: Clicker = PendingInstrument(Clicker, config['Adapters']['clicker'])
+    clicker = instruments.queue(Clicker, config['Adapters']['clicker'])
 
     sampling_t = Parameters.Control.sampling_t
 
@@ -36,9 +37,9 @@ class Tt(BaseProcedure):
     ]
     DATA_COLUMNS = ['Time (s)'] + PT100SerialSensor.DATA_COLUMNS
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def connect_instruments(self):
         self.clicker = None if self.T_start < 10 else self.clicker
+        super().connect_instruments()
 
     def execute(self):
         """Perform the temperature measurement over time."""
