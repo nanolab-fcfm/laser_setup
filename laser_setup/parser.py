@@ -15,6 +15,3 @@ parser.add_argument(
 )
 parser.add_argument('-d', '--debug', action='store_true',
                     default=False, help='Enable debug mode')
-
-args = parser.parse_args()
-config._session['args'] = vars(args)

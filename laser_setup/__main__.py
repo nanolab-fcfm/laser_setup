@@ -4,7 +4,8 @@ from .parser import experiment_list, parser, script_list
 
 
 def main():
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
+    config._session['args'] = vars(args)
 
     if args.procedure is None:
         display_window()
