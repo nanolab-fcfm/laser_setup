@@ -46,8 +46,8 @@ class IV(ChipProcedure):
     NPLC = Parameters.Instrument.NPLC
 
     INPUTS = ChipProcedure.INPUTS + [
-        'vg', 'vsd_start', 'vsd_end', 'vsd_step', 'step_time', 'laser_toggle', 'laser_wl',
-        'laser_v', 'burn_in_t', 'sense_T', 'Irange', 'NPLC'
+        'vg', 'vsd_start', 'vsd_end', 'vsd_step', 'Irange', 'step_time', 'laser_toggle', 'laser_wl',
+        'laser_v', 'burn_in_t', 'sense_T', 'NPLC'
     ]
     DATA_COLUMNS = ['Vsd (V)', 'I (A)'] + PT100SerialSensor.DATA_COLUMNS
     SEQUENCER_INPUTS = ['laser_v', 'vg', 'vds']
@@ -76,7 +76,7 @@ class IV(ChipProcedure):
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
-        self.meter.apply_voltage(compliance_current=self.Irange * 1.1)
+        self.meter.apply_voltage(compliance_current=self.Irange * 1.1 or 0.1)
         self.meter.measure_current(
             current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
         )

@@ -49,8 +49,8 @@ class IVg(ChipProcedure):
     NPLC = Parameters.Instrument.NPLC
 
     INPUTS = ChipProcedure.INPUTS + [
-        'vds', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'laser_toggle', 'laser_wl',
-        'laser_v', 'burn_in_t', 'sense_T', 'Irange', 'NPLC'
+        'vds', 'vg_start', 'vg_end', 'vg_step', 'Irange', 'step_time', 'laser_toggle', 'laser_wl',
+        'laser_v', 'burn_in_t', 'sense_T', 'NPLC'
     ]
     DATA_COLUMNS = ['Vg (V)', 'I (A)'] + PT100SerialSensor.DATA_COLUMNS
     # SEQUENCER_INPUTS = ['vds']
@@ -69,7 +69,7 @@ class IVg(ChipProcedure):
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
-        self.meter.apply_voltage(compliance_current=self.Irange * 1.1)
+        self.meter.apply_voltage(compliance_current=self.Irange * 1.1 or 0.1)
         self.meter.measure_current(
             current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
         )

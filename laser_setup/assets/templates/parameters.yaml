@@ -128,7 +128,6 @@ Instrument:
     units: A
     minimum: 0.
     maximum: 1.
-    group_by: show_more
 
   Vrange:
     _target_: *FloatParameter
@@ -141,7 +140,6 @@ Instrument:
     units: V
     minimum: 0.
     maximum: 200.
-    group_by: show_more
 
   NPLC:
     _target_: *FloatParameter

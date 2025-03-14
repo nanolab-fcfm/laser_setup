@@ -39,7 +39,7 @@ class ItWl(ChipProcedure):
     NPLC = Parameters.Instrument.NPLC
 
     INPUTS = ChipProcedure.INPUTS + [
-        'vds', 'vg', 'wl', 'burn_in_t', 'step_time', 'sampling_t', 'Irange', 'NPLC'
+        'vds', 'Irange', 'vg', 'wl', 'burn_in_t', 'step_time', 'sampling_t', 'NPLC'
         ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'wl (nm)']
     SEQUENCER_INPUTS = ['vg', 'wl']
@@ -50,7 +50,7 @@ class ItWl(ChipProcedure):
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
-        self.meter.apply_voltage(compliance_current=self.Irange * 1.1)
+        self.meter.apply_voltage(compliance_current=self.Irange * 1.1 or 0.1)
         self.meter.measure_current(
             current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
         )
