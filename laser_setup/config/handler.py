@@ -188,5 +188,6 @@ class ConfigHandler:
         config_container = OmegaConf.to_container(self.config)
         config_container.pop('_session', None)
 
+        self.save_path.parent.mkdir(parents=True, exist_ok=True)
         save_yaml(config_container, self.save_path, **kwargs)
         log.info(f'Config saved to {self.save_path.as_posix()}')

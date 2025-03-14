@@ -110,7 +110,7 @@ Qt:
       # List of names and scripts to show in the Scripts tab
       - name: "Set up Adapters"
         alias: setup_adapters
-        target: ${function:laser_setup.cli.setup_adapters.main}
+        target: ${function:laser_setup.cli.setup_adapters.setup}
 
       - name: "Get updates"
         alias: get_updates

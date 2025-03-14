@@ -108,7 +108,6 @@ class ConfigWidget(QtWidgets.QWidget):
             self.config_handler.save_config(new_container)
         except Exception as e:
             QtWidgets.QMessageBox.critical(self.parent(), "Error", str(e))
-            breakpoint()
             return
 
         if not hasattr(self.parent(), 'reload'):

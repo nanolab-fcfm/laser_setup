@@ -1,9 +1,8 @@
 import logging
-from pathlib import Path
 
 import pyvisa
 
-from ..config import config, save_yaml
+from ..config import ConfigHandler, config
 from ..instruments import TENMA, Keithley2450
 
 log = logging.getLogger(__name__)
@@ -70,9 +69,7 @@ def tenma_ping(adapter, tenmas: list, parent=None):
 
 
 def setup(parent=None):
-    save_path = Path(config._session['save_path'])
-    save_path.parent.mkdir(parents=True, exist_ok=True)
-
+    config_handler = ConfigHandler(config=config)
     rm = pyvisa.ResourceManager()
     devices = rm.list_resources()
 
@@ -118,8 +115,8 @@ def setup(parent=None):
     else:
         log.error("No TENMA found on any serial port. Connect the instrument(s) and try again.")
 
-    save_yaml(config, save_path)
-    log.info(f'New Adapter configuration saved to {save_path}')
+    config_handler.save_config()
+    # log.info(f'New Adapter configuration saved to {save_path}')
 
 
 def main():
