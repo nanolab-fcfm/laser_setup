@@ -1,5 +1,6 @@
 import logging
 import time
+from enum import IntEnum
 from functools import partial
 from typing import Type, Literal
 
@@ -13,6 +14,22 @@ from .experiment_window import ExperimentWindow, ProgressBar
 log = logging.getLogger(__name__)
 
 
+class Status(IntEnum):
+    """Enum to define the status of a procedure or sequence."""
+    FINISHED = 0
+    FAILED = 1
+    ABORTED = 2
+    QUEUED = 3
+    RUNNING = 4
+
+    @classmethod
+    def from_str(cls, status: str) -> 'Status':
+        return getattr(cls, status.upper())
+
+    def __str__(self):
+        return self.name.capitalize()
+
+
 class SequenceWindow(QtWidgets.QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
@@ -21,17 +38,15 @@ class SequenceWindow(QtWidgets.QMainWindow):
     specific parameter, add it to the inputs_ignored list.
 
     :attr status_dict: Dictionary with the status labels and colors.
-    :attr is_running: Flag to indicate if the sequence is running.
-    :attr is_aborted: Flag to indicate if the sequence was aborted.
+    :attr status: Current status of the sequence, of type Status.
     """
-    status_dict: dict[str, dict[Literal['label', 'color'], str]] = {
-        'queued': {'label': '🠞', 'color': ''},
-        'running': {'label': '⏳', 'color': 'yellow'},
-        'aborted': {'label': '⛔', 'color': 'red'},
-        'finished': {'label': '✔', 'color': 'green'},
+    status_dict: dict[Status, dict[Literal['label', 'color'], str]] = {
+        Status.QUEUED: {'label': '🠞', 'color': ''},
+        Status.RUNNING: {'label': '⏳', 'color': 'yellow'},
+        Status.ABORTED: {'label': '⛔', 'color': 'red'},
+        Status.FINISHED: {'label': '✔', 'color': 'green'},
     }
-    is_running: bool = False
-    is_aborted: bool = False
+    status: Status | None = None
 
     def __init__(
         self,
@@ -59,10 +74,10 @@ class SequenceWindow(QtWidgets.QMainWindow):
 
         self.sequence_start_time = 0.0
         self.procedure_start_times: list[float] = []
-        self.procedure_done: list[bool] = []
+        self.procedure_status: list[Status] = []
         self.item_data: list[dict[str, QtWidgets.QLabel]] = []
 
-        self.resize(200*(len(procedure_list)+1), 480)
+        self.resize(240 * (len(procedure_list) + 1), 480)
         self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in procedure_list))})")
 
         layout = QtWidgets.QHBoxLayout()
@@ -105,7 +120,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         vbox.setContentsMargins(0, 0, 0, 0)
         vbox.addWidget(scroll_area, 1)
 
-        self.queue_button = QtWidgets.QPushButton("Queue")
+        self.queue_button = QtWidgets.QPushButton("&Queue")
         vbox.addWidget(self.queue_button)
         self.queue_button.clicked.connect(self.queue)
 
@@ -138,10 +153,10 @@ class SequenceWindow(QtWidgets.QMainWindow):
         title = QtWidgets.QLabel(class_name)
         vlayout.addWidget(title)
 
-        status = RotatingLabel(self.status_dict["queued"]["label"])
+        status_label = RotatingLabel(self.status_dict[Status.QUEUED]["label"])
 
-        self._set_font_factor(status, 2.0)
-        vlayout.addWidget(status)
+        self._set_font_factor(status_label, 2.0)
+        vlayout.addWidget(status_label)
 
         timer_proc = QtWidgets.QLabel("+0:00")
         timer_cum = QtWidgets.QLabel("=0:00")
@@ -150,33 +165,36 @@ class SequenceWindow(QtWidgets.QMainWindow):
         vlayout.addWidget(timer_proc)
         vlayout.addWidget(timer_cum)
 
-        for label in (title, number, status, timer_proc, timer_cum):
+        for label in (title, number, status_label, timer_proc, timer_cum):
             label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         vlayout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
         self.item_data.append({
-            "status": status,
+            "status": status_label,
             "timer_proc": timer_proc,
             "timer_cum": timer_cum
         })
         return vlayout
 
-    def set_status(self, idx: int, status: str):
+    def set_status(self, idx: int, status: Status):
         status_label: RotatingLabel = self.item_data[idx]["status"]
         status_label.setText(self.status_dict[status]["label"])
         status_label.setStyleSheet(f"color: {self.status_dict[status]['color']};")
         status_label.set_angle(0)
+        if idx == 0:
+            self.status = status
+        else:
+            self.procedure_status[idx-1] = status
 
     def queue(self):
         log.info("Queueing the procedures.")
         self.sequence_start_time = time.time()
-        self.is_running = True
+        self.procedure_status = [Status.QUEUED]*len(self.procedure_list)
         self.procedure_start_times = [self.sequence_start_time]*len(self.procedure_list)
-        self.procedure_done = [False]*len(self.procedure_list)
 
-        self.set_status(0, 'running')
+        self.set_status(0, Status.RUNNING)
         for i in range(len(self.procedure_list)):
-            self.set_status(i+1, 'queued')
+            self.set_status(i+1, Status.QUEUED)
 
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
@@ -186,10 +204,9 @@ class SequenceWindow(QtWidgets.QMainWindow):
             if proc.__name__ == 'Wait':
                 self.procedure_start_times[i] = time.time()
                 wait_time = inputs[i+1].get_procedure().wait_time
-                self.set_status(i+1, 'running')
+                self.set_status(i+1, Status.RUNNING)
                 self.wait(wait_time)
-                self.set_status(i+1, 'finished')
-                self.procedure_done[i] = True
+                self.set_status(i+1, Status.FINISHED)
                 continue
 
             window_name = getattr(proc, 'name', proc.__name__)
@@ -200,34 +217,27 @@ class SequenceWindow(QtWidgets.QMainWindow):
             parameters = procedure_parameters | base_parameters
             window.set_parameters(parameters)
 
-            # Hide the buttons and disable the inputs, as they're not needed
+            # Hide the buttons and disable the inputs, as they're not needed and can cause issues
             window.queue_button.hide()
             window.browser_widget.clear_button.hide()
             window.browser_widget.hide_button.hide()
-            window.browser_widget.open_button.hide()
             window.browser_widget.show_button.hide()
 
             for name in window.inputs._inputs:
                 getattr(window.inputs, name).setEnabled(False)
 
-            window.show()
-            window.queue_button.click()
-
-            self.procedure_start_times[i] = time.time()
-            self.procedure_done[i] = False
-
             window.manager.aborted.connect(partial(self.aborted_procedure, window))
             window.manager.failed.connect(partial(self.failed_procedure, window))
             window.manager.finished.connect(window.close)
 
-            window.manager.running.connect(partial(self.set_status, i+1, 'running'))
-            window.manager.finished.connect(partial(self.set_status, i+1, 'finished'))
-            window.manager.failed.connect(partial(self.set_status, i+1, 'aborted'))
-            window.manager.aborted.connect(partial(self.set_status, i+1, 'aborted'))
+            window.manager.running.connect(partial(self.set_status, i+1, Status.RUNNING))
+            window.manager.finished.connect(partial(self.set_status, i+1, Status.FINISHED))
+            window.manager.failed.connect(partial(self.set_status, i+1, Status.FAILED))
+            window.manager.aborted.connect(partial(self.set_status, i+1, Status.ABORTED))
 
-            window.manager.finished.connect(partial(self._finish_procedure, i))
-            window.manager.aborted.connect(partial(self._finish_procedure, i))
-            window.manager.failed.connect(partial(self._finish_procedure, i))
+            window.show()
+            window.queue_button.click()
+            self.procedure_start_times[i] = time.time()
 
             loop = QtCore.QEventLoop()
             window.manager.aborted.connect(loop.quit)
@@ -235,44 +245,14 @@ class SequenceWindow(QtWidgets.QMainWindow):
             window.manager.finished.connect(loop.quit)
             loop.exec()
 
-            if self.is_aborted:
+            if self.status == Status.ABORTED:
                 break
 
         self.common_procedure.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
-        self.is_running = False
-        if not self.is_aborted:
+        if self.status == Status.RUNNING:
+            self.set_status(0, Status.FINISHED)
             log.info("Sequence finished")
-
-        self.set_status(0, 'aborted' if self.is_aborted else 'finished')
-        self.is_aborted = False
-
-    def _update_timers(self):
-        if not self.is_running:
-            return
-
-        now = time.time()
-        total_elapsed = int(now) - int(self.sequence_start_time)
-        self.item_data[0]["timer_cum"].setText("=" + self._format_time(total_elapsed))
-
-        try:
-            idx = next(i for i, done in enumerate(self.procedure_done) if not done)
-        except (StopIteration, IndexError):
-            return
-
-        proc_elapsed = int(now - self.procedure_start_times[idx])
-        self.item_data[idx+1]["timer_proc"].setText("+" + self._format_time(proc_elapsed))
-        self.item_data[idx+1]["timer_cum"].setText("=" + self._format_time(total_elapsed))
-
-    def _format_time(self, seconds: int) -> str:
-        if seconds >= 3600:
-            return time.strftime("%H:%M:%S", time.gmtime(seconds))
-
-        under_10_min = int(seconds < 600)
-        return time.strftime("%M:%S", time.gmtime(seconds))[under_10_min:]
-
-    def _finish_procedure(self, i: int):
-        self.procedure_done[i] = True
 
     @QtCore.Slot()
     def aborted_procedure(self, window: ExperimentWindow, close_window=True):
@@ -295,12 +275,12 @@ class SequenceWindow(QtWidgets.QMainWindow):
         timer.timeout.connect(lambda: reply.setWindowTitle(t_text % next(t_iter)))
         timer.start(1000)
 
-        QtCore.QTimer.singleShot(self.abort_timeout*1000, reply.close)
+        QtCore.QTimer.singleShot(self.abort_timeout*1000, reply.reject)
 
         result = reply.exec()
         if result == QtWidgets.QMessageBox.StandardButton.Yes:
             log.warning("Sequence aborted.")
-            self.is_aborted = True
+            self.set_status(0, Status.ABORTED)
 
         if close_window:
             window.close()
@@ -320,10 +300,34 @@ class SequenceWindow(QtWidgets.QMainWindow):
         else:
             time.sleep(wait_time)
 
-    def _rotate_status(self):
+    def current_index(self) -> int | None:
+        """Return the index of the current running procedure."""
         try:
-            idx = next(i for i, done in enumerate(self.procedure_done) if not done)
-        except (StopIteration, IndexError):
+            return next(i for i, s in enumerate(self.procedure_status) if s == Status.RUNNING)
+        except StopIteration:
+            return None
+
+    def _update_timers(self):
+        if self.status != Status.RUNNING or (idx := self.current_index()) is None:
+            return
+
+        now = time.time()
+        total_elapsed = int(now) - int(self.sequence_start_time)
+        self.item_data[0]["timer_cum"].setText("=" + self._format_time(total_elapsed))
+
+        proc_elapsed = int(now - self.procedure_start_times[idx])
+        self.item_data[idx+1]["timer_proc"].setText("+" + self._format_time(proc_elapsed))
+        self.item_data[idx+1]["timer_cum"].setText("=" + self._format_time(total_elapsed))
+
+    def _format_time(self, seconds: int) -> str:
+        if seconds >= 3600:
+            return time.strftime("%H:%M:%S", time.gmtime(seconds))
+
+        under_10_min = int(seconds < 600)
+        return time.strftime("%M:%S", time.gmtime(seconds))[under_10_min:]
+
+    def _rotate_status(self):
+        if self.status != Status.RUNNING or (idx := self.current_index()) is None:
             return
 
         status: RotatingLabel = self.item_data[idx+1]["status"]
