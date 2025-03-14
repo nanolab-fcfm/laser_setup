@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 class ExperimentWindow(ManagedWindowBase):
     """The main window for an experiment. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
-    from the GUI, by queuing it in the manager. It also allows for existing
+    from the GUI, by queueing it in the manager. It also allows for existing
     data to be loaded and displayed.
     """
     def __init__(

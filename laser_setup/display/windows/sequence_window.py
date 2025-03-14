@@ -198,9 +198,12 @@ class SequenceWindow(QtWidgets.QMainWindow):
 
         self.queue_button.setEnabled(False)
         inputs = self.findChildren(InputsWidget)
+        self.set_inputs_enabled(inputs[0], False)
         base_parameters: dict = inputs[0].get_procedure()._parameters
         base_parameters = {k: v for k, v in base_parameters.items() if k not in self.inputs_ignored}
+
         for i, proc in enumerate(self.procedure_list):
+            self.set_inputs_enabled(inputs[i+1], False)
             if proc.__name__ == 'Wait':
                 self.procedure_start_times[i] = time.time()
                 wait_time = inputs[i+1].get_procedure().wait_time
@@ -223,8 +226,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
             window.browser_widget.hide_button.hide()
             window.browser_widget.show_button.hide()
 
-            for name in window.inputs._inputs:
-                getattr(window.inputs, name).setEnabled(False)
+            self.set_inputs_enabled(window.inputs, False)
 
             window.manager.aborted.connect(partial(self.aborted_procedure, window))
             window.manager.failed.connect(partial(self.failed_procedure, window))
@@ -247,6 +249,9 @@ class SequenceWindow(QtWidgets.QMainWindow):
 
             if self.status == Status.ABORTED:
                 break
+
+        for i in range(len(self.procedure_list) + 1):
+            self.set_inputs_enabled(inputs[i], True)
 
         self.common_procedure.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
@@ -299,6 +304,11 @@ class SequenceWindow(QtWidgets.QMainWindow):
 
         else:
             time.sleep(wait_time)
+
+    def set_inputs_enabled(self, inputs_widget: InputsWidget, enabled: bool):
+        """Set the enabled state of the inputs in the given InputsWidget."""
+        for name in inputs_widget._inputs:
+            getattr(inputs_widget, name).setEnabled(enabled)
 
     def current_index(self) -> int | None:
         """Return the index of the current running procedure."""
