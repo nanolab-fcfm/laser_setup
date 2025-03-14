@@ -124,6 +124,10 @@ Qt:
         alias: init
         target: ${function:laser_setup.cli.init_config.init_config}
 
+      - name: "Find calibration voltage"
+        alias: find_calibration_voltage
+        target: ${function:laser_setup.cli.find_calibration_voltage.main}
+
     procedures:
       # List of names and procedures to show in the Procedures tab
       - name: I vs V
