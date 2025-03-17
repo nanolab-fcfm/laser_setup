@@ -2,13 +2,13 @@ import time
 import logging
 import numpy as np
 
-from pymeasure.instruments import Instrument
+from pymeasure.instruments import Instrument, SCPIMixin
 from pymeasure.instruments.validators import truncated_range, strict_discrete_set
 
 log = logging.getLogger(__name__)
 
 
-class TENMA(Instrument):
+class TENMA(SCPIMixin, Instrument):
     """This class implements the communication with a TENMA instrument. It is
     a subclass of Pymeasure's Instrument class.
     """

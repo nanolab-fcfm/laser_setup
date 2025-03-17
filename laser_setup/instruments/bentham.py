@@ -2,13 +2,13 @@ import logging
 import bendev.exceptions
 
 import bendev
-from pymeasure.instruments import Instrument
+from pymeasure.instruments import Instrument, SCPIMixin
 from pymeasure.instruments.validators import truncated_range, strict_discrete_set
 
 log = logging.getLogger(__name__)
 
 
-class Bentham(Instrument):
+class Bentham(SCPIMixin, Instrument):
     """Communication with the Bentham (TLS120Xe) light source using
     the PyMeasure Instrument class. Replaces the adapter with a
     bendev.Device object for the communication.

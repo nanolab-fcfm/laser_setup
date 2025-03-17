@@ -4,13 +4,13 @@ import time
 
 import numpy as np
 from pymeasure.adapters import SerialAdapter
-from pymeasure.instruments import Instrument
+from pymeasure.instruments import Instrument, SCPIMixin
 from pymeasure.instruments.validators import truncated_range
 
 log = logging.getLogger(__name__)
 
 
-class Clicker(Instrument):
+class Clicker(SCPIMixin, Instrument):
     gone = False
 
     CT = Instrument.control(
@@ -73,7 +73,7 @@ class Clicker(Instrument):
         super().shutdown()
 
 
-class PT100SerialSensor(Instrument):
+class PT100SerialSensor(SCPIMixin, Instrument):
     """Instrument class for the PT100 temperature sensor using PyMeasure's
     SerialAdapter.
     """
