@@ -58,7 +58,7 @@ class ConfigHandler:
         :param lookup: List of tuples with the keys to look for the configuration files.
         :return: The parsed configuration
         """
-        config: AppConfig = OmegaConf.structured(AppConfig)
+        config: AppConfig = OmegaConf.structured(AppConfig, flags={'allow_objects': True})
         config_path_used: str | Path = 'default'
 
         if config_env_path := os.getenv(config_env):
