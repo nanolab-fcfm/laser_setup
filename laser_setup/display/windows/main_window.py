@@ -94,9 +94,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reload.setShortcut('Ctrl+R')
         self.status_bar.addPermanentWidget(self.reload)
 
-    def open_sequence(self, name: str, procedure_list: list[type[Procedure]]):
-        window = SequenceWindow(procedure_list, title=name,
-                                parent=self, **instantiate(config.Qt.SequenceWindow))
+    def open_sequence(self, name: str, sequence: SequencesType):
+        kwargs = instantiate(config.Qt.SequenceWindow).merge_with(sequence)
+        window = SequenceWindow(sequence, title=name,
+                                parent=self, **kwargs)
         window.show()
 
     def open_procedure(self, cls: type[Procedure]):
@@ -214,9 +215,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         procedure_menu = menu.addMenu('&Procedures')
         procedure_menu.setToolTipsVisible(True)
-        for item in self.procedures:
+        for key, item in self.procedures.items():
             cls = item.target
-            action = QtGui.QAction(item.name or getattr(cls, 'name', cls.__name__), self)
+            name = getattr(cls, 'name', cls.__name__)
+            action = QtGui.QAction(name, self)
             doc = cls.__doc__.replace('    ', '').strip()
             action.triggered.connect(partial(self.open_procedure, cls))
             action.setToolTip(doc)
@@ -226,11 +228,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         sequence_menu = menu.addMenu('Se&quences')
         sequence_menu.setToolTipsVisible(True)
-        for name, seq_list in self.sequences.items():
-            action = QtGui.QAction(name, self)
-            doc = ", ".join([cls.__name__ for cls in seq_list])
+        for key, item in self.sequences.items():
+            name = getattr(item, 'name', key)
+            action = QtGui.QAction(key, self)
+            doc = getattr(item, 'description', '')
             action.triggered.connect(partial(
-                self.open_sequence, name, seq_list
+                self.open_sequence, name, item
             ))
             action.setToolTip(doc)
             action.setStatusTip(doc)
@@ -239,7 +242,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         script_menu = menu.addMenu('&Scripts')
         script_menu.setToolTipsVisible(True)
-        for item in self.scripts:
+        for key, item in self.scripts.items():
             func = item.target
             action = QtGui.QAction(item.name or func.__doc__, self)
             doc = sys.modules[func.__module__].__doc__ or ''

@@ -1,0 +1,55 @@
+# Sequence: list of Procedures to run sequentially. Procedures must be defined in procedures.yaml.
+# Otherwise, a reference to the procedure class must be given.
+
+MainSequence:
+  name: Main Sequence
+
+  # Description of the sequence
+  description: Runs IVg, It, IVg, Wait, IVg
+
+  # Common procedure parameters that will be used for all procedures in the sequence
+  common_procedure: ${class:laser_setup.procedures.ChipProcedure}
+
+  # Inputs in common_procedure that should be shown for each procedure
+  inputs_ignored: ['show_more', 'skip_startup', 'skip_shutdown']
+
+  # Procedures to run sequentially. You can override attributes and parameters
+  # for each procedure by having a key with the procedure name. The value of this
+  # key is a dictionary that will be passed to the procedure's __init__ method.
+  procedures:
+  - IVg:
+      parameters:
+        laser_wl: {group_by: {laser_toggle: true}}
+  - It
+  - IVg
+  - Wait
+  - IVg
+
+TestSequence:
+  name: Test Sequence
+  description: Runs FakeProcedure, Wait
+  procedures:
+  - FakeProcedure
+  - Wait
+
+ItMadness:
+  name: It Madness
+  description: Runs IVg, It with a range of target_T, IVg
+  procedures:
+  - IVg:
+      parameters:
+        skip_shutdown: {value: true}
+  - It:
+      parameters:
+        skip_startup: {value: true}
+        skip_shutdown: {value: true}
+        target_T: {value: 15.}
+  - It:
+      sequencer: |-
+        - "target_T", "arange(30, 100, 5)"
+      parameters:
+        skip_startup: {value: true}
+        skip_shutdown: {value: true}
+  - IVg:
+      parameters:
+        skip_startup: {value: true}

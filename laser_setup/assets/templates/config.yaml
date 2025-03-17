@@ -4,24 +4,56 @@
 # and local configuration files.
 
 
-Dir:
-  # Global configuration file. Overrides this file. If not found, it will be skipped
-  global_config_file: ./config/config.yaml
+############################################
+# Directory configuration
+############################################
 
-  # Local configuration file. Overrides global_config. If not found, it will be skipped
+
+Dir:
+  # Local configuration file. Overrides the global config. If not found, it will be skipped
   local_config_file: ./config/config.yaml
 
   # Parameters file. Useful for Procedures that share the same parameters
   parameters_file: ./config/parameters.yaml
 
   # Procedure configuration. Overrides the parameter defaults if given.
-  procedure_config_file: ./config/procedures.yaml
+  procedures_file: ./config/procedures.yaml
+
+  # Sequences configuration. Overrides the procedure defaults if given.
+  sequences_file: ./config/sequences.yaml
 
   # Data directory. Where the data will be saved
   data_dir: ./data
 
   # Database location, relative to the data directory
   database: database.db
+
+
+############################################
+# Scripts menu
+############################################
+
+
+scripts:
+  setup_adapters:
+    name: "Set up Adapters"
+    target: ${function:laser_setup.cli.setup_adapters.setup}
+
+  get_updates:
+    name: "Get updates"
+    target: ${function:laser_setup.cli.get_updates.main}
+
+  parameters_to_db:
+    name: "Parameters to Database"
+    target: ${function:laser_setup.cli.parameters_to_db.main}
+
+  init:
+    name: "Init Config"
+    target: ${function:laser_setup.cli.init_config.init_config}
+
+  find_calibration_voltage:
+    name: "Find calibration voltage"
+    target: ${function:laser_setup.cli.find_calibration_voltage.main}
 
 
 ############################################
@@ -106,93 +138,10 @@ Qt:
 
     # icon: ''
 
-    scripts:
-      # List of names and scripts to show in the Scripts tab
-      - name: "Set up Adapters"
-        alias: setup_adapters
-        target: ${function:laser_setup.cli.setup_adapters.setup}
-
-      - name: "Get updates"
-        alias: get_updates
-        target: ${function:laser_setup.cli.get_updates.main}
-
-      - name: "Parameters to Database"
-        alias: parameters_to_db
-        target: ${function:laser_setup.cli.parameters_to_db.main}
-
-      - name: "Init Config"
-        alias: init
-        target: ${function:laser_setup.cli.init_config.init_config}
-
-      - name: "Find calibration voltage"
-        alias: find_calibration_voltage
-        target: ${function:laser_setup.cli.find_calibration_voltage.main}
-
-    procedures:
-      # List of names and procedures to show in the Procedures tab
-      - name: I vs V
-        alias: IV
-        target: ${class:laser_setup.procedures.IV}
-
-      - name: I vs Vg
-        alias: IVg
-        target: ${class:laser_setup.procedures.IVg}
-
-      - name: I vs t
-        alias: It
-        target: ${class:laser_setup.procedures.It}
-
-      - name: V vs t
-        alias: Vt
-        target: ${class:laser_setup.procedures.Vt}
-
-      - name: I vs t (Vg)
-        alias: ItVg
-        target: ${class:laser_setup.procedures.ItVg}
-
-      - name: T vs t
-        alias: Tt
-        target: ${class:laser_setup.procedures.Tt}
-
-      - name: I vs t (Wl)
-        alias: ItWl
-        target: ${class:laser_setup.procedures.ItWl}
-
-      - name: P vs t
-        alias: Pt
-        target: ${class:laser_setup.procedures.Pt}
-
-      - name: P vs wl
-        alias: Pwl
-        target: ${class:laser_setup.procedures.Pwl}
-
-      - name: Laser Calibration
-        alias: LaserCalibration
-        target: ${class:laser_setup.procedures.LaserCalibration}
-
-    sequences:
-      # List of Procedures to run sequentially.
-      MainSequence:
-        - ${class:laser_setup.procedures.IVg}
-        - ${class:laser_setup.procedures.It}
-        - ${class:laser_setup.procedures.IVg}
-        - ${class:laser_setup.procedures.Wait}
-        - ${class:laser_setup.procedures.IVg}
-
-      TestSequence:
-        - ${class:laser_setup.procedures.FakeProcedure.FakeProcedure}
-        - ${class:laser_setup.procedures.Wait}
-
 
   SequenceWindow:
     # Timeout when aborting a sequence
     abort_timeout: 30
-
-    # Common procedure parameters that will be used for all procedures in the sequence
-    common_procedure: ${class:laser_setup.procedures.ChipProcedure}
-
-    # Inputs in common_procedure that should be shown for each procedure
-    inputs_ignored: ['show_more', 'skip_startup', 'skip_shutdown']
 
 
 ############################################

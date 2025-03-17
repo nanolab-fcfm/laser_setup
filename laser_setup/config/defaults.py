@@ -3,7 +3,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
+from omegaconf import MISSING
+
 from ..display.Qt import QtWidgets
+from .parameters import ParameterCatalog
 
 
 class DefaultPaths:
@@ -12,28 +15,36 @@ class DefaultPaths:
     assets: Path = _parent.parent / 'assets'
     allowed_files: str = 'YAML files (*.yaml)'
     config: Path = assets / 'templates' / 'config.yaml'
+    user_config = Path('config') / 'config.yaml'
     parameters: Path = assets / 'templates' / 'parameters.yaml'
+    procedures: Path = assets / 'templates' / 'procedures.yaml'
+    sequences: Path = assets / 'templates' / 'sequences.yaml'
     instruments: Path = assets / 'templates' / 'instruments.yaml'
+    logs: Path = Path('log') / 'std.log'
     splash: Path = assets / 'img' / 'splash.png'
 
 
 @dataclass
 class DirConfig:
     global_config_file: str = field(
-        default=os.getenv('CONFIG') or 'config/config.yaml',
+        default=os.getenv('CONFIG') or DefaultPaths.user_config.as_posix(),
         metadata={'title': 'Global configuration file', 'readonly': True}
     )
     local_config_file: str = field(
-        default='config/config.yaml',
+        default=DefaultPaths.user_config.as_posix(),
         metadata={'title': 'Local configuration file', 'readonly': True}
     )
     parameters_file: str = field(
         default=DefaultPaths.parameters.as_posix(),
         metadata={'title': 'Parameters file', 'type': 'file'}
     )
-    procedure_config_file: str = field(
-        default='',
+    procedures_file: str = field(
+        default=DefaultPaths.procedures.as_posix(),
         metadata={'title': 'Procedures file', 'type': 'file'}
+    )
+    sequences_file: str = field(
+        default=DefaultPaths.sequences.as_posix(),
+        metadata={'title': 'Sequences file', 'type': 'file'}
     )
     data_dir: str = field(
         default='data',
@@ -92,7 +103,7 @@ class ExperimentWindowConfig:
         metadata={'title': 'Inputs in scroll area', 'type': 'bool'}
     )
     enable_file_input: bool = field(
-        default=True,
+        default=False,
         metadata={'title': 'Enable file input', 'type': 'bool'}
     )
     dock_plot_number: int = field(
@@ -113,12 +124,11 @@ class ExperimentWindowConfig:
 class MenuItemConfig:
     name: str
     target: Any
-    alias: str
 
 
-ScriptsType = list[MenuItemConfig]
-ProceduresType = list[MenuItemConfig]
-SequencesType = dict[str, list[Any]]
+ScriptsType = dict[str, MenuItemConfig]
+ProceduresType = dict[str, Any]
+SequencesType = dict[str, Any]
 
 
 @dataclass
@@ -144,33 +154,16 @@ class MainWindowConfig:
         metadata={'title': 'Icon', 'type': 'file'}
     )
     scripts: ScriptsType = field(
-        default_factory=lambda: [
-            MenuItemConfig(
-                name='Init Config',
-                target='${function:laser_setup.cli.init_config.init_config}',
-                alias='init'
-            )
-        ],
-        metadata={'title': 'Scripts'}
+        default='${scripts}',
+        metadata={'title': 'Scripts', 'readonly': True}
     )
     procedures: ProceduresType = field(
-        default_factory=lambda: [
-            MenuItemConfig(
-                name='Fake Procedure',
-                target='${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
-                alias='FakeProcedure'
-            )
-        ],
-        metadata={'title': 'Procedures'}
+        default='${procedures}',
+        metadata={'title': 'Procedures', 'readonly': True}
     )
     sequences: SequencesType = field(
-        default_factory=lambda: {
-            'TestSequence': [
-                '${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
-                '${class:laser_setup.procedures.Wait}'
-            ]
-        },
-        metadata={'title': 'Sequences'}
+        default='${sequences}',
+        metadata={'title': 'Sequences', 'readonly': True}
     )
 
 
@@ -179,14 +172,6 @@ class SequenceWindowConfig:
     abort_timeout: float = field(
         default=30.,
         metadata={'title': 'Abort timeout'}
-    )
-    common_procedure: Any = field(
-        default='${class:laser_setup.procedures.BaseProcedure}',
-        metadata={'title': 'Common procedure'}
-    )
-    inputs_ignored: list[str] = field(
-        default_factory=list,
-        metadata={'title': 'Inputs ignored'}
     )
 
 
@@ -227,7 +212,7 @@ class FilenameConfig:
 class LoggingConfig:
     console: bool = field(default=True, metadata={'title': 'Console'})
     console_level: str = field(default='INFO', metadata={'title': 'Console level'})
-    filename: str = field(default='log/std.log', metadata={'title': 'Filename', 'type': 'file'})
+    filename: str = field(default=DefaultPaths.logs, metadata={'title': 'Filename', 'type': 'file'})
     file_level: str = field(default='INFO', metadata={'title': 'File level'})
 
 
@@ -248,5 +233,40 @@ class AppConfig:
         default_factory=lambda: {'axes.grid': 'True', 'figure.autolayout': 'True'},
         metadata={'title': 'Matplotlib rcParams'}
     )
-    Telegram: TelegramConfig = field(default_factory=TelegramConfig)
+    Telegram: TelegramConfig = field(default_factory=TelegramConfig, metadata={'expanded': False})
+
+    parameters: ParameterCatalog = field(
+        default=MISSING,
+        metadata={'title': 'Parameters', 'readonly': True}
+    )
+
+    scripts: ScriptsType = field(
+        default_factory=lambda: {
+            'init': MenuItemConfig(
+                name='Init Config',
+                target='${function:laser_setup.cli.init_config.init_config}',
+            )
+        },
+        metadata={'title': 'Scripts'}
+    )
+    procedures: ProceduresType = field(
+        default_factory=lambda: {
+            'FakeProcedure': MenuItemConfig(
+                name='Fake Procedure',
+                target='${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
+            )
+        },
+        metadata={'title': 'Procedures'}
+    )
+    sequences: SequencesType = field(
+        default_factory=lambda: {
+            'TestSequence': {
+                'procedures': [
+                    '${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
+                    '${class:laser_setup.procedures.Wait}'
+                ]
+            }
+        },
+        metadata={'title': 'Sequences'}
+    )
     _session: dict = field(default_factory=dict, metadata={'title': 'Session', 'readonly': True})

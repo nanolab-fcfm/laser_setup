@@ -1,5 +1,11 @@
+# Override parameter defaults and Procedure instance attributes here.
+# Make sure that key names match the Procedure.__class__.__name__ attribute.
+# The key 'target' is reserved for the menu bar.
+
 It:
-  update_parameters:
+  name: I vs t
+  target: ${class:laser_setup.procedures.It}
+  parameters:
     procedure_version:
       value: 2.1.0
     laser_T:
@@ -8,7 +14,9 @@ It:
       value: DP + 0. V
 
 IVg:
-  update_parameters:
+  name: I vs Vg
+  target: ${class:laser_setup.procedures.IVg}
+  parameters:
     procedure_version:
       value: 2.0.0
     laser_wl:
@@ -19,7 +27,9 @@ IVg:
       group_by: *laser_toggle
 
 Vt:
-  update_parameters:
+  name: V vs t
+  target: ${class:laser_setup.procedures.Vt}
+  parameters:
     procedure_version:
       value: 1.0.0
     laser_wl:
@@ -30,7 +40,9 @@ Vt:
       group_by: *laser_toggle
 
 IV:
-  update_parameters:
+  name: I vs V
+  target: ${class:laser_setup.procedures.IV}
+  parameters:
     procedure_version:
       value: 2.0.0
     laser_wl:
@@ -42,7 +54,9 @@ IV:
       value: 600
 
 ItWl:
-  update_parameters:
+  name: I vs t (Wl)
+  target: ${class:laser_setup.procedures.ItWl}
+  parameters:
     procedure_version:
       value: 1.0.0
     wl:
@@ -53,7 +67,9 @@ ItWl:
       value: 60
 
 Pt:
-  update_parameters:
+  name: P vs t
+  target: ${class:laser_setup.procedures.Pt}
+  parameters:
     procedure_version:
       value: 0.1.1
     laser_T:
@@ -61,13 +77,17 @@ Pt:
 
 
 Pwl:
-  update_parameters:
+  name: P vs wl
+  target: ${class:laser_setup.procedures.Pwl}
+  parameters:
     procedure_version:
       value: 1.2.0
 
 
 ItVg:
-  update_parameters:
+  name: I vs t (Vg)
+  target: ${class:laser_setup.procedures.ItVg}
+  parameters:
     laser_wl:
       group_by: *laser_toggle
     laser_v:
@@ -86,7 +106,9 @@ ItVg:
       value: 1800
 
 Tt:
-  update_parameters:
+  name: T vs t
+  target: ${class:laser_setup.procedures.Tt}
+  parameters:
     procedure_version:
       value: 2.0.0
     sampling_t:
@@ -96,14 +118,17 @@ Tt:
       value: 1800
 
 LaserCalibration:
-  update_parameters:
+  name: Laser Calibration
+  target: ${class:laser_setup.procedures.LaserCalibration}
+  parameters:
     procedure_version:
       value: 1.1.1
     step_time:
       value: 2.
 
 FakeIVg:
-  update_parameters:
+  target: ${class:laser_setup.procedures.FakeProcedure.FakeIVg}
+  parameters:
     laser_wl:
       group_by: *laser_toggle
     laser_v:

@@ -5,7 +5,7 @@ from copy import deepcopy
 
 from omegaconf import DictConfig
 
-from .config import config, load_yaml
+from .config import config, instantiate
 from .config.parameters import ParameterCatalog
 
 
@@ -40,9 +40,4 @@ class Parameters(ParameterCatalog, metaclass=ParametersMeta):
     """Parameter catalog. Returns a deepcopy of the parameter when accessed.
     """
     # There's probably a better way to do this, but at least it works.
-    _dict = load_yaml(
-        config.Dir.parameters_file,
-        ParameterCatalog,
-        flags={'allow_objects': True},
-        _instantiate=True
-    )
+    _dict = instantiate(config.parameters)

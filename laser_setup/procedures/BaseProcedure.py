@@ -6,13 +6,12 @@ from omegaconf import DictConfig
 from pymeasure.experiment import (BooleanParameter, Metadata, Parameter,
                                   Procedure)
 
-from ..config import config, load_yaml
+from ..config import config, instantiate
 from ..instruments import InstrumentManager
 from ..parameters import Parameters
 from ..utils import send_telegram_alert
 
 log = logging.getLogger(__name__)
-procedure_config = load_yaml(config.Dir.procedure_config_file, _instantiate=True)
 
 
 class BaseProcedure(Procedure):
@@ -34,12 +33,6 @@ class BaseProcedure(Procedure):
     :attr EXCLUDE: List of parameters to exclude from the save file
     :attr DATA_COLUMNS: List of data columns
     :attr SEQUENCER_INPUTS: List of inputs for the sequencer
-
-    :method connect_instruments: Connects all queued instruments via the
-        InstrumentManager
-    :method shutdown: Shuts down all instruments
-    :method __init_subclass__: Updates parameters and class attributes
-        for subclasses, based on the procedures config file
     """
     name: str = ""
 
@@ -58,8 +51,8 @@ class BaseProcedure(Procedure):
     # Access to time module as attribute for Metadata.fget
     time = time
 
-    INPUTS = ['show_more', 'skip_startup', 'skip_shutdown', 'info']
-    EXCLUDE = ['show_more', 'skip_startup', 'skip_shutdown']
+    INPUTS: list[str] = ['show_more', 'skip_startup', 'skip_shutdown', 'info']
+    EXCLUDE: list[str] = ['show_more', 'skip_startup', 'skip_shutdown']
 
     def connect_instruments(self):
         """Connects all queued instruments via the InstrumentManager,
@@ -84,30 +77,31 @@ class BaseProcedure(Procedure):
         """
         self.instruments.shutdown_all()
 
-    def __init_subclass__(cls: type['BaseProcedure'], **kwargs):
-        super().__init_subclass__(**kwargs)
-        procedure_dict: dict = procedure_config.get(cls.__name__, {})
-        for key, value in procedure_dict.pop('update_parameters', {}).items():
-            if not (param := getattr(cls, key, None)) or \
-               not isinstance(param, (Parameter, Metadata)):
-                continue
+    def __init__(self, parameters: dict | None = None, **kwargs):
+        """Initialize a procedure instance. It parses and overrides with updated parameters
+        and instance attributes from the config file. It also wraps the startup
+        and shutdown methods to skip execution if the corresponding Parameters are True.
 
-            if not isinstance(value, (dict, DictConfig)):
-                value = {'value': value}
+        :param parameters: Dictionary with parameter keys and key-value pairs that updates
+            the instance parameters. Example: {'voltage': {'value': 1., 'units': 'mV'}}
+        :param kwargs: Dictionary with extra attributes to update in the instance
+        """
+        parameters = parameters or {}
+        procedure_config: dict = config.procedures.get(self.__class__.__name__, {}).copy()
+        try:
+            procedure_config = instantiate(procedure_config)
+        except Exception as e:
+            log.error(
+                f"Error instantiating config for {self.__class__.__name__}: {e}. Using defaults."
+            )
+            procedure_config = {}
 
-            for k, v in value.items():
-                try:
-                    setattr(param, k, v)
-                except AttributeError:
-                    log.error(f"Error updating parameter {key} in {cls.__name__}")
+        parameters |= procedure_config.pop('parameters', {})
+        kwargs |= procedure_config
+        self._load_config(parameters=parameters, **kwargs)
 
-            setattr(cls, key, param)
+        super().__init__()
 
-        for key, value in procedure_dict.items():
-            setattr(cls, key, value)
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
         # Wrap methods to skip execution
         self.startup = self._wrap_skip(self.startup, 'skip_startup', self.connect_instruments)
         self.shutdown = self._wrap_skip(self.shutdown, 'skip_shutdown')
@@ -130,6 +124,33 @@ class BaseProcedure(Procedure):
 
             return method(*args, **kwargs)
         return wrapper
+
+    def _load_config(self, parameters: dict = {}, **kwargs):
+        """Load configuration from parameters and keyword arguments.
+
+        :param parameters: Dictionary of procedure-specific parameters to update
+        :param kwargs: Additional attributes to update in the instance
+        """
+        parameters = parameters.copy()
+        for key, value in parameters.items():
+            if not hasattr(self, key):
+                continue
+
+            param = getattr(self, key, None)
+            if not isinstance(param, (Parameter, Metadata)):
+                continue
+
+            if not isinstance(value, (dict, DictConfig)):
+                value = {'value': value}
+
+            for k, v in value.items():
+                try:
+                    setattr(param, k, v)
+                except AttributeError:
+                    log.error(f"Error updating parameter {key} in {self.__class__.__name__}")
+
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 
 class ChipProcedure(BaseProcedure):

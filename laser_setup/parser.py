@@ -4,12 +4,12 @@ import argparse
 from . import __version__
 from .config import config
 
-experiment_list = [i.alias for i in config.Qt.MainWindow.procedures]
-script_list = [i.alias for i in config.Qt.MainWindow.scripts]
+procedures = {*config.procedures}
+scripts = {*config.scripts}
 
 parser = argparse.ArgumentParser(description='Laser Setup')
 parser.add_argument('procedure', nargs='?', help='Procedure to run',
-                    choices=experiment_list + script_list)
+                    choices=procedures | scripts)
 parser.add_argument(
     '-v', '--version', action='version', version=f'%(prog)s {__version__}'
 )
