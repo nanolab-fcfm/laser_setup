@@ -29,6 +29,11 @@ class ExperimentWindow(ManagedWindowBase):
         dock_plot_number: int = 2,
         icon: str | None = None,
         info_file: str | None = None,
+        inputs: list[str] | None = None,
+        displays: list[str] | None = None,
+        sequencer: bool = False,
+        sequencer_inputs: list[str] | None = None,
+        sequence_file: str | None = None,
         **kwargs
     ):
         self.cls = cls
@@ -65,13 +70,13 @@ class ExperimentWindow(ManagedWindowBase):
         super().__init__(
             procedure_class=cls,
             widget_list=widget_list,
-            inputs=getattr(cls, 'INPUTS', []),
-            displays=getattr(cls, 'INPUTS', []),
+            inputs=inputs or getattr(cls, 'INPUTS', []),
+            displays=displays or getattr(cls, 'INPUTS', []),
             inputs_in_scrollarea=inputs_in_scrollarea,
             enable_file_input=enable_file_input,
-            sequencer=hasattr(cls, 'SEQUENCER_INPUTS'),
-            sequencer_inputs=getattr(cls, 'SEQUENCER_INPUTS', None),
-            sequence_file=getattr(cls, 'SEQUENCE_FILE', None),
+            sequencer=sequencer or hasattr(cls, 'SEQUENCER_INPUTS'),
+            sequencer_inputs=sequencer_inputs or getattr(cls, 'SEQUENCER_INPUTS', None),
+            sequence_file=sequence_file or getattr(cls, 'SEQUENCE_FILE', None),
             **kwargs
         )
         self.setWindowTitle(title or getattr(cls, 'name', cls.__name__) or cls.__name__)
