@@ -1,0 +1,5 @@
+# Modify your global configuration here. You can find all config items in the
+# templates folder.
+
+Dir:
+  local_config_file: ./config/config.yaml

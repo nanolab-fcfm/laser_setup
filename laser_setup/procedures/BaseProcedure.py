@@ -86,7 +86,6 @@ class BaseProcedure(Procedure):
             the instance parameters. Example: {'voltage': {'value': 1., 'units': 'mV'}}
         :param kwargs: Dictionary with extra attributes to update in the instance
         """
-        parameters = parameters or {}
         procedure_config: dict = config.procedures.get(self.__class__.__name__, {}).copy()
         try:
             procedure_config = instantiate(procedure_config)
@@ -96,6 +95,7 @@ class BaseProcedure(Procedure):
             )
             procedure_config = {}
 
+        parameters = parameters or {}
         parameters |= procedure_config.pop('parameters', {})
         kwargs |= procedure_config
         self._load_config(parameters=parameters, **kwargs)
@@ -125,13 +125,13 @@ class BaseProcedure(Procedure):
             return method(*args, **kwargs)
         return wrapper
 
-    def _load_config(self, parameters: dict = {}, **kwargs):
+    def _load_config(self, parameters: dict | None = None, **kwargs):
         """Load configuration from parameters and keyword arguments.
 
         :param parameters: Dictionary of procedure-specific parameters to update
         :param kwargs: Additional attributes to update in the instance
         """
-        parameters = parameters.copy()
+        parameters = parameters.copy() or {}
         for key, value in parameters.items():
             if not hasattr(self, key):
                 continue

@@ -13,13 +13,15 @@ class DefaultPaths:
     """Default paths for the configuration files."""
     _parent = Path(__file__).parent
     assets: Path = _parent.parent / 'assets'
+    new_config: Path = assets / 'new_config.yaml'
     allowed_files: str = 'YAML files (*.yaml)'
-    config: Path = assets / 'templates' / 'config.yaml'
+    templates: Path = assets / 'templates'
+    config: Path = templates / 'config.yaml'
     user_config = Path('config') / 'config.yaml'
-    parameters: Path = assets / 'templates' / 'parameters.yaml'
-    procedures: Path = assets / 'templates' / 'procedures.yaml'
-    sequences: Path = assets / 'templates' / 'sequences.yaml'
-    instruments: Path = assets / 'templates' / 'instruments.yaml'
+    parameters: Path = templates / 'parameters.yaml'
+    procedures: Path = templates / 'procedures.yaml'
+    sequences: Path = templates / 'sequences.yaml'
+    instruments: Path = templates / 'instruments.yaml'
     logs: Path = Path('log') / 'std.log'
     splash: Path = assets / 'img' / 'splash.png'
 
@@ -124,6 +126,12 @@ class ExperimentWindowConfig:
 class MenuItemConfig:
     name: str
     target: Any
+
+
+@dataclass
+class ProcedureItem:
+    name: str
+    parameters: dict
 
 
 ScriptsType = dict[str, MenuItemConfig]

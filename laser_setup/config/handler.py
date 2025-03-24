@@ -43,8 +43,7 @@ class ConfigHandler:
 
     @staticmethod
     def load_config(
-        config_env: str = 'CONFIG',
-        lookup: list[tuple[str, str]] = lookup,
+        lookup: list[tuple[str, str]] | None = None,
     ) -> AppConfig | DictConfig:
         """Load the configuration files appropiately. By default, it loads the
         files in the following order:
@@ -54,15 +53,14 @@ class ConfigHandler:
         3. Local configuration file (if it exists), with its path defined in the
         global config.
 
-        :param config_env: Environment variable to look for the global configuration file.
         :param lookup: List of tuples with the keys to look for the configuration files.
         :return: The parsed configuration
         """
         config: AppConfig = OmegaConf.structured(AppConfig, flags={'allow_objects': True})
         config_path_used: str | Path = 'default'
 
-        if config_env_path := os.getenv(config_env):
-            config[lookup[0][0]][lookup[0][1]] = config_env_path
+        if lookup is None:
+            lookup = ConfigHandler.lookup
 
         for section, key in lookup:
             if config_path := safeget(config, section, key):
@@ -86,7 +84,7 @@ class ConfigHandler:
         """
         if self.config_path_used != 'default':
             if verbose:
-                log.info(f'Config found at {self.save_path}. Skipping initialization.')
+                log.info(f'Config found at {self.save_path.as_posix()}. Skipping initialization.')
 
             return self.save_path
 
@@ -97,7 +95,7 @@ class ConfigHandler:
             create_config = self.parent.question_box(title, desc)
         except AttributeError:
             log.info(desc)
-            create_config = (input(f'{title} (y/n): ').lower() == 'y')
+            create_config = (input(f'{title} (Y/n): ').lower() in ['y', ''])
 
         if not create_config:
             log.warning('Cannot edit settings without a config file.')
@@ -105,19 +103,13 @@ class ConfigHandler:
 
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
 
-        _save_path = QtWidgets.QFileDialog.getExistingDirectory(
-            parent=self.parent,
-            caption='Select config directory',
-            directory=str(self.save_path.parent),
+        shutil.copytree(
+            DefaultPaths.templates, self.save_path.parent / 'templates', dirs_exist_ok=True
         )
-        save_path = Path(_save_path)
+        shutil.copy(DefaultPaths.new_config, self.save_path)
 
-        # Copy the files in the assets folder to it
-        for file in DefaultPaths.config.parent.iterdir():
-            shutil.copy(file, save_path)
-
-        log.info(f'Copied config files to {save_path}')
-        return save_path / 'config.yaml'
+        log.info(f'Copied config files to {self.save_path.parent}')
+        return self.save_path / 'config.yaml'
 
     def edit_config(self):
         save_path = self.init_config(verbose=False)

@@ -11,14 +11,12 @@ def main():
         display_window()
 
     elif args.procedure in procedures:
-        idx = procedures[args.procedure]
         display_window(instantiate(
-            config.Qt.MainWindow.procedures[idx].target, level=1
+            config.procedures[args.procedure].target, level=1
         ))
 
     elif args.procedure in scripts:
-        idx = scripts[args.procedure]
-        func = instantiate(config.Qt.MainWindow.scripts[idx].target, level=1)
+        func = instantiate(config.scripts[args.procedure].target, level=1)
         if callable(func):
             func()
 
