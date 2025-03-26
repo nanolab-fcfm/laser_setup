@@ -1,33 +1,17 @@
 import logging
 import time
-from enum import IntEnum
 from functools import partial
-from typing import Type, Literal
+from typing import Literal
 
 from pymeasure.display.widgets import InputsWidget
 
 from ...config import config, instantiate
+from ...patches import Status
 from ...procedures import BaseProcedure
 from ..Qt import QtCore, QtGui, QtWidgets
 from .experiment_window import ExperimentWindow, ProgressBar
 
 log = logging.getLogger(__name__)
-
-
-class Status(IntEnum):
-    """Enum to define the status of a procedure or sequence."""
-    FINISHED = 0
-    FAILED = 1
-    ABORTED = 2
-    QUEUED = 3
-    RUNNING = 4
-
-    @classmethod
-    def from_str(cls, status: str) -> 'Status':
-        return getattr(cls, status.upper())
-
-    def __str__(self):
-        return self.name.capitalize()
 
 
 class SequenceWindow(QtWidgets.QMainWindow):
@@ -53,8 +37,8 @@ class SequenceWindow(QtWidgets.QMainWindow):
         procedure_list: list[Type[BaseProcedure]],
         title: str = '',
         abort_timeout: int = 30,
-        common_procedure: Type[BaseProcedure] = BaseProcedure,
-        inputs_ignored: list[str] = [],
+        common_procedure: type[BaseProcedure] = BaseProcedure,
+        inputs_ignored: list[str] | None = None,
         **kwargs
     ):
         """Initialize the SequenceWindow with the given procedure list.
@@ -70,8 +54,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         self.procedure_list = procedure_list
         self.abort_timeout = int(abort_timeout)
         self.common_procedure = common_procedure
-        self.inputs_ignored = inputs_ignored
-
+        self.inputs_ignored = inputs_ignored or []
         self.sequence_start_time = 0.0
         self.procedure_start_times: list[float] = []
         self.procedure_status: list[Status] = []

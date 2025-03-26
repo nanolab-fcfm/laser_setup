@@ -2,12 +2,33 @@
 """
 import logging
 from contextlib import contextmanager
+from enum import IntEnum
 from functools import wraps
 
 from pymeasure.experiment import Procedure, Results, Parameter
 from pymeasure.display.inputs import Input
 
 log = logging.getLogger(__name__)
+
+
+class Status(IntEnum):
+    """Enum to define the status of a procedure or sequence."""
+    FINISHED = 0
+    FAILED = 1
+    ABORTED = 2
+    QUEUED = 3
+    RUNNING = 4
+
+    @classmethod
+    def from_str(cls, status: str) -> 'Status':
+        return getattr(cls, status.upper())
+
+    def __str__(self):
+        return self.name.capitalize()
+
+
+for status in Status:
+    setattr(Procedure, status.name, status)
 
 # Results
 Results.EXCLUDE = 'EXCLUDE'
