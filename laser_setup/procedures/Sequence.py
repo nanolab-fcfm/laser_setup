@@ -3,8 +3,7 @@ from typing import Any, ClassVar
 
 from pymeasure.experiment import Procedure
 
-from .. import config
-from ..config import instantiate
+from ..config import CONFIG, instantiate
 
 log = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ class Sequence:
         self.active_procedure = None
         self.procedure_index = 0
 
-        sequence_config: dict = config.sequences.get(self.__class__.__name__, {}).copy()
+        sequence_config: dict = CONFIG.sequences.get(self.__class__.__name__, {}).copy()
         try:
             sequence_config = instantiate(sequence_config)
         except Exception as e:
@@ -121,8 +120,8 @@ class Sequence:
                 proc_name, proc_config = proc_item
 
                 proc_class = None
-                if proc_name in config.procedures:
-                    proc_target = config.procedures[proc_name].get('target')
+                if proc_name in CONFIG.procedures:
+                    proc_target = CONFIG.procedures[proc_name].get('target')
                     if proc_target:
                         try:
                             proc_class = instantiate(proc_target)

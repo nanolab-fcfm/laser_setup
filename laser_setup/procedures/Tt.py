@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from .. import config
+from ..config import CONFIG
 from ..instruments import Clicker, PT100SerialSensor, InstrumentManager
 from ..parameters import Parameters
 from .BaseProcedure import BaseProcedure
@@ -19,9 +19,9 @@ class Tt(BaseProcedure):
 
     instruments = InstrumentManager()
     temperature_sensor = instruments.queue(
-        PT100SerialSensor, config['Adapters']['pt100_port'], includeSCPI=False
+        PT100SerialSensor, CONFIG['Adapters']['pt100_port'], includeSCPI=False
     )
-    clicker = instruments.queue(Clicker, config['Adapters']['clicker'])
+    clicker = instruments.queue(Clicker, CONFIG['Adapters']['clicker'])
 
     sampling_t = Parameters.Control.sampling_t
 

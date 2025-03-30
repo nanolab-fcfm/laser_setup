@@ -16,7 +16,7 @@ from . import patches  # noqa: F401, patches PyMeasure classes
 from pymeasure.experiment.config import set_mpl_rcparams
 from pymeasure.log import setup_logging
 
-from .config import config
+from .config import CONFIG
 
 __version__ = '0.5.0-alpha'
 
@@ -24,13 +24,13 @@ __version__ = '0.5.0-alpha'
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
-if config.Logging.filename:
-    Path(config.Logging.filename).parent.mkdir(parents=True, exist_ok=True)
+if CONFIG.Logging.filename:
+    Path(CONFIG.Logging.filename).parent.mkdir(parents=True, exist_ok=True)
 
-setup_logging(log, **config.Logging)
+setup_logging(log, **CONFIG.Logging)
 
-log.info(f"Using config file: {Path(config._session['config_path_used']).as_posix()}")
+log.info(f"Using config file: {Path(CONFIG._session['config_path_used']).as_posix()}")
 
 # Setup matplotlib.rcParams from config
-_rcparams = {'matplotlib.rcParams': config.matplotlib_rcParams}
+_rcparams = {'matplotlib.rcParams': CONFIG.matplotlib_rcParams}
 set_mpl_rcparams(SimpleNamespace(_sections=_rcparams))

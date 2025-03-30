@@ -6,7 +6,7 @@ from omegaconf import DictConfig
 from pymeasure.experiment import (BooleanParameter, Metadata, Parameter,
                                   Procedure)
 
-from ..config import config, instantiate
+from ..config import CONFIG, instantiate
 from ..instruments import InstrumentManager
 from ..parameters import Parameters
 from ..utils import send_telegram_alert

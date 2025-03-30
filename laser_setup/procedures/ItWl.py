@@ -1,7 +1,7 @@
 import logging
 import time
 
-from .. import config
+from ..config import CONFIG
 from ..instruments import TENMA, Bentham, Keithley2450, InstrumentManager
 from ..parameters import Parameters
 from ..utils import get_latest_DP
@@ -19,10 +19,10 @@ class ItWl(ChipProcedure):
     name = 'I vs t (Wl)'
 
     instruments = InstrumentManager()
-    meter = instruments.queue(Keithley2450, config['Adapters']['keithley2450'])
-    tenma_neg = instruments.queue(TENMA, config['Adapters']['tenma_neg'])
-    tenma_pos = instruments.queue(TENMA, config['Adapters']['tenma_pos'])
-    light_source = instruments.queue(Bentham, config['Adapters']['light_source'])
+    meter = instruments.queue(Keithley2450, CONFIG['Adapters']['keithley2450'])
+    tenma_neg = instruments.queue(TENMA, CONFIG['Adapters']['tenma_neg'])
+    tenma_pos = instruments.queue(TENMA, CONFIG['Adapters']['tenma_pos'])
+    light_source = instruments.queue(Bentham, CONFIG['Adapters']['light_source'])
 
     # Important Parameters
     vds = Parameters.Control.vds

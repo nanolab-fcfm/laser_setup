@@ -5,7 +5,7 @@ from typing import Literal
 
 from pymeasure.display.widgets import InputsWidget
 
-from ...config import config, instantiate
+from ...config import CONFIG, instantiate
 from ...patches import Status
 from ...procedures import BaseProcedure
 from ..Qt import QtCore, QtGui, QtWidgets

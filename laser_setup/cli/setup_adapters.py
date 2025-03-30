@@ -2,7 +2,7 @@ import logging
 
 import pyvisa
 
-from ..config import ConfigHandler, config
+from ..config import ConfigHandler, CONFIG
 from ..instruments import TENMA, Keithley2450
 
 log = logging.getLogger(__name__)
@@ -69,17 +69,17 @@ def tenma_ping(adapter, tenmas: list, parent=None):
 
 
 def setup(parent=None):
-    config_handler = ConfigHandler(config=config)
+    config_handler = ConfigHandler(config=CONFIG)
     rm = pyvisa.ResourceManager()
     devices = rm.list_resources()
 
     is_keithley = False
-    if 'keithley2450' not in config['Adapters'] or not keithley_exists(
-        config['Adapters']['keithley2450']
+    if 'keithley2450' not in CONFIG['Adapters'] or not keithley_exists(
+        CONFIG['Adapters']['keithley2450']
     ):
         for dev in devices:
             if 'USB0::0x05E6::0x2450' in dev and keithley_exists(dev):
-                config['Adapters']['keithley2450'] = dev
+                CONFIG['Adapters']['keithley2450'] = dev
                 is_keithley = True
                 break
 
@@ -91,7 +91,7 @@ def setup(parent=None):
     else:
         is_keithley = True
 
-    tenmas = [n for n in config['Adapters'] if 'tenma' in n]
+    tenmas = [n for n in CONFIG['Adapters'] if 'tenma' in n]
     tenmas.append('None')
     found_tenmas = []
     for dev in devices:
@@ -99,7 +99,7 @@ def setup(parent=None):
             log.info(f"Found serial device at {dev}.")
             which_tenma = tenma_ping(dev, tenmas, parent=parent)
             if which_tenma and which_tenma != 'None':
-                config['Adapters'][which_tenma] = dev
+                CONFIG['Adapters'][which_tenma] = dev
                 found_tenmas.append(which_tenma)
                 log.info(f'Adapter {dev} is now configured as {which_tenma}.')
 
@@ -110,7 +110,7 @@ def setup(parent=None):
                     f'TENMA {tenma} is configured, but was not found. '
                     'Setting as empty str to avoid duplicates.'
                 )
-                config['Adapters'][tenma] = ''
+                CONFIG['Adapters'][tenma] = ''
 
     else:
         log.error("No TENMA found on any serial port. Connect the instrument(s) and try again.")

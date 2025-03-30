@@ -1,22 +1,26 @@
-from .config import config, instantiate
+from .config import CONFIG, instantiate
 from .display.app import display_window
-from .parser import parser, procedures, scripts
+from .parser import get_parser
 
 
 def main():
+    parser = get_parser()
+    procedures = {*CONFIG.procedures}
+    scripts = {*CONFIG.scripts}
+
     args, _ = parser.parse_known_args()
-    config._session['args'] = vars(args)
+    CONFIG._session['args'] = vars(args)
 
     if args.procedure is None:
         display_window()
 
     elif args.procedure in procedures:
         display_window(instantiate(
-            config.procedures[args.procedure].target, level=1
+            CONFIG.procedures._types[args.procedure], level=1
         ))
 
     elif args.procedure in scripts:
-        func = instantiate(config.scripts[args.procedure].target, level=1)
+        func = instantiate(CONFIG.scripts[args.procedure].target, level=1)
         if callable(func):
             func()
 

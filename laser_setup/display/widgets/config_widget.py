@@ -4,15 +4,14 @@ from typing import Any
 from omegaconf import OmegaConf
 from pyqtgraph.parametertree import Parameter, ParameterTree
 
-from ... import config
-from ...config import ConfigHandler
+from ...config import ConfigHandler, CONFIG
 from ...display.Qt import QtWidgets
 
 
 class ConfigWidget(QtWidgets.QWidget):
     def __init__(self, parent: QtWidgets.QWidget | None = None, **kwargs):
         super().__init__(parent, **kwargs)
-        self.config_handler = ConfigHandler(parent=parent, config=config)
+        self.config_handler = ConfigHandler(parent=parent, config=CONFIG)
 
         # Layout
         self._layout = QtWidgets.QVBoxLayout(self)
@@ -49,10 +48,10 @@ class ConfigWidget(QtWidgets.QWidget):
         return schema
 
     def create_parameter_opts(self) -> dict:
-        config_container = OmegaConf.to_container(config)
+        config_container = OmegaConf.to_container(CONFIG)
         config_container.pop('_session', None)
 
-        data_dc = OmegaConf.to_object(config)
+        data_dc = OmegaConf.to_object(CONFIG)
         schema = {'config': {'children': self.extract_schema(data_dc)}}
         return self.parameterize('config', config_container, schema)
 

@@ -6,7 +6,7 @@ from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
 
-from ...config import config
+from ...config import CONFIG
 from ...procedures import BaseProcedure
 from ..Qt import QtCore, QtGui, QtWidgets
 from ..widgets import LogWidget, TextWidget
@@ -38,7 +38,7 @@ class ExperimentWindow(ManagedWindowBase):
     ):
         self.cls = cls
 
-        if config.Qt.GUI.dark_mode:
+        if CONFIG.Qt.GUI.dark_mode:
             PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
 
         if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
@@ -59,7 +59,7 @@ class ExperimentWindow(ManagedWindowBase):
             x_axis_labels=[self.x_axis,],
             y_axis_labels=cls.DATA_COLUMNS[1:dock_plot_number+1],
         )
-        if config.Qt.GUI.dark_mode:
+        if CONFIG.Qt.GUI.dark_mode:
             for plot_widget in (self.plot_widget, *self.dock_widget.plot_frames):
                 plot_widget.setAutoFillBackground(True)
                 plot_widget.plot_frame.setStyleSheet('background-color: black;')
@@ -99,16 +99,16 @@ class ExperimentWindow(ManagedWindowBase):
 
         self.log = logging.getLogger()
         self.log.addHandler(self.log_widget.handler)
-        self.log.setLevel(config.Logging.console_level)
+        self.log.setLevel(CONFIG.Logging.console_level)
         self.log.info(f"{self.__class__.__name__} connected to logging")
 
     def queue(self, procedure: type[Procedure] | None = None):
         if procedure is None:
             procedure = self.make_procedure()
 
-        filename_kwargs: dict = dict(config.Filename).copy()
+        filename_kwargs: dict = dict(CONFIG.Filename).copy()
         prefix = filename_kwargs.pop('prefix', '') or procedure.__class__.__name__
-        filename = unique_filename(config.Dir.data_dir,
+        filename = unique_filename(CONFIG.Dir.data_dir,
                                    prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")
 

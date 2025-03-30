@@ -9,7 +9,7 @@ from typing import Callable
 from pymeasure.experiment import Procedure
 
 from ...cli import parameters_to_db
-from ...config import ConfigHandler, config, instantiate
+from ...config import ConfigHandler, CONFIG, instantiate
 from ...config.defaults import ProceduresType, ScriptsType, SequencesType
 from ...instruments import InstrumentManager, Instruments
 from ...utils import get_status_message
@@ -55,7 +55,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.procedures = procedures
         self.sequences = sequences
         self.scripts = scripts
-        self.config_handler = ConfigHandler(parent=self, config=config)
+        self.config_handler = ConfigHandler(parent=self, config=CONFIG)
 
         super().__init__(**kwargs)
         self.setWindowTitle(title)
@@ -178,7 +178,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.open_widget(self.console_widget, 'Console')
 
     def open_database(self, db_name: str):
-        db_path = Path(config.Dir.data_dir) / db_name
+        db_path = Path(CONFIG.Dir.data_dir) / db_name
         if not db_path.exists():
             ans = self.question_box(
                 'Database not found', f'Database {db_path} not found. Create new database?'
@@ -255,7 +255,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         view_menu = menu.addMenu('&View')
         db_action = view_menu.addAction(
-            'Parameter Database', partial(self.open_database, config.Dir.database)
+            'Parameter Database', partial(self.open_database, CONFIG.Dir.database)
         )
         db_action.setShortcut('Ctrl+Shift+D')
 
@@ -266,7 +266,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
 
         self.log = logging.getLogger('laser_setup')
-        self.log.setLevel(config.Logging.console_level)
+        self.log.setLevel(CONFIG.Logging.console_level)
         self.log.addHandler(self.log_widget.handler)
 
         log_action = view_menu.addAction('Logs', partial(self.open_widget, self.log_widget, 'Logs'))

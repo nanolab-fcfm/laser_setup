@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from .config import config
+from .config import CONFIG
 
 log = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ def voltage_ds_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.nda
 
 
 def get_data_files(pattern: str = '*.csv') -> List[Path]:
-    data_path = Path(config.Dir.data_dir)
+    data_path = Path(CONFIG.Dir.data_dir)
     return list(data_path.rglob(pattern))
 
 
@@ -131,7 +131,7 @@ def remove_empty_data(days: int = 2):
             file.unlink()
             log.debug(f"Removed empty file: {file}")
 
-    for directory in Path(config.Dir.data_dir).rglob('*'):
+    for directory in Path(CONFIG.Dir.data_dir).rglob('*'):
         if directory.is_dir() and not list(directory.iterdir()):
             directory.rmdir()
             log.debug(f"Removed empty directory: {directory}")
@@ -143,11 +143,11 @@ def remove_empty_data(days: int = 2):
 def send_telegram_alert(message: str):
     """Sends a message to all valid Telegram chats on config.Telegram.
     """
-    if not (TOKEN := config.Telegram.get('token', None)):
+    if not (TOKEN := CONFIG.Telegram.get('token', None)):
         log.debug("Telegram token not specified in config.")
         return
 
-    if len(config.Telegram.chat_ids) == 0:
+    if len(CONFIG.Telegram.chat_ids) == 0:
         log.debug("No chats specified in config.")
         return
 
@@ -160,12 +160,12 @@ def send_telegram_alert(message: str):
     message = ''.join(['\\' + c if c in "_*[]()~`>#+-=|{}.!" else c for c in message])
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
 
-    for chat_id in config.Telegram.chat_ids:
+    for chat_id in CONFIG.Telegram.chat_ids:
         params = {'chat_id': chat_id, 'text': message, 'parse_mode': 'MarkdownV2'}
 
         requests.post(url, params=params)
 
-    log.debug(f"Sent '{message}' to {config.Telegram.chat_ids}.")
+    log.debug(f"Sent '{message}' to {CONFIG.Telegram.chat_ids}.")
 
 
 def get_status_message(timeout: float = .5) -> str:

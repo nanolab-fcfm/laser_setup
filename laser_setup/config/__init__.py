@@ -12,9 +12,9 @@ OmegaConf.register_new_resolver(
     "function", lambda x: {'_target_': 'hydra.utils.get_method', 'path': x}
 )
 
-config = ConfigHandler.load_config()
-config.parameters = load_yaml(
-    config.Dir.parameters_file, ParameterCatalog, flags={'allow_objects': True}
+CONFIG = ConfigHandler.load_config()
+CONFIG.parameters = load_yaml(
+    CONFIG.Dir.parameters_file, ParameterCatalog, flags={'allow_objects': True}
 )
-config.procedures = load_yaml(config.Dir.procedures_file, flags={'allow_objects': True})
-config.sequences = load_yaml(config.Dir.sequences_file, flags={'allow_objects': True})
+CONFIG.procedures = load_yaml(CONFIG.Dir.procedures_file, flags={'allow_objects': True})
+CONFIG.sequences = load_yaml(CONFIG.Dir.sequences_file, flags={'allow_objects': True})

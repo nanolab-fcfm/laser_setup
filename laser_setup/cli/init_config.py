@@ -1,6 +1,6 @@
 import logging
 
-from ..config import ConfigHandler, config
+from ..config import ConfigHandler, CONFIG
 
 log = logging.getLogger(__name__)
 
@@ -9,7 +9,7 @@ def init_config(parent=None, verbose=True):
     """Initiliaze the configuration files by copying the template files to the
     selected directory.
     """
-    config_handler = ConfigHandler(parent=parent, config=config)
+    config_handler = ConfigHandler(parent=parent, config=CONFIG)
     config_handler.init_config(verbose=verbose)
 
 

@@ -4,7 +4,7 @@ from pathlib import Path
 from pymeasure.experiment import Procedure
 
 from .. import __version__
-from ..config import config, instantiate, DefaultPaths
+from ..config import CONFIG, DefaultPaths
 from ..utils import remove_empty_data
 from .Qt import QtCore, QtGui, QtWidgets, make_app
 
@@ -97,7 +97,7 @@ def display_window(procedure: type[Procedure] | None = None, **kwargs):
     shortcut_filter = ShortcutFilter(app)
     app.installEventFilter(shortcut_filter)
 
-    if not (splash_image := Path(config.Qt.GUI.splash_image)).is_file():
+    if not (splash_image := Path(CONFIG.Qt.GUI.splash_image)).is_file():
         splash_image = DefaultPaths.splash
     pixmap = QtGui.QPixmap(splash_image.as_posix())
     pixmap = pixmap.scaledToHeight(480)
@@ -105,28 +105,26 @@ def display_window(procedure: type[Procedure] | None = None, **kwargs):
     splash.show()
 
     # Get available styles with QtWidgets.QStyleFactory.keys()
-    app.setStyle(config.Qt.GUI.style)
-    if config.Qt.GUI.dark_mode:
+    app.setStyle(CONFIG.Qt.GUI.style)
+    if CONFIG.Qt.GUI.dark_mode:
         app.setPalette(get_dark_palette())
     QtCore.QLocale.setDefault(QtCore.QLocale(
         QtCore.QLocale.Language.English,
         QtCore.QLocale.Country.UnitedStates
     ))
     font = app.font()
-    if config.Qt.GUI.font:
-        font.setFamily(config.Qt.GUI.font)
-    font.setPointSize(config.Qt.GUI.font_size)
+    if CONFIG.Qt.GUI.font:
+        font.setFamily(CONFIG.Qt.GUI.font)
+    font.setPointSize(CONFIG.Qt.GUI.font_size)
     app.setFont(font)
 
     if procedure is None:
         from .windows.main_window import MainWindow
-        kwargs.update(**instantiate(config.Qt.MainWindow))
         Window = MainWindow
 
     elif issubclass(procedure, Procedure):
         from .windows.experiment_window import ExperimentWindow
         Window = ExperimentWindow
-        kwargs.update(**instantiate(config.Qt.ExperimentWindow))
         kwargs['cls'] = procedure
 
     else:
