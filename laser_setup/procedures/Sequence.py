@@ -64,7 +64,7 @@ class Sequence:
         cls,
         procedure: str | type[Procedure],
         procedure_config: MutableMapping[str, Any] | None = None,
-        types_dict: dict[str, type[Procedure]] = instantiate(CONFIG.procedures._types)
+        types_dict: MutableMapping[str, type[Procedure]] = instantiate(CONFIG.procedures._types)
     ) -> None:
         """Process a procedure item and add it to the sequence.
 

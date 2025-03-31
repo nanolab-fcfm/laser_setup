@@ -125,6 +125,7 @@ FakeIVg:
       group_by: *laser_toggle
 
 _types:
+  Wait: ${class:laser_setup.procedures.Wait}
   It: ${class:laser_setup.procedures.It}
   IVg: ${class:laser_setup.procedures.IVg}
   Vt: ${class:laser_setup.procedures.Vt}
@@ -136,3 +137,4 @@ _types:
   Tt: ${class:laser_setup.procedures.Tt}
   LaserCalibration: ${class:laser_setup.procedures.LaserCalibration}
   FakeIVg: ${class:laser_setup.procedures.FakeProcedure.FakeIVg}
+  FakeProcedure: ${class:laser_setup.procedures.FakeProcedure.FakeProcedure}
