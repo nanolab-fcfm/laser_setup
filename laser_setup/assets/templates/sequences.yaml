@@ -53,3 +53,8 @@ ItMadness:
   - IVg:
       parameters:
         skip_startup: {value: true}
+
+_types:
+  MainSequence: ${sequence:MainSequence}
+  TestSequence: ${sequence:TestSequence}
+  ItMadness: ${sequence:ItMadness}

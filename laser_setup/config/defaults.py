@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from omegaconf import MISSING
 
@@ -128,15 +128,9 @@ class MenuItemConfig:
     target: Any
 
 
-@dataclass
-class ProcedureItem:
-    name: str
-    parameters: dict
-
-
-ScriptsType = dict[str, MenuItemConfig]
-ProceduresType = dict[str, Any]
-SequencesType = dict[str, Any]
+ScriptsConfig = dict[str, MenuItemConfig]
+ProceduresConfig = dict[str, Any]
+SequencesConfig = dict[str, Any]
 
 
 @dataclass
@@ -161,15 +155,15 @@ class MainWindowConfig:
         default='',
         metadata={'title': 'Icon', 'type': 'file'}
     )
-    scripts: ScriptsType = field(
+    scripts: ScriptsConfig = field(
         default='${scripts}',
         metadata={'title': 'Scripts', 'readonly': True}
     )
-    procedures: ProceduresType = field(
+    procedures: ProceduresConfig = field(
         default='${procedures}',
         metadata={'title': 'Procedures', 'readonly': True}
     )
-    sequences: SequencesType = field(
+    sequences: SequencesConfig = field(
         default='${sequences}',
         metadata={'title': 'Sequences', 'readonly': True}
     )
@@ -226,7 +220,7 @@ class LoggingConfig:
 
 @dataclass
 class TelegramConfig:
-    token: Optional[str] = field(default='', metadata={'title': 'Token'})
+    token: str | None = field(default='', metadata={'title': 'Token'})
     chat_ids: list[str] = field(default_factory=list, metadata={'title': 'Chat IDs'})
 
 
@@ -248,7 +242,7 @@ class AppConfig:
         metadata={'title': 'Parameters', 'readonly': True}
     )
 
-    scripts: ScriptsType = field(
+    scripts: ScriptsConfig = field(
         default_factory=lambda: {
             'init': MenuItemConfig(
                 name='Init Config',
@@ -257,7 +251,7 @@ class AppConfig:
         },
         metadata={'title': 'Scripts'}
     )
-    procedures: ProceduresType = field(
+    procedures: ProceduresConfig = field(
         default_factory=lambda: {
             'FakeProcedure': MenuItemConfig(
                 name='Fake Procedure',
@@ -266,7 +260,7 @@ class AppConfig:
         },
         metadata={'title': 'Procedures'}
     )
-    sequences: SequencesType = field(
+    sequences: SequencesConfig = field(
         default_factory=lambda: {
             'TestSequence': {
                 'procedures': [

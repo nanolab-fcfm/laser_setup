@@ -1,19 +1,22 @@
 import logging
 import time
+from collections.abc import Mapping, MutableMapping
 from functools import wraps
+from typing import Any
 
-from omegaconf import DictConfig
 from pymeasure.experiment import (BooleanParameter, Metadata, Parameter,
                                   Procedure)
 
-from ..config import CONFIG, instantiate
+from ..config import CONFIG
 from ..instruments import InstrumentManager
 from ..parameters import Parameters
+from ..parser import configurable
 from ..utils import send_telegram_alert
 
 log = logging.getLogger(__name__)
 
 
+@configurable('procedures', on_definition=False)
 class BaseProcedure(Procedure):
     """Base procedure for all measurements. It defines basic
     parameters that are present in all procedures. It also provides
@@ -61,7 +64,7 @@ class BaseProcedure(Procedure):
 
         Override this method to handle instrument connections differently.
         """
-        self.instruments.connect_all(self, debug=config._session.args.debug)
+        self.instruments.connect_all(self, debug=CONFIG._session.args.debug)
 
     def startup(self):
         """Startup method that handles the initialization of instruments and
@@ -77,34 +80,51 @@ class BaseProcedure(Procedure):
         """
         self.instruments.shutdown_all()
 
-    def __init__(self, parameters: dict | None = None, **kwargs):
-        """Initialize a procedure instance. It parses and overrides with updated parameters
-        and instance attributes from the config file. It also wraps the startup
+    def __init__(self, parameters: Mapping[str, Any] | None = None, **kwargs):
+        """Initialize a procedure instance. It wraps the startup
         and shutdown methods to skip execution if the corresponding Parameters are True.
 
-        :param parameters: Dictionary with parameter keys and key-value pairs that updates
-            the instance parameters. Example: {'voltage': {'value': 1., 'units': 'mV'}}
+        :param parameters: Dictionary with procedure-specific parameters to override
         :param kwargs: Dictionary with extra attributes to update in the instance
         """
-        procedure_config: dict = config.procedures.get(self.__class__.__name__, {}).copy()
-        try:
-            procedure_config = instantiate(procedure_config)
-        except Exception as e:
-            log.error(
-                f"Error instantiating config for {self.__class__.__name__}: {e}. Using defaults."
-            )
-            procedure_config = {}
-
-        parameters = parameters or {}
-        parameters |= procedure_config.pop('parameters', {})
-        kwargs |= procedure_config
-        self._load_config(parameters=parameters, **kwargs)
-
-        super().__init__()
+        self.override_parameters(parameters or {})
+        super().__init__(**kwargs)
 
         # Wrap methods to skip execution
         self.startup = self._wrap_skip(self.startup, 'skip_startup', self.connect_instruments)
         self.shutdown = self._wrap_skip(self.shutdown, 'skip_shutdown')
+
+    def override_parameters(self, parameters: Mapping[str, Any]):
+        """Override the procedure parameters with a dictionary. It will update
+        the instance attributes with the new values.
+
+        :param parameters: Dictionary with the parameters to override
+        """
+        self._apply_parameter_config(self, parameters)
+
+    @staticmethod
+    def _apply_parameter_config(target, parameters: Mapping[str, Any]):
+        """Apply a dictionary of parameters to the target's attributes.
+
+        :param parameters: Dictionary with the parameters to override
+        """
+        for key, value in parameters.items():
+            if not hasattr(target, key):
+                continue
+
+            param = getattr(target, key, None)
+            if not isinstance(param, (Parameter, Metadata)):
+                continue
+
+            if not isinstance(value, Mapping):
+                value = {'value': value}
+
+            for k, v in value.items():
+                try:
+                    setattr(param, k, v)
+                except AttributeError:
+                    target_class = getattr(target, '__class__', target)
+                    log.error(f"Error updating parameter {key} in {target_class.__name__}")
 
     def _wrap_skip(self, method, flag_name: str, fallback=None):
         """Wraps a method to skip execution if a flag is set to True.
@@ -125,32 +145,17 @@ class BaseProcedure(Procedure):
             return method(*args, **kwargs)
         return wrapper
 
-    def _load_config(self, parameters: dict | None = None, **kwargs):
-        """Load configuration from parameters and keyword arguments.
+    @classmethod
+    def configure_class(cls, config_dict: MutableMapping[str, Any]):
+        """Load configuration from a dictionary and update the class attributes.
 
-        :param parameters: Dictionary of procedure-specific parameters to update
-        :param kwargs: Additional attributes to update in the instance
+        :param config_dict: Dictionary with the configuration
         """
-        parameters = parameters.copy() or {}
-        for key, value in parameters.items():
-            if not hasattr(self, key):
-                continue
+        parameters: dict = config_dict.pop('parameters', {})
+        cls._apply_parameter_config(cls, parameters)
 
-            param = getattr(self, key, None)
-            if not isinstance(param, (Parameter, Metadata)):
-                continue
-
-            if not isinstance(value, (dict, DictConfig)):
-                value = {'value': value}
-
-            for k, v in value.items():
-                try:
-                    setattr(param, k, v)
-                except AttributeError:
-                    log.error(f"Error updating parameter {key} in {self.__class__.__name__}")
-
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+        for key, value in config_dict.items():
+            setattr(cls, key, value)
 
 
 class ChipProcedure(BaseProcedure):

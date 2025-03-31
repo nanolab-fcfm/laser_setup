@@ -7,6 +7,7 @@ from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
 
 from ...config import CONFIG
+from ...parser import configurable
 from ...procedures import BaseProcedure
 from ..Qt import QtCore, QtGui, QtWidgets
 from ..widgets import LogWidget, TextWidget
@@ -14,6 +15,7 @@ from ..widgets import LogWidget, TextWidget
 log = logging.getLogger(__name__)
 
 
+@configurable('Qt.ExperimentWindow', on_definition=False, subclasses=False)
 class ExperimentWindow(ManagedWindowBase):
     """The main window for an experiment. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
@@ -79,7 +81,7 @@ class ExperimentWindow(ManagedWindowBase):
             sequence_file=sequence_file or getattr(cls, 'SEQUENCE_FILE', None),
             **kwargs
         )
-        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__) or cls.__name__)
+        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
         self.setWindowIcon(
             QtGui.QIcon(icon) if icon else self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton

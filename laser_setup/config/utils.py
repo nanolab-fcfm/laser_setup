@@ -1,6 +1,10 @@
 import logging
+import sys
+from collections.abc import Mapping
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, Type, TypeVar
+from types import ModuleType
+from typing import Any, TypeVar
 
 from hydra.utils import instantiate as hydra_instantiate
 from omegaconf import DictConfig, ListConfig, OmegaConf
@@ -26,7 +30,7 @@ def safeget(dic: dict | DictConfig, *keys, default: Any = None) -> Any:
 
 def load_yaml(
     file_path: str | Path,
-    struct: Type[T] | None = None,
+    struct: type[T] | None = None,
     flags: dict[str, bool] | None = None,
     _instantiate: bool = False,
     **kwargs,
@@ -85,3 +89,28 @@ def instantiate(
     for _ in range(level):
         config = hydra_instantiate(config)
     return config
+
+
+def get_type(
+    name: str,
+    bases: tuple[type[T], ...],
+    namespace: Mapping[str, Any] | None = None,
+    module: str | None = '__main__',
+    **kwargs,
+) -> type[T]:
+    """Create a new type dynamically.
+
+    :param name: Name of the new type.
+    :param bases: Tuple of base classes.
+    :param namespace: Namespace for the new type.
+    :param module: Module name for the new type.
+    :param kwargs: Additional arguments for `type`.
+    :return: New type.
+    """
+    namespace = deepcopy(namespace) if namespace else {}
+    if module not in sys.modules:
+        sys.modules[module] = ModuleType(module)
+
+    namespace['__module__'] = module
+    namespace['__doc__'] = namespace.get('__doc__', '')
+    return type(name, tuple(bases), namespace or {}, **kwargs)

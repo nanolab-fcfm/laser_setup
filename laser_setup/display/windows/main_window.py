@@ -9,9 +9,11 @@ from typing import Callable
 from pymeasure.experiment import Procedure
 
 from ...cli import parameters_to_db
-from ...config import ConfigHandler, CONFIG, instantiate
-from ...config.defaults import ProceduresType, ScriptsType, SequencesType
+from ...config import ConfigHandler, CONFIG
+from ...config.defaults import ProceduresConfig, SequencesConfig, ScriptsConfig
 from ...instruments import InstrumentManager, Instruments
+from ...parser import configurable
+from ...procedures import Sequence
 from ...utils import get_status_message
 from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
 from ..widgets import ConfigWidget, LogsWidget, SQLiteWidget
@@ -22,15 +24,16 @@ from .sequence_window import SequenceWindow
 log = logging.getLogger(__name__)
 
 
+@configurable('Qt.MainWindow', on_definition=False, subclasses=False)
 class MainWindow(QtWidgets.QMainWindow):
     """The main window for program. It contains buttons to open
     the experiment windows, sequence windows, and run scripts.
     """
     def __init__(
         self,
-        procedures: ProceduresType,
-        sequences: SequencesType,
-        scripts: ScriptsType,
+        procedures: ProceduresConfig,
+        sequences: SequencesConfig,
+        scripts: ScriptsConfig,
         title: str = 'Main Window',
         size: tuple[int, int] = (640, 480),
         widget_size: tuple[int, int] = (640, 480),
@@ -65,7 +68,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(*size)
         self.setCentralWidget(QtWidgets.QWidget(parent=self))
 
-        self.windows: dict[type[Procedure] | str, QtWidgets.QMainWindow] = {}
+        self.windows: dict[
+            type[Procedure] | type[Sequence] | str, QtWidgets.QMainWindow
+        ] = {}
         self._layout = QtWidgets.QGridLayout(self.centralWidget())
 
         self.menu_bar = self.create_menu_bar()
@@ -94,16 +99,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reload.setShortcut('Ctrl+R')
         self.status_bar.addPermanentWidget(self.reload)
 
-    def open_sequence(self, name: str, sequence: SequencesType):
-        kwargs = instantiate(config.Qt.SequenceWindow).merge_with(sequence)
-        window = SequenceWindow(sequence, title=name,
-                                parent=self, **kwargs)
-        window.show()
+    def open_sequence(self, cls: type[Sequence]):
+        self.windows[cls] = SequenceWindow(cls, parent=self)
+        self.windows[cls].show()
 
     def open_procedure(self, cls: type[Procedure]):
-        self.windows[cls] = ExperimentWindow(
-            cls, **instantiate(config.Qt.ExperimentWindow)
-        )
+        self.windows[cls] = ExperimentWindow(cls)
         self.windows[cls].show()
 
     def run_script(self, f: Callable):
@@ -215,8 +216,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         procedure_menu = menu.addMenu('&Procedures')
         procedure_menu.setToolTipsVisible(True)
+        procedure_types: dict[str, type[Procedure]] = self.procedures.pop('_types')
         for key, item in self.procedures.items():
-            cls = item.target
+            cls = procedure_types[key]
             name = getattr(cls, 'name', cls.__name__)
             action = QtGui.QAction(name, self)
             doc = cls.__doc__.replace('    ', '').strip()
@@ -228,13 +230,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         sequence_menu = menu.addMenu('Se&quences')
         sequence_menu.setToolTipsVisible(True)
+        sequence_types: dict[str, type[Sequence]] = self.sequences.pop('_types')
         for key, item in self.sequences.items():
-            name = getattr(item, 'name', key)
+            cls = sequence_types[key]
+            name = getattr(item, 'name', cls.__name__)
             action = QtGui.QAction(key, self)
-            doc = getattr(item, 'description', '')
-            action.triggered.connect(partial(
-                self.open_sequence, name, item
-            ))
+            doc = getattr(item, 'description', cls.__doc__.replace('    ', '').strip())
+            action.triggered.connect(partial(self.open_sequence, cls))
             action.setToolTip(doc)
             action.setStatusTip(doc)
             action.setShortcut(f'Ctrl+Shift+{len(sequence_menu.actions()) + 1}')
@@ -243,7 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
         script_menu = menu.addMenu('&Scripts')
         script_menu.setToolTipsVisible(True)
         for key, item in self.scripts.items():
-            func = item.target
+            func: Callable = item.target
             action = QtGui.QAction(item.name or func.__doc__, self)
             doc = sys.modules[func.__module__].__doc__ or ''
             doc = doc.replace('    ', '').strip()

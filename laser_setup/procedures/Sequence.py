@@ -1,13 +1,17 @@
 import logging
+from collections.abc import MutableMapping
 from typing import Any, ClassVar
 
 from pymeasure.experiment import Procedure
 
 from ..config import CONFIG, instantiate
+from ..parser import configurable
+from ..patches import Status
 
 log = logging.getLogger(__name__)
 
 
+@configurable('sequences', on_definition=False)
 class Sequence:
     """Provides the base class for procedure sequences.
 
@@ -26,122 +30,89 @@ class Sequence:
     name: ClassVar[str] = ""
     description: ClassVar[str] = ""
     common_procedure: ClassVar[type[Procedure]] = Procedure
-    abort_timeout: ClassVar[int] = 30
     inputs_ignored: ClassVar[list[str]] = []
-    procedures: list[Any] = []
+    procedures: list[type[Procedure]] = []
+    procedures_config: list[MutableMapping[str, Any]] = []
+    queue: list[Procedure] = []
 
-    def __init__(self, parameters: dict | None = None, **kwargs):
+    def __init__(self, **kwargs):
         """Initialize a sequence instance.
 
         :param parameters: Dictionary of procedure-specific parameters
         :param kwargs: Additional configuration attributes
         """
-        self.procedures: list[Procedure] = []
-        self.status = None
-        self.active_procedure = None
-        self.procedure_index = 0
+        self.status = Status.QUEUED
+        self._queue_procedures()
 
-        sequence_config: dict = CONFIG.sequences.get(self.__class__.__name__, {}).copy()
-        try:
-            sequence_config = instantiate(sequence_config)
-        except Exception as e:
-            log.error(
-                f"Error instantiating config for {self.__class__.__name__}:"
-                f" {e}. Using defaults."
-            )
-            sequence_config = {}
+    @classmethod
+    def configure_class(cls, config_dict: MutableMapping[str, Any]):
+        procedures: list = config_dict.pop('procedures', {})
+        cls.procedures = []
+        for item in procedures:
+            if isinstance(item, MutableMapping):
+                for proc_name, proc_params in item.items():
+                    cls.add_procedure(proc_name, proc_params)
 
-        parameters = parameters or {}
-        parameters |= sequence_config.pop('parameters', {})
-        kwargs |= sequence_config
+            elif (isinstance(item, type) and issubclass(item, Procedure)) or isinstance(item, str):
+                cls.add_procedure(item, None)
 
-        self._load_config(parameters=parameters, **kwargs)
+        for key, value in config_dict.items():
+            setattr(cls, key, value)
 
-    def _load_config(self, procedures: list | None = None, **kwargs):
-        """Load configuration from parameters and keyword arguments.
+    @classmethod
+    def add_procedure(
+        cls,
+        procedure: str | type[Procedure],
+        procedure_config: MutableMapping[str, Any] | None = None,
+        types_dict: dict[str, type[Procedure]] = instantiate(CONFIG.procedures._types)
+    ) -> None:
+        """Process a procedure item and add it to the sequence.
 
-        :param procedures: List of procedure-specific parameters
-        :param kwargs: Additional configuration attributes
+        :param procedure: Procedure name, class or configuration
+        :param procedure_config: Configuration for the procedure
+        :param types_dict: Dictionary mapping procedure names to classes.
+            Default is the procedures dictionary from the config.
         """
-        procedures = procedures.copy() or []
-        self._process_procedures_list(procedures)
+        if isinstance(procedure, str):
+            if procedure not in types_dict:
+                log.warning(f"Procedure {procedure} not found in types dict. Skipping.")
+                return
 
-        for proc_name, proc_params in procedures:
-            for i, proc_item in enumerate(self.procedures):
-                if isinstance(proc_item, tuple) and len(proc_item) == 2:
-                    name, config = proc_item
-                    if name == proc_name:
-                        if 'parameters' not in config:
-                            config['parameters'] = {}
-                        config['parameters'].update(proc_params)
-                        self.procedures[i] = (name, config)
-                        break
+            procedure_class = types_dict[procedure]
 
-        for key, value in kwargs.items():
-            if key == 'common_procedure' and isinstance(value, str):
-                if value in config.procedures:
-                    proc_target = config.procedures[value].get('target')
-                    if proc_target:
-                        try:
-                            self.common_procedure = instantiate(proc_target)
-                        except Exception as e:
-                            log.error(f"Error loading common procedure {value}: {e}")
-                            continue
-            else:
-                setattr(self, key, value)
+            if not (isinstance(procedure_class, type) and issubclass(procedure_class, Procedure)):
+                log.warning(
+                    f"Value types_dict['{procedure}'] is not a subclass of Procedure. Skipping."
+                )
+                return
 
-    def _process_procedures_list(self, procedures_list):
-        """Process a procedures list into the internal format.
+        elif issubclass(procedure, Procedure):
+            procedure_class = procedure
 
-        :param procedures_list: List of procedure names or configurations
-        """
-        if not procedures_list:
+        else:
+            log.error(f"Invalid procedure type: {procedure}")
             return
 
-        self.procedures = []
-        for item in procedures_list:
-            if isinstance(item, dict) and len(item) == 1:
-                proc_name = next(iter(item))
-                proc_config = item[proc_name] or {}
-                self.procedures.append((proc_name, proc_config))
-            else:
-                self.procedures.append((str(item), {}))
+        cls.procedures.append(procedure_class)
+        cls.procedures_config.append(procedure_config or {})
 
-    def get_procedure_instances(self, **common_params):
-        """Get all procedure instances for this sequence.
+    def _queue_procedures(self):
+        """Queue all procedures in the sequence."""
+        for proc_class, proc_config in zip(self.procedures, self.procedures_config):
+            procedure = proc_class(**proc_config)
+            self.queue.append(procedure)
 
-        :param common_params: Parameters to apply to all procedures
-        :return: List of instantiated procedure objects
-        """
-        procedure_instances = []
+    def __contains__(self, item):
+        return item in self.queue
 
-        for proc_item in self.procedures:
-            if isinstance(proc_item, tuple) and len(proc_item) == 2:
-                proc_name, proc_config = proc_item
+    def __iter__(self):
+        return iter(self.queue)
 
-                proc_class = None
-                if proc_name in CONFIG.procedures:
-                    proc_target = CONFIG.procedures[proc_name].get('target')
-                    if proc_target:
-                        try:
-                            proc_class = instantiate(proc_target)
-                        except Exception as e:
-                            log.error(f"Error instantiating procedure {proc_name}: {e}")
-                            continue
+    def __len__(self):
+        return len(self.queue)
 
-                if proc_class is None:
-                    log.warning(f"Could not find procedure class for {proc_name}")
-                    continue
+    def __repr__(self) -> str:
+        return f"<Sequence {self.name} ({len(self)} procedures queued)>"
 
-                params = {k: v for k, v in common_params.items()
-                          if k not in self.inputs_ignored}
-
-                proc_parameters = proc_config.get('parameters', {})
-
-                try:
-                    proc_instance = proc_class(parameters=proc_parameters, **params)
-                    procedure_instances.append(proc_instance)
-                except Exception as e:
-                    log.error(f"Error creating procedure {proc_name}: {e}")
-
-        return procedure_instances
+    def __str__(self) -> str:
+        return self.name
