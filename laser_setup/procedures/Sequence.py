@@ -1,8 +1,12 @@
 import logging
+from collections import ChainMap
 from collections.abc import MutableMapping
+from copy import deepcopy
+from io import StringIO
 from typing import Any, ClassVar
 
-from pymeasure.experiment import Procedure
+from pymeasure.experiment import Metadata, Parameter, Procedure
+from pymeasure.experiment.sequencer import SequenceHandler
 
 from ..config import CONFIG, instantiate
 from ..parser import configurable
@@ -47,7 +51,10 @@ class Sequence:
     @classmethod
     def configure_class(cls, config_dict: MutableMapping[str, Any]):
         procedures: list = config_dict.pop('procedures', {})
+        cls.inputs_ignored = []
         cls.procedures = []
+        cls.procedures_config = []
+        cls.queue = []
         for item in procedures:
             if isinstance(item, MutableMapping):
                 for proc_name, proc_params in item.items():
@@ -93,14 +100,75 @@ class Sequence:
             log.error(f"Invalid procedure type: {procedure}")
             return
 
+        procedure_config = procedure_config or {}
+        if 'sequencer' in procedure_config:
+            cls.add_sequencer(procedure_class, procedure_config['sequencer'], procedure_config)
+            return
+
         cls.procedures.append(procedure_class)
-        cls.procedures_config.append(procedure_config or {})
+        cls.procedures_config.append(procedure_config)
+
+    @classmethod
+    def add_sequencer(
+        cls,
+        procedure_class: type[Procedure],
+        sequencer_str: str,
+        procedure_config: MutableMapping[str, Any] | None = None,
+    ) -> None:
+        """Processes a Procedure with a Sequencer input and adds the corresponding
+        iterations of that Procedure to the sequence.
+
+        A Sequencer input is a string that allows for multiple iterations of a
+        Procedure to be added to the sequence, with different parameters for each
+        one.
+
+        :param procedure: Procedure name, class or configuration
+        :param sequencer_str: String with the sequencer input
+        :param procedure_config: Configuration for the procedure
+        :param types_dict: Dictionary mapping procedure names to classes.
+            Default is the procedures dictionary from the config.
+        """
+        sequence_handler = SequenceHandler(
+            valid_inputs=cls._get_procedure_inputs(procedure_class),
+            file_obj=StringIO(sequencer_str)
+        )
+        params_sequence = sequence_handler.parameters_sequence()
+        params_list = [dict(ChainMap(*params_sequence[i][::-1]))
+                       for i in range(len(params_sequence))]
+        for params in params_list:
+            _procedure_config = deepcopy(procedure_config or {})
+            _procedure_config.setdefault('parameters', {})
+            for param in params:
+                _procedure_config['parameters'].setdefault(param, {})
+                _procedure_config['parameters'][param]['value'] = params[param]
+
+            cls.procedures.append(procedure_class)
+            cls.procedures_config.append(_procedure_config)
 
     def _queue_procedures(self):
         """Queue all procedures in the sequence."""
         for proc_class, proc_config in zip(self.procedures, self.procedures_config):
             procedure = proc_class(**proc_config)
             self.queue.append(procedure)
+
+    @staticmethod
+    def _get_procedure_inputs(procedure_class: type[Procedure]) -> list[str]:
+        """Get the input names for the given procedure class. If the class has no
+        INPUTS attribute, it will return all inputs.
+
+        :param procedure_class: The procedure class to get the inputs for.
+        :return: A list of input names.
+        """
+        if getattr(procedure_class, 'INPUTS', None) is not None:
+            inputs = procedure_class.INPUTS
+
+        else:
+            inputs = [
+                p for p in vars(procedure_class)
+                if isinstance(getattr(procedure_class, p), (Parameter, Metadata))
+            ]
+
+        return inputs
 
     def __contains__(self, item):
         return item in self.queue

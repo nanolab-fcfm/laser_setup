@@ -28,6 +28,7 @@ MainSequence:
 TestSequence:
   name: Test Sequence
   description: Runs FakeProcedure, Wait
+  common_procedure: ${class:laser_setup.procedures.ChipProcedure}
   procedures:
   - FakeProcedure
   - Wait
@@ -35,6 +36,7 @@ TestSequence:
 ItMadness:
   name: It Madness
   description: Runs IVg, It with a range of target_T, IVg
+  common_procedure: ${class:laser_setup.procedures.ChipProcedure}
   procedures:
   - IVg:
       parameters:
