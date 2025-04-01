@@ -20,7 +20,7 @@ class Time(Procedure):
     def startup(self):
         log.info("Setting up instruments")
         try:
-            self.meter = Keithley2450(CONFIG['Adapters']['keithley2450'])
+            self.meter = Keithley2450(CONFIG.instruments.Keithley2450.adapter)
         except ValueError:
             log.error("Could not connect to instruments")
             raise

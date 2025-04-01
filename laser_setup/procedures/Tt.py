@@ -19,9 +19,9 @@ class Tt(BaseProcedure):
 
     instruments = InstrumentManager()
     temperature_sensor = instruments.queue(
-        PT100SerialSensor, CONFIG['Adapters']['pt100_port'], includeSCPI=False
+        PT100SerialSensor, CONFIG.instruments.PT100SerialSensor.adapter, includeSCPI=False
     )
-    clicker = instruments.queue(Clicker, CONFIG['Adapters']['clicker'])
+    clicker = instruments.queue(Clicker, CONFIG.instruments.Clicker.adapter)
 
     sampling_t = Parameters.Control.sampling_t
 

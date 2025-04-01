@@ -22,12 +22,12 @@ class IVg(ChipProcedure):
     name = 'I vs Vg'
 
     instruments = InstrumentManager()
-    meter = instruments.queue(Keithley2450, CONFIG['Adapters']['keithley2450'])
-    tenma_neg = instruments.queue(TENMA, CONFIG['Adapters']['tenma_neg'])
-    tenma_pos = instruments.queue(TENMA, CONFIG['Adapters']['tenma_pos'])
-    tenma_laser = instruments.queue(TENMA, CONFIG['Adapters']['tenma_laser'])
+    meter = instruments.queue(Keithley2450, CONFIG.instruments.Keithley2450.adapter)
+    tenma_neg = instruments.queue(TENMA, CONFIG.instruments.TENMANEG.adapter)
+    tenma_pos = instruments.queue(TENMA, CONFIG.instruments.TENMAPOS.adapter)
+    tenma_laser = instruments.queue(TENMA, CONFIG.instruments.TENMALASER.adapter)
     temperature_sensor = instruments.queue(
-        PT100SerialSensor, CONFIG['Adapters']['pt100_port']
+        PT100SerialSensor, CONFIG.instruments.PT100SerialSensor.adapter
     )
 
     # Important Parameters

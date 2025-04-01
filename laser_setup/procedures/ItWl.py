@@ -19,10 +19,10 @@ class ItWl(ChipProcedure):
     name = 'I vs t (Wl)'
 
     instruments = InstrumentManager()
-    meter = instruments.queue(Keithley2450, CONFIG['Adapters']['keithley2450'])
-    tenma_neg = instruments.queue(TENMA, CONFIG['Adapters']['tenma_neg'])
-    tenma_pos = instruments.queue(TENMA, CONFIG['Adapters']['tenma_pos'])
-    light_source = instruments.queue(Bentham, CONFIG['Adapters']['light_source'])
+    meter = instruments.queue(Keithley2450, CONFIG.instruments.Keithley2450.adapter)
+    tenma_neg = instruments.queue(TENMA, CONFIG.instruments.TENMANEG.adapter)
+    tenma_pos = instruments.queue(TENMA, CONFIG.instruments.TENMAPOS.adapter)
+    light_source = instruments.queue(Bentham, CONFIG.instruments.Bentham.adapter)
 
     # Important Parameters
     vds = Parameters.Control.vds

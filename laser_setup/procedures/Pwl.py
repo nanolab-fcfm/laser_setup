@@ -18,8 +18,8 @@ class Pwl(BaseProcedure):
     name = 'P vs wl'
 
     instruments = InstrumentManager()
-    power_meter = instruments.queue(ThorlabsPM100USB, CONFIG['Adapters']['power_meter'])
-    light_source = instruments.queue(Bentham, CONFIG['Adapters']['light_source'])
+    power_meter = instruments.queue(ThorlabsPM100USB, CONFIG.instruments.ThorlabsPM100USB.adapter)
+    light_source = instruments.queue(Bentham, CONFIG.instruments.Bentham.adapter)
 
     # Parameters
     wl_start = Parameters.Laser.wl_start
