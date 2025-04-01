@@ -267,7 +267,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
 
         self.log = logging.getLogger('laser_setup')
-        self.log.setLevel(CONFIG.Logging.console_level)
         self.log.addHandler(self.log_widget.handler)
 
         log_action = view_menu.addAction('Logs', partial(self.open_widget, self.log_widget, 'Logs'))

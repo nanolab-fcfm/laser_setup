@@ -8,7 +8,6 @@ from typing import Any, Callable, Protocol, TypeVar, runtime_checkable
 from omegaconf import DictConfig, OmegaConf
 
 from .. import __version__
-from .config import CONFIG
 from .utils import instantiate
 
 log = logging.getLogger(__name__)
@@ -22,6 +21,7 @@ class CLIArguments:
 
 
 def get_parser():
+    from .config import CONFIG
     parser = argparse.ArgumentParser(description='Laser Setup')
     parser.add_argument('procedure', nargs='?', help='Procedure to run',
                         choices={*CONFIG.procedures} | {*CONFIG.scripts})
@@ -155,6 +155,7 @@ def _get_config_dict(
     :param error_ok: Whether to ignore errors during instantiation
     :return: Configuration dictionary
     """
+    from .config import CONFIG
     try:
         return instantiate(OmegaConf.select(CONFIG, config_key, default=default))
 

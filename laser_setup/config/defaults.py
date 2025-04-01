@@ -6,7 +6,9 @@ from typing import Any
 from omegaconf import MISSING
 
 from ..display.Qt import QtWidgets
+from .log import default_log_config
 from .parameters import ParameterCatalog
+from .parser import CLIArguments
 
 
 class DefaultPaths:
@@ -211,14 +213,6 @@ class FilenameConfig:
 
 
 @dataclass
-class LoggingConfig:
-    console: bool = field(default=True, metadata={'title': 'Console'})
-    console_level: str = field(default='INFO', metadata={'title': 'Console level'})
-    filename: str = field(default=DefaultPaths.logs, metadata={'title': 'Filename', 'type': 'file'})
-    file_level: str = field(default='INFO', metadata={'title': 'File level'})
-
-
-@dataclass
 class TelegramConfig:
     token: str | None = field(default='', metadata={'title': 'Token'})
     chat_ids: list[str] = field(default_factory=list, metadata={'title': 'Chat IDs'})
@@ -226,8 +220,8 @@ class TelegramConfig:
 
 @dataclass
 class SessionConfig:
-    args: dict[str, Any] = field(
-        default_factory=dict,
+    args: CLIArguments = field(
+        default_factory=CLIArguments,
         metadata={'title': 'Command line arguments', 'readonly': True}
     )
     save_path: str = field(
@@ -246,7 +240,10 @@ class AppConfig:
     Adapters: AdapterConfig = field(default_factory=AdapterConfig, metadata={'expanded': False})
     Qt: QtConfig = field(default_factory=QtConfig)
     Filename: FilenameConfig = field(default_factory=FilenameConfig)
-    Logging: LoggingConfig = field(default_factory=LoggingConfig)
+    Logging: dict[str, Any] = field(
+        default_factory=lambda: default_log_config,
+        metadata={'title': 'Logging configuration'}
+    )
     matplotlib_rcParams: dict[str, str] = field(
         default_factory=lambda: {'axes.grid': 'True', 'figure.autolayout': 'True'},
         metadata={'title': 'Matplotlib rcParams'}
@@ -281,15 +278,15 @@ class AppConfig:
                 target='${function:laser_setup.cli.find_calibration_voltage.main}'
             ),
         },
-        metadata={'title': 'Scripts'}
+        metadata={'title': 'Scripts', 'readonly': True}
     )
     procedures: ProceduresConfig = field(
         default_factory=lambda: {'_types': {}},
-        metadata={'title': 'Procedures'}
+        metadata={'title': 'Procedures', 'readonly': True}
     )
     sequences: SequencesConfig = field(
         default_factory=lambda: {'_types': {}},
-        metadata={'title': 'Sequences'}
+        metadata={'title': 'Sequences', 'readonly': True}
     )
     _session: SessionConfig = field(
         default_factory=SessionConfig,

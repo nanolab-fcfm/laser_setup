@@ -1,3 +1,5 @@
+import logging
+
 from pymeasure.display.log import LogHandler
 from pymeasure.display.widgets import LogWidget
 from pymeasure.display.widgets.log_widget import HTMLFormatter
@@ -5,9 +7,28 @@ from pymeasure.display.widgets.log_widget import HTMLFormatter
 from ..Qt import QtGui, QtWidgets
 
 
+def get_log_config(
+    fmt: str = '%(asctime)s: [%(levelname)s] %(message)s (%(name)s)',
+    datefmt: str = '%I:%M:%S %p',
+) -> tuple[str, str]:
+    """Get the log format and dateformat for the log widgets.
+    Defaults to this module's default formats.
+    Falls back to the given arguments.
+
+    :param fmt: Format string for the log messages.
+    :param datefmt: Format string for the date in the log messages.
+    :return: Tuple of format and dateformat strings.
+    """
+    logger = logging.getLogger(__name__)
+    for handler in logger.handlers:
+        if handler.formatter is not None:
+            return handler.formatter._fmt, handler.formatter.datefmt
+
+    return fmt, datefmt
+
+
 class LogWidget(LogWidget):
-    fmt = '%(asctime)s: %(message)s (%(name)s, %(levelname)s)'
-    datefmt = '%I:%M:%S %p'
+    fmt, datefmt = get_log_config()
 
     tab_widget: QtWidgets.QTabWidget | None = None
     tab_index: int | None = None
@@ -39,8 +60,7 @@ class LogWidget(LogWidget):
 
 
 class LogsWidget(QtWidgets.QWidget):
-    fmt = '%(asctime)s: %(message)s (%(name)s, %(levelname)s)'
-    datefmt = '%I:%M:%S %p'
+    fmt, datefmt = get_log_config()
 
     def __init__(self, parent=None, **kwargs):
         super().__init__(parent=parent, **kwargs)

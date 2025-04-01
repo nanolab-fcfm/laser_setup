@@ -162,12 +162,44 @@ Filename:
   datetimeformat: "%Y-%m-%d"
 
 
+############################################
+# Logging configuration
+############################################
+
+
 Logging:
   # Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
-  console: true
-  console_level: INFO
-  filename: ./log/std.log
-  file_level: INFO
+  version: 1
+  disable_existing_loggers: False
+  formatters:
+    console:
+      '()': ${class:laser_setup.config.log.ColoredFormatter}
+      format: '%(asctime)s: [%(levelname)s] %(message)s (%(name)s)'
+      datefmt: '%I:%M:%S %p'
+    file:
+      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  handlers:
+      console:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: console
+      file:
+        class: logging.FileHandler
+        level: DEBUG
+        formatter: file
+        filename: log/laser_setup.log
+        mode: a
+        encoding: null
+  loggers:
+      root:
+          level: INFO
+          handlers: ['file']
+      laser_setup:
+          level: INFO
+          handlers: ['console']
+      pymeasure.log:
+          level: WARNING
 
 
 matplotlib_rcParams:
