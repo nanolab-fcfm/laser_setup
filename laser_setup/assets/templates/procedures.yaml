@@ -1,5 +1,5 @@
 # Override parameter defaults and Procedure instance attributes here.
-# Make sure that key names match the Procedure.__class__.__name__ attribute.
+# Make sure that key names match the type(procedure).__name__ attribute.
 
 It:
   name: I vs t

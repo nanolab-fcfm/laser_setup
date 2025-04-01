@@ -102,14 +102,14 @@ class ExperimentWindow(ManagedWindowBase):
         self.log = logging.getLogger()
         self.log.addHandler(self.log_widget.handler)
         self.log.setLevel(CONFIG.Logging.console_level)
-        self.log.info(f"{self.__class__.__name__} connected to logging")
+        self.log.info(f"{type(self).__name__} connected to logging")
 
     def queue(self, procedure: type[Procedure] | None = None):
         if procedure is None:
             procedure = self.make_procedure()
 
         filename_kwargs: dict = dict(CONFIG.Filename).copy()
-        prefix = filename_kwargs.pop('prefix', '') or procedure.__class__.__name__
+        prefix = filename_kwargs.pop('prefix', '') or type(procedure).__name__
         filename = unique_filename(CONFIG.Dir.data_dir,
                                    prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")

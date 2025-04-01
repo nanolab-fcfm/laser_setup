@@ -139,7 +139,7 @@ class BaseProcedure(Procedure):
         @wraps(method)
         def wrapper(*args, **kwargs):
             if getattr(self, flag_name, False):
-                log.info(f"Skipping {method.__name__} for {self.__class__.__name__}")
+                log.info(f"Skipping {method.__name__} for {type(self).__name__}")
                 return fallback(*args, **kwargs) if callable(fallback) else fallback
 
             return method(*args, **kwargs)
@@ -172,7 +172,7 @@ class ChipProcedure(BaseProcedure):
     def shutdown(self):
         if not self.should_stop() and self.status >= self.RUNNING:
             send_telegram_alert(
-                f"Finished {self.__class__.__name__} measurement for Chip "
+                f"Finished {type(self).__name__} measurement for Chip "
                 f"{self.chip_group} {self.chip_number}, Sample {self.sample}!"
             )
 

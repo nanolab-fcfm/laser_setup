@@ -103,7 +103,7 @@ class FakeIVg(IVg):
 
         # Set the Vg ramp and the measuring loop
         self.vg_ramp = voltage_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
-        self.__class__.DATA[0] = list(self.vg_ramp)
+        type(self).DATA[0] = list(self.vg_ramp)
         for i, vg in enumerate(self.vg_ramp):
             if self.should_stop():
                 log.warning('Measurement aborted')
@@ -118,22 +118,22 @@ class FakeIVg(IVg):
 
             current = self.meter.current + np.random.normal(0, 1e-7) + 1e-9*vg**2
 
-            self.__class__.DATA[1].append(current)
+            type(self).DATA[1].append(current)
             self.emit(
                 'results',
-                dict(zip(self.DATA_COLUMNS, [vg, self.__class__.DATA[1][-1]]))
+                dict(zip(self.DATA_COLUMNS, [vg, type(self).DATA[1][-1]]))
             )
 
     def shutdown(self):
-        self.__class__.DATA = [[], []]
+        type(self).DATA = [[], []]
         super().shutdown()
 
     def get_estimates(self):
         """Estimate the Dirac Point.
         """
         try:
-            x = np.array(self.__class__.DATA[0])
-            y = np.array(self.__class__.DATA[1])
+            x = np.array(type(self).DATA[0])
+            y = np.array(type(self).DATA[1])
             if x.size == 0 or y.size == 0:
                 raise ValueError("Data is empty")
 
