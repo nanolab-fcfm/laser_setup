@@ -32,8 +32,8 @@ class ConfigHandler:
         config: AppConfig | DictConfig | None = None
     ):
         self.config = config or self.load_config()
-        self.save_path = Path(self.config._session['save_path'])
-        self.config_path_used = self.config._session['config_path_used']
+        self.save_path = Path(self.config._session.save_path)
+        self.config_path_used = self.config._session.config_path_used
 
         self.app = make_app()
         if parent is None:

@@ -6,8 +6,7 @@ from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
 
-from ...config import CONFIG
-from ...parser import configurable
+from ...config import CONFIG, configurable
 from ...procedures import BaseProcedure
 from ..Qt import QtCore, QtGui, QtWidgets
 from ..widgets import LogWidget, TextWidget

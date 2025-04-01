@@ -7,18 +7,18 @@ from typing import Any, Callable, Protocol, TypeVar, runtime_checkable
 
 from omegaconf import DictConfig, OmegaConf
 
-from . import __version__
-from .config import CONFIG, instantiate
+from .. import __version__
+from .config import CONFIG
+from .utils import instantiate
 
 log = logging.getLogger(__name__)
 
 
 @dataclass
-class Arguments:
+class CLIArguments:
     """Dataclass to hold command line arguments."""
     procedure: str | None = None
     debug: bool = False
-    version: str | None = None
 
 
 def get_parser():
@@ -34,11 +34,11 @@ def get_parser():
     return parser
 
 
-def get_args() -> Arguments:
+def get_args() -> CLIArguments:
     """Parse command line arguments and return them as a dataclass."""
     parser = get_parser()
     args, _ = parser.parse_known_args()
-    return Arguments(**vars(args))
+    return CLIArguments(**vars(args))
 
 
 T = TypeVar('T')

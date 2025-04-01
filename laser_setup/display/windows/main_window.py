@@ -9,10 +9,9 @@ from typing import Callable
 from pymeasure.experiment import Procedure
 
 from ...cli import parameters_to_db
-from ...config import ConfigHandler, CONFIG
+from ...config import ConfigHandler, CONFIG, configurable
 from ...config.defaults import ProceduresConfig, SequencesConfig, ScriptsConfig
 from ...instruments import InstrumentManager, Instruments
-from ...parser import configurable
 from ...procedures import Sequence
 from ...utils import get_status_message
 from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker

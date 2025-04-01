@@ -3,7 +3,7 @@ import time
 from functools import partial
 from typing import Literal
 
-from ...parser import configurable
+from ...config import configurable
 from ...patches import Status
 from ...procedures import Sequence
 from ..Qt import QtCore, QtGui, QtWidgets

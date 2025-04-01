@@ -1,11 +1,9 @@
-from .config import CONFIG, instantiate
+from .config import CONFIG, get_args, instantiate
 from .display.app import display_window
-from .parser import get_args
 
 
 def main():
     args = get_args()
-
     CONFIG._session.args = vars(args)
 
     if args.procedure is None:

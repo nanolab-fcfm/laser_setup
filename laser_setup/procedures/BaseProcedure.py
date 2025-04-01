@@ -7,10 +7,9 @@ from typing import Any
 from pymeasure.experiment import (BooleanParameter, Metadata, Parameter,
                                   Procedure)
 
-from ..config import CONFIG
+from ..config import CONFIG, configurable
 from ..instruments import InstrumentManager
 from ..parameters import Parameters
-from ..parser import configurable
 from ..utils import send_telegram_alert
 
 log = logging.getLogger(__name__)

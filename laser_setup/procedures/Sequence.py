@@ -8,8 +8,7 @@ from typing import Any, ClassVar
 from pymeasure.experiment import Metadata, Parameter, Procedure
 from pymeasure.experiment.sequencer import SequenceHandler
 
-from ..config import CONFIG, instantiate
-from ..parser import configurable
+from ..config import CONFIG, instantiate, configurable
 from ..patches import Status
 
 log = logging.getLogger(__name__)

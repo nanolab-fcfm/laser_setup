@@ -1,31 +1,30 @@
-from omegaconf import OmegaConf
+"""Module for loading and handling configuration. This includes loading config
+files, setting up logging, and creating the Argument Parser.
+"""
+import logging
+from pathlib import Path
 
+from pymeasure.experiment.config import set_mpl_rcparams
+from pymeasure.log import setup_logging
+
+from .config import CONFIG
 from .defaults import DefaultPaths
 from .handler import ConfigHandler
 from .parameters import ParameterCatalog
+from .parser import Configurable, configurable, get_args
 from .utils import get_type, instantiate, load_yaml, safeget, save_yaml
 
-OmegaConf.register_new_resolver(
-    "class", lambda x: {'_target_': 'hydra.utils.get_class', 'path': x}
-)
-OmegaConf.register_new_resolver(
-    "function", lambda x: {'_target_': 'hydra.utils.get_method', 'path': x}
-)
-OmegaConf.register_new_resolver(
-    "sequence", lambda x: {
-        '_target_': 'laser_setup.config.get_type',
-        'name': x,
-        'bases': ({
-            '_target_': 'hydra.utils.get_class',
-            'path': 'laser_setup.procedures.Sequence'
-        },),
-        'module': 'laser_setup.sequences'
-    }
-)
+# Setup logging
+log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
-CONFIG = ConfigHandler.load_config()
-CONFIG.parameters = load_yaml(
-    CONFIG.Dir.parameters_file, ParameterCatalog, flags={'allow_objects': True}
-)
-CONFIG.procedures = load_yaml(CONFIG.Dir.procedures_file, flags={'allow_objects': True})
-CONFIG.sequences = load_yaml(CONFIG.Dir.sequences_file, flags={'allow_objects': True})
+if CONFIG.Logging.filename:
+    Path(CONFIG.Logging.filename).parent.mkdir(parents=True, exist_ok=True)
+
+setup_logging(log, **CONFIG.Logging)
+
+log.info(f"Using config file: {Path(CONFIG._session.config_path_used).as_posix()}")
+
+# Setup matplotlib.rcParams from config
+_rcparams = {'matplotlib.rcParams': CONFIG.matplotlib_rcParams}
+set_mpl_rcparams(type('rcParams', (), {'_sections': _rcparams}))
