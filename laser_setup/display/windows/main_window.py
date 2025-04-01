@@ -75,10 +75,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.menu_bar = self.create_menu_bar()
         self.status_bar = self.statusBar()
 
-        thread = QtCore.QThread(parent=self)
-        worker = Worker(get_status_message, thread)
-        worker.finished.connect(lambda msg: self.status_bar.showMessage(msg, 3000))
-        thread.start()
+        self._thread = QtCore.QThread(parent=self)
+        self._worker = Worker(get_status_message, self._thread)
+        self._worker.finished.connect(lambda msg: self.status_bar.showMessage(msg, 3000))
+        self._thread.start()
 
         # README Widget
         readme = QtWidgets.QTextBrowser(parent=self)
