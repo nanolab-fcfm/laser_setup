@@ -29,23 +29,23 @@ class DefaultPaths:
 @dataclass
 class DirConfig:
     global_config_file: str = field(
-        default=os.getenv('CONFIG') or DefaultPaths.user_config.as_posix(),
+        default=os.getenv('CONFIG') or DefaultPaths.user_config,
         metadata={'title': 'Global configuration file', 'readonly': True}
     )
     local_config_file: str = field(
-        default=DefaultPaths.user_config.as_posix(),
+        default=DefaultPaths.user_config,
         metadata={'title': 'Local configuration file', 'readonly': True}
     )
     parameters_file: str = field(
-        default=DefaultPaths.parameters.as_posix(),
+        default=DefaultPaths.parameters,
         metadata={'title': 'Parameters file', 'type': 'file'}
     )
     procedures_file: str = field(
-        default=DefaultPaths.procedures.as_posix(),
+        default=DefaultPaths.procedures,
         metadata={'title': 'Procedures file', 'type': 'file'}
     )
     sequences_file: str = field(
-        default=DefaultPaths.sequences.as_posix(),
+        default=DefaultPaths.sequences,
         metadata={'title': 'Sequences file', 'type': 'file'}
     )
     data_dir: str = field(
@@ -89,7 +89,7 @@ class GUIConfig:
         metadata={'title': 'Font size', 'type': 'int'}
     )
     splash_image: str = field(
-        default=DefaultPaths.splash.as_posix(),
+        default=DefaultPaths.splash,
         metadata={'title': 'Splash image', 'type': 'file'}
     )
 
@@ -231,7 +231,7 @@ class SessionConfig:
         metadata={'title': 'Command line arguments', 'readonly': True}
     )
     save_path: str = field(
-        default=DefaultPaths.user_config.as_posix(),
+        default=DefaultPaths.user_config,
         metadata={'title': 'Save path', 'type': 'file'}
     )
     config_path_used: str = field(

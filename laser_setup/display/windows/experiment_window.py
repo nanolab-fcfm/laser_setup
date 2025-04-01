@@ -100,8 +100,7 @@ class ExperimentWindow(ManagedWindowBase):
 
         self.log = logging.getLogger()
         self.log.addHandler(self.log_widget.handler)
-        self.log.setLevel(CONFIG.Logging.console_level)
-        self.log.info(f"{type(self).__name__} connected to logging")
+        self.log.debug(f"{type(self).__name__} connected to logging")
 
     def queue(self, procedure: type[Procedure] | None = None):
         if procedure is None:
@@ -132,7 +131,8 @@ class ExperimentWindow(ManagedWindowBase):
                 event.ignore()
                 return
 
-            self.manager.abort()
+            if self.manager.is_running():  # Check again in case the user took too long
+                self.manager.abort()
             if issubclass(self.procedure_class, BaseProcedure):
                 self.procedure_class.instruments.shutdown_all()
             time.sleep(0.5)

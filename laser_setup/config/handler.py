@@ -89,7 +89,7 @@ class ConfigHandler:
         shutil.copytree(
             DefaultPaths.templates, templates_dir, dirs_exist_ok=True
         )
-        log.info(f'Copied templates to {templates_dir.as_posix()}')
+        log.info(f'Copied templates to {templates_dir}')
 
     def init_config(self, exist_ok: bool = True) -> Path | None:
         """Initiliaze the configuration files by copying the template files to the
@@ -99,7 +99,7 @@ class ConfigHandler:
         """
         if self.config_exists():
             if not exist_ok:
-                log.info(f'Config found at {self.save_path.as_posix()}. Skipping.')
+                log.info(f'Config found at {self.save_path}. Skipping.')
 
             return self.save_path
 
@@ -145,7 +145,7 @@ class ConfigHandler:
             global_config_path.write_text(text)
 
         _yaml = load_yaml(global_config_path)
-        _yaml['Dir']['local_config_file'] = load_path.as_posix()
+        _yaml['Dir']['local_config_file'] = load_path
         save_yaml(_yaml, global_config_path)
         log.info(f'Switched to config file {load_path}')
 
@@ -179,4 +179,4 @@ class ConfigHandler:
 
         self.save_path.parent.mkdir(parents=True, exist_ok=True)
         save_yaml(config_container, self.save_path, **kwargs)
-        log.info(f'Config saved to {self.save_path.as_posix()}')
+        log.info(f'Config saved to {self.save_path}')
