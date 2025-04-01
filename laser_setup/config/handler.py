@@ -41,6 +41,13 @@ class ConfigHandler:
 
         self.parent = parent
 
+    def config_exists(self) -> bool:
+        """Check if the configuration file exists.
+
+        :return: True if the configuration file exists locally.
+        """
+        return self.config_path_used != 'default'
+
     @staticmethod
     def load_config(
         lookup: list[tuple[str, str]] | None = None,
@@ -70,49 +77,39 @@ class ConfigHandler:
                     config = OmegaConf.merge(config, new_config)
                     config_path_used = config_path
 
-        config._session = {
-            'config_path_used': config_path_used,
-            'save_path': config_path
-        }
+        config._session.config_path_used = config_path_used
+        config._session.save_path = config_path
+
         return config
 
-    def init_config(self, verbose=True):
+    def init_templates(self) -> None:
+        """Paste the template files to the config directory."""
+        self.save_path.parent.mkdir(parents=True, exist_ok=True)
+        templates_dir = self.save_path.parent / 'templates'
+        shutil.copytree(
+            DefaultPaths.templates, templates_dir, dirs_exist_ok=True
+        )
+        log.info(f'Copied templates to {templates_dir.as_posix()}')
+
+    def init_config(self, exist_ok: bool = True) -> Path | None:
         """Initiliaze the configuration files by copying the template files to the
         selected directory.
 
         :param verbose: Whether to print information messages or not.
         """
-        if self.config_path_used != 'default':
-            if verbose:
-                log.info(f'Config found at {self.save_path.as_posix()}. Skipping initialization.')
+        if self.config_exists():
+            if not exist_ok:
+                log.info(f'Config found at {self.save_path.as_posix()}. Skipping.')
 
             return self.save_path
 
-        title = 'Create new config?'
-        desc = 'No configuration found. Create new config directory?'
-
-        try:
-            create_config = self.parent.question_box(title, desc)
-        except AttributeError:
-            log.info(desc)
-            create_config = (input(f'{title} (Y/n): ').lower() in ['y', ''])
-
-        if not create_config:
-            log.warning('Cannot edit settings without a config file.')
-            return
-
-        self.save_path.parent.mkdir(parents=True, exist_ok=True)
-
-        shutil.copytree(
-            DefaultPaths.templates, self.save_path.parent / 'templates', dirs_exist_ok=True
-        )
         shutil.copy(DefaultPaths.new_config, self.save_path)
-
         log.info(f'Copied config files to {self.save_path.parent}')
+
         return self.save_path / 'config.yaml'
 
     def edit_config(self):
-        save_path = self.init_config(verbose=False)
+        save_path = self.init_config(exist_ok=True)
         try:
             if os.name == 'nt':
                 os.startfile(save_path)

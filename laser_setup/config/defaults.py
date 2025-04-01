@@ -225,6 +225,22 @@ class TelegramConfig:
 
 
 @dataclass
+class SessionConfig:
+    args: dict[str, Any] = field(
+        default_factory=dict,
+        metadata={'title': 'Command line arguments', 'readonly': True}
+    )
+    save_path: str = field(
+        default=DefaultPaths.user_config.as_posix(),
+        metadata={'title': 'Save path', 'type': 'file'}
+    )
+    config_path_used: str = field(
+        default='default',
+        metadata={'title': 'Configuration path used', 'readonly': True}
+    )
+
+
+@dataclass
 class AppConfig:
     Dir: DirConfig = field(default_factory=DirConfig, metadata={'title': 'Directories'})
     Adapters: AdapterConfig = field(default_factory=AdapterConfig, metadata={'expanded': False})
@@ -246,29 +262,36 @@ class AppConfig:
         default_factory=lambda: {
             'init': MenuItemConfig(
                 name='Init Config',
-                target='${function:laser_setup.cli.init_config.init_config}',
-            )
+                target='${function:laser_setup.cli.init_config.init_config}'
+            ),
+            'setup_adapters': MenuItemConfig(
+                name="Set up Adapters",
+                target='${function:laser_setup.cli.setup_adapters.setup}'
+            ),
+            'get_updates': MenuItemConfig(
+                name="Get updates",
+                target='${function:laser_setup.cli.get_updates.main}'
+            ),
+            'parameters_to_db': MenuItemConfig(
+                name="Parameters to Database",
+                target='${function:laser_setup.cli.parameters_to_db.main}'
+            ),
+            'find_calibration_voltage': MenuItemConfig(
+                name="Find calibration voltage",
+                target='${function:laser_setup.cli.find_calibration_voltage.main}'
+            ),
         },
         metadata={'title': 'Scripts'}
     )
     procedures: ProceduresConfig = field(
-        default_factory=lambda: {
-            'FakeProcedure': MenuItemConfig(
-                name='Fake Procedure',
-                target='${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
-            )
-        },
+        default_factory=lambda: {'_types': {}},
         metadata={'title': 'Procedures'}
     )
     sequences: SequencesConfig = field(
-        default_factory=lambda: {
-            'TestSequence': {
-                'procedures': [
-                    '${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
-                    '${class:laser_setup.procedures.Wait}'
-                ]
-            }
-        },
+        default_factory=lambda: {'_types': {}},
         metadata={'title': 'Sequences'}
     )
-    _session: dict = field(default_factory=dict, metadata={'title': 'Session', 'readonly': True})
+    _session: SessionConfig = field(
+        default_factory=SessionConfig,
+        metadata={'title': 'Session', 'readonly': True}
+    )
