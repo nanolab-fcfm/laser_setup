@@ -1,6 +1,6 @@
 import logging
 from collections import ChainMap
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from copy import deepcopy
 from io import StringIO
 from typing import Any, ClassVar
@@ -35,8 +35,8 @@ class Sequence:
     description: ClassVar[str] = ""
     common_procedure: ClassVar[type[Procedure]] = Procedure
     inputs_ignored: ClassVar[list[str]] = []
-    procedures: list[type[Procedure]] = []
-    procedures_config: list[MutableMapping[str, Any]] = []
+    procedures: ClassVar[list[type[Procedure]]] = []
+    procedures_config: ClassVar[list[MutableMapping[str, Any]]] = []
     queue: list[Procedure] = []
 
     def __init__(self, **kwargs):
@@ -71,7 +71,7 @@ class Sequence:
         cls,
         procedure: str | type[Procedure],
         procedure_config: MutableMapping[str, Any] | None = None,
-        types_dict: MutableMapping[str, type[Procedure]] = instantiate(CONFIG.procedures._types)
+        types_dict: Mapping[str, type[Procedure]] = instantiate(CONFIG.procedures._types)
     ) -> None:
         """Process a procedure item and add it to the sequence.
 

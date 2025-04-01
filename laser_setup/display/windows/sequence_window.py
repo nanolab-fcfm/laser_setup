@@ -54,7 +54,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         self.procedure_status: list[Status] = []
         self.item_data: list[dict[str, QtWidgets.QLabel]] = []
 
-        self.resize(240 * (len(self.sequence_class.procedures) + 1), 480)
+        self.resize(240 * (len(cls.procedures) + 1), 480)
         _title = title or cls.name or cls.__name__
         self.setWindowTitle(
             (_title + f" ({cls.description})") if cls.description else _title
@@ -77,10 +77,10 @@ class SequenceWindow(QtWidgets.QMainWindow):
         for i, proc in enumerate(cls.procedures):
             layout.addLayout(self._build_item_layout(proc.__name__, i))
 
-            proc_inputs = cls._get_procedure_inputs(proc)
-            for input in base_inputs:
-                if input in proc_inputs:
-                    proc_inputs.remove(input)
+            proc_inputs = [
+                i for i in cls._get_procedure_inputs(proc)
+                if i not in base_inputs
+            ]
 
             procedure = cls.procedures[i](**cls.procedures_config[i])
             widget = _InputsWidget(procedure=procedure, inputs=proc_inputs)

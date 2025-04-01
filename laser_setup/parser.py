@@ -1,6 +1,7 @@
 """Module to parse CLI arguments"""
 import argparse
 import logging
+from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable, Protocol, TypeVar, runtime_checkable
 
@@ -10,6 +11,14 @@ from . import __version__
 from .config import CONFIG, instantiate
 
 log = logging.getLogger(__name__)
+
+
+@dataclass
+class Arguments:
+    """Dataclass to hold command line arguments."""
+    procedure: str | None = None
+    debug: bool = False
+    version: str | None = None
 
 
 def get_parser():
@@ -23,6 +32,13 @@ def get_parser():
                         default=False, help='Enable debug mode')
 
     return parser
+
+
+def get_args() -> Arguments:
+    """Parse command line arguments and return them as a dataclass."""
+    parser = get_parser()
+    args, _ = parser.parse_known_args()
+    return Arguments(**vars(args))
 
 
 T = TypeVar('T')
