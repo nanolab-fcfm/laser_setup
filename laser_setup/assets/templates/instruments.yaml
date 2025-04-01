@@ -49,8 +49,14 @@ ThorlabsPM100USB:
 PT100SerialSensor:
   adapter: COM8
   alias: pt100_port
-  IDN:
+  IDN: ROSATECH,TSN100,P0000002,1.0.1
   target: ${class:laser_setup.instruments.serial.PT100SerialSensor}
+
+Clicker:
+  adapter: COM8
+  alias: clicker
+  IDN: ROSATECH,CLK100,P0000003,1.0.0
+  target: ${class:laser_setup.instruments.serial.Clicker}
 
 # {'path': b'\\\\?\\HID#MSFT0001&Col01#5&1fa4e1d8&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}',
 #'vendor_id': 1739,

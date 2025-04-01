@@ -9,7 +9,7 @@ log = logging.getLogger()
 
 
 def main():
-    port = CONFIG['Adapters']['pt100_port']
+    port = CONFIG.instruments.PT100SerialSensor.adapter
     try:
         sensor = PT100SerialSensor(port=port)
         log.info("Instrument connected successfully.")

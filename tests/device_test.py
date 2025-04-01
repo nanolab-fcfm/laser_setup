@@ -7,7 +7,7 @@ def test_devices():
     rm = pyvisa.ResourceManager()
     devices = rm.list_resources()
     # Add warnings if devices are not found
-    if CONFIG['Adapters']['keithley2450'] not in devices:
+    if CONFIG.instruments.Keithley2450.adapter not in devices:
         warnings.warn(f'Keithley 2450 not found (Adapter = {CONFIG["Adapters"]["keithley2450"]})')
     return devices
 

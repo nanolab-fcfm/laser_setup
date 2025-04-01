@@ -19,8 +19,8 @@ class Pt(BaseProcedure):
     name = 'P vs t'
 
     instruments = InstrumentManager()
-    power_meter = instruments.queue(ThorlabsPM100USB, CONFIG['Adapters']['power_meter'])
-    tenma_laser = instruments.queue(TENMA, CONFIG['Adapters']['tenma_laser'])
+    power_meter = instruments.queue(ThorlabsPM100USB, CONFIG.instruments.ThorlabsPM100USB.adapter)
+    tenma_laser = instruments.queue(TENMA, CONFIG.instruments.TENMALASER.adapter)
 
     # Important Parameters
     laser_wl = Parameters.Laser.laser_wl

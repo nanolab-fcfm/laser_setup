@@ -57,11 +57,11 @@ def _setup(parent=None):
 
     is_keithley = False
     if 'keithley2450' not in CONFIG['Adapters'] or not keithley_exists(
-        CONFIG['Adapters']['keithley2450']
+        CONFIG.instruments.Keithley2450.adapter
     ):
         for dev in devices:
             if 'USB0::0x05E6::0x2450' in dev and keithley_exists(dev):
-                CONFIG['Adapters']['keithley2450'] = dev
+                CONFIG.instruments.Keithley2450.adapter = dev
                 is_keithley = True
                 break
 
