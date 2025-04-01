@@ -28,3 +28,6 @@ CONFIG.parameters = load_yaml(
 )
 CONFIG.procedures = load_yaml(CONFIG.Dir.procedures_file, flags={'allow_objects': True})
 CONFIG.sequences = load_yaml(CONFIG.Dir.sequences_file, flags={'allow_objects': True})
+CONFIG.instruments = load_yaml(
+    CONFIG.Dir.instruments_file, flags={'allow_objects': True}
+)

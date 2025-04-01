@@ -50,6 +50,10 @@ class DirConfig:
         default=DefaultPaths.sequences,
         metadata={'title': 'Sequences file', 'type': 'file'}
     )
+    instruments_file: str = field(
+        default=DefaultPaths.instruments,
+        metadata={'title': 'Instruments file', 'type': 'file'}
+    )
     data_dir: str = field(
         default='data',
         metadata={'title': 'Data directory', 'type': 'file'}
@@ -128,11 +132,22 @@ class ExperimentWindowConfig:
 class MenuItemConfig:
     name: str
     target: Any
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 ScriptsConfig = dict[str, MenuItemConfig]
 ProceduresConfig = dict[str, Any]
 SequencesConfig = dict[str, Any]
+
+
+@dataclass
+class InstrumentConfig:
+    adapter: str
+    target: Any | None = None
+    name: str | None = None
+    IDN: str | None = None
+    alias: str | None = None
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -287,6 +302,10 @@ class AppConfig:
     sequences: SequencesConfig = field(
         default_factory=lambda: {'_types': {}},
         metadata={'title': 'Sequences', 'readonly': True}
+    )
+    instruments: dict[str, InstrumentConfig] = field(
+        default_factory=dict,
+        metadata={'title': 'Instruments', 'readonly': True}
     )
     _session: SessionConfig = field(
         default_factory=SessionConfig,

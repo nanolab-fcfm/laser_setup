@@ -3,3 +3,6 @@
 
 Dir:
   local_config_file: ./config/config.yaml
+  procedures_file: ./config/procedures.yaml
+  sequences_file: ./config/sequences.yaml
+  instruments_file: ./config/instruments.yaml

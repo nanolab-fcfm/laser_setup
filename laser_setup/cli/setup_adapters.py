@@ -8,29 +8,6 @@ from ..instruments import TENMA, Keithley2450
 log = logging.getLogger(__name__)
 
 
-def list_resources():
-    """
-    Prints the available resources, and returns a list of VISA resource names
-    """
-    rm = pyvisa.ResourceManager()
-    instrs = rm.list_resources()
-    for n, instr in enumerate(instrs):
-        try:
-            res = rm.open_resource(instr)
-            try:
-                idn = res.query('*IDN?')[:-1]
-            except pyvisa.Error:
-                idn = "Unknown"
-            finally:
-                res.close()
-                print(n, ":", instr, ":", idn)
-        except pyvisa.VisaIOError as e:
-            print(n, ":", instr, ":", "Visa IO Error: check connections")
-            print(e)
-    rm.close()
-    return instrs
-
-
 def keithley_exists(adapter):
     try:
         K = Keithley2450(adapter)
@@ -68,7 +45,12 @@ def tenma_ping(adapter, tenmas: list, parent=None):
     return which_tenma
 
 
-def setup(parent=None):
+def setup(parent=None, visa_library=''):
+    from ..instruments.setup import setup as instrument_setup
+    instrument_setup(parent=parent, visa_library=visa_library)
+
+
+def _setup(parent=None):
     config_handler = ConfigHandler(config=CONFIG)
     rm = pyvisa.ResourceManager()
     devices = rm.list_resources()
