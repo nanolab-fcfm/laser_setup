@@ -106,12 +106,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.windows[cls] = ExperimentWindow(cls)
         self.windows[cls].show()
 
-    def run_script(self, f: Callable):
+    def run_script(self, f: Callable, **kwargs):
         """Runs the given script function in the main thread."""
         try:
-            f(parent=self)
+            f(parent=self, **kwargs)
         except TypeError:
-            f()
+            f(**kwargs)
         self.suggest_reload()
 
     def open_widget(self, widget: QtWidgets.QWidget, title: str):
@@ -248,7 +248,7 @@ class MainWindow(QtWidgets.QMainWindow):
             action = QtGui.QAction(item.name or func.__doc__, self)
             doc = sys.modules[func.__module__].__doc__ or ''
             doc = doc.replace('    ', '').strip()
-            action.triggered.connect(partial(self.run_script, func))
+            action.triggered.connect(partial(self.run_script, func, **item.kwargs))
             action.setToolTip(doc)
             action.setStatusTip(doc)
             action.setShortcut(f'Alt+{len(script_menu.actions()) + 1}')

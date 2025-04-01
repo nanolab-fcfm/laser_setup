@@ -17,7 +17,7 @@ def main():
     elif args.procedure in CONFIG.scripts:
         func = instantiate(CONFIG.scripts[args.procedure].target, level=1)
         if callable(func):
-            func()
+            func(**CONFIG.scripts[args.procedure].kwargs)
 
     else:
         # This should never happen
