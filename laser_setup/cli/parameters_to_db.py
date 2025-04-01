@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Set
 
-from ..config import config
+from ..config import CONFIG
 from ..utils import read_file_parameters, get_data_files
 
 log = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ def add_to_parameters_db(csv_file: Path, conn: sqlite3.Connection):
 
 def create_db(parent=None):
     csv_files = get_data_files()
-    new_db: Path = Path(config.Dir.data_dir) / config.Dir.database
+    new_db: Path = Path(CONFIG.Dir.data_dir) / CONFIG.Dir.database
 
     new_db.parent.mkdir(parents=True, exist_ok=True)
 

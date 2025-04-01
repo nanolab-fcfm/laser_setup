@@ -1,7 +1,7 @@
 import logging
 import time
 
-from .. import config
+from ..config import CONFIG
 from ..instruments import (TENMA, Keithley2450, PT100SerialSensor,
                            InstrumentManager)
 from ..parameters import Parameters
@@ -19,12 +19,12 @@ class IV(ChipProcedure):
     name = 'I vs V'
 
     instruments = InstrumentManager()
-    meter = instruments.queue(Keithley2450, config['Adapters']['keithley2450'])
-    tenma_neg = instruments.queue(TENMA, config['Adapters']['tenma_neg'])
-    tenma_pos = instruments.queue(TENMA, config['Adapters']['tenma_pos'])
-    tenma_laser = instruments.queue(TENMA, config['Adapters']['tenma_laser'])
+    meter = instruments.queue(Keithley2450, CONFIG['Adapters']['keithley2450'])
+    tenma_neg = instruments.queue(TENMA, CONFIG['Adapters']['tenma_neg'])
+    tenma_pos = instruments.queue(TENMA, CONFIG['Adapters']['tenma_pos'])
+    tenma_laser = instruments.queue(TENMA, CONFIG['Adapters']['tenma_laser'])
     temperature_sensor = instruments.queue(
-        PT100SerialSensor, config['Adapters']['pt100_port']
+        PT100SerialSensor, CONFIG['Adapters']['pt100_port']
     )
 
     # Important Parameters

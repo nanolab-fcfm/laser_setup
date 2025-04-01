@@ -1,5 +1,9 @@
+# Override parameter defaults and Procedure instance attributes here.
+# Make sure that key names match the type(procedure).__name__ attribute.
+
 It:
-  update_parameters:
+  name: I vs t
+  parameters:
     procedure_version:
       value: 2.1.0
     laser_T:
@@ -8,7 +12,8 @@ It:
       value: DP + 0. V
 
 IVg:
-  update_parameters:
+  name: I vs Vg
+  parameters:
     procedure_version:
       value: 2.0.0
     laser_wl:
@@ -19,7 +24,8 @@ IVg:
       group_by: *laser_toggle
 
 Vt:
-  update_parameters:
+  name: V vs t
+  parameters:
     procedure_version:
       value: 1.0.0
     laser_wl:
@@ -30,7 +36,8 @@ Vt:
       group_by: *laser_toggle
 
 IV:
-  update_parameters:
+  name: I vs V
+  parameters:
     procedure_version:
       value: 2.0.0
     laser_wl:
@@ -42,7 +49,8 @@ IV:
       value: 600
 
 ItWl:
-  update_parameters:
+  name: I vs t (Wl)
+  parameters:
     procedure_version:
       value: 1.0.0
     wl:
@@ -53,7 +61,8 @@ ItWl:
       value: 60
 
 Pt:
-  update_parameters:
+  name: P vs t
+  parameters:
     procedure_version:
       value: 0.1.1
     laser_T:
@@ -61,13 +70,15 @@ Pt:
 
 
 Pwl:
-  update_parameters:
+  name: P vs wl
+  parameters:
     procedure_version:
       value: 1.2.0
 
 
 ItVg:
-  update_parameters:
+  name: I vs t (Vg)
+  parameters:
     laser_wl:
       group_by: *laser_toggle
     laser_v:
@@ -86,7 +97,8 @@ ItVg:
       value: 1800
 
 Tt:
-  update_parameters:
+  name: T vs t
+  parameters:
     procedure_version:
       value: 2.0.0
     sampling_t:
@@ -96,17 +108,33 @@ Tt:
       value: 1800
 
 LaserCalibration:
-  update_parameters:
+  name: Laser Calibration
+  parameters:
     procedure_version:
       value: 1.1.1
     step_time:
       value: 2.
 
 FakeIVg:
-  update_parameters:
+  parameters:
     laser_wl:
       group_by: *laser_toggle
     laser_v:
       group_by: *laser_toggle
     burn_in_t:
       group_by: *laser_toggle
+
+_types:
+  Wait: ${class:laser_setup.procedures.Wait}
+  It: ${class:laser_setup.procedures.It}
+  IVg: ${class:laser_setup.procedures.IVg}
+  Vt: ${class:laser_setup.procedures.Vt}
+  IV: ${class:laser_setup.procedures.IV}
+  ItWl: ${class:laser_setup.procedures.ItWl}
+  Pt: ${class:laser_setup.procedures.Pt}
+  Pwl: ${class:laser_setup.procedures.Pwl}
+  ItVg: ${class:laser_setup.procedures.ItVg}
+  Tt: ${class:laser_setup.procedures.Tt}
+  LaserCalibration: ${class:laser_setup.procedures.LaserCalibration}
+  FakeIVg: ${class:laser_setup.procedures.FakeProcedure.FakeIVg}
+  FakeProcedure: ${class:laser_setup.procedures.FakeProcedure.FakeProcedure}

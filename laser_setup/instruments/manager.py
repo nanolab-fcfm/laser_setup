@@ -171,7 +171,7 @@ class InstrumentManager:
         :param obj: The object to search for InstrumentProxy instances.
         :param debug: Flag indicating whether to use debug mode for connection errors.
         """
-        all_attrs: dict = vars(obj.__class__) | vars(obj)
+        all_attrs: dict = vars(type(obj)) | vars(obj)
         for key, attr in all_attrs.items():
             if isinstance(attr, InstrumentProxy):
                 instrument = self.connect(

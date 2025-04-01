@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from .. import config
+from ..config import CONFIG
 from ..instruments import TENMA, InstrumentManager, ThorlabsPM100USB
 from ..parameters import Parameters
 from .BaseProcedure import BaseProcedure
@@ -21,8 +21,8 @@ class LaserCalibration(BaseProcedure):
     info = None
 
     instruments = InstrumentManager()
-    power_meter = instruments.queue(ThorlabsPM100USB, config['Adapters']['power_meter'])
-    tenma_laser = instruments.queue(TENMA, config['Adapters']['tenma_laser'])
+    power_meter = instruments.queue(ThorlabsPM100USB, CONFIG['Adapters']['power_meter'])
+    tenma_laser = instruments.queue(TENMA, CONFIG['Adapters']['tenma_laser'])
 
     laser_wl = Parameters.Laser.laser_wl
     fiber = Parameters.Laser.fiber

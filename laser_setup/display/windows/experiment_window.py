@@ -6,7 +6,7 @@ from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
 from pymeasure.experiment import Procedure, Results, unique_filename
 
-from ...config import config
+from ...config import CONFIG, configurable
 from ...procedures import BaseProcedure
 from ..Qt import QtCore, QtGui, QtWidgets
 from ..widgets import LogWidget, TextWidget
@@ -14,6 +14,7 @@ from ..widgets import LogWidget, TextWidget
 log = logging.getLogger(__name__)
 
 
+@configurable('Qt.ExperimentWindow', on_definition=False, subclasses=False)
 class ExperimentWindow(ManagedWindowBase):
     """The main window for an experiment. It is used to display a
     `pymeasure.experiment.Procedure`, and allows for the experiment to be run
@@ -38,7 +39,7 @@ class ExperimentWindow(ManagedWindowBase):
     ):
         self.cls = cls
 
-        if config.Qt.GUI.dark_mode:
+        if CONFIG.Qt.GUI.dark_mode:
             PlotFrame.LABEL_STYLE['color'] = '#AAAAAA'
 
         if not hasattr(cls, 'DATA_COLUMNS') or len(cls.DATA_COLUMNS) < 2:
@@ -59,7 +60,7 @@ class ExperimentWindow(ManagedWindowBase):
             x_axis_labels=[self.x_axis,],
             y_axis_labels=cls.DATA_COLUMNS[1:dock_plot_number+1],
         )
-        if config.Qt.GUI.dark_mode:
+        if CONFIG.Qt.GUI.dark_mode:
             for plot_widget in (self.plot_widget, *self.dock_widget.plot_frames):
                 plot_widget.setAutoFillBackground(True)
                 plot_widget.plot_frame.setStyleSheet('background-color: black;')
@@ -79,7 +80,7 @@ class ExperimentWindow(ManagedWindowBase):
             sequence_file=sequence_file or getattr(cls, 'SEQUENCE_FILE', None),
             **kwargs
         )
-        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__) or cls.__name__)
+        self.setWindowTitle(title or getattr(cls, 'name', cls.__name__))
         self.setWindowIcon(
             QtGui.QIcon(icon) if icon else self.style().standardIcon(
                 QtWidgets.QStyle.StandardPixmap.SP_TitleBarMenuButton
@@ -99,16 +100,15 @@ class ExperimentWindow(ManagedWindowBase):
 
         self.log = logging.getLogger()
         self.log.addHandler(self.log_widget.handler)
-        self.log.setLevel(config.Logging.console_level)
-        self.log.info(f"{self.__class__.__name__} connected to logging")
+        self.log.debug(f"{type(self).__name__} connected to logging")
 
     def queue(self, procedure: type[Procedure] | None = None):
         if procedure is None:
             procedure = self.make_procedure()
 
-        filename_kwargs: dict = dict(config.Filename).copy()
-        prefix = filename_kwargs.pop('prefix', '') or procedure.__class__.__name__
-        filename = unique_filename(config.Dir.data_dir,
+        filename_kwargs: dict = dict(CONFIG.Filename).copy()
+        prefix = filename_kwargs.pop('prefix', '') or type(procedure).__name__
+        filename = unique_filename(CONFIG.Dir.data_dir,
                                    prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")
 
@@ -131,7 +131,8 @@ class ExperimentWindow(ManagedWindowBase):
                 event.ignore()
                 return
 
-            self.manager.abort()
+            if self.manager.is_running():  # Check again in case the user took too long
+                self.manager.abort()
             if issubclass(self.procedure_class, BaseProcedure):
                 self.procedure_class.instruments.shutdown_all()
             time.sleep(0.5)

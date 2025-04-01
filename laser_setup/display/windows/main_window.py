@@ -9,9 +9,10 @@ from typing import Callable
 from pymeasure.experiment import Procedure
 
 from ...cli import parameters_to_db
-from ...config import ConfigHandler, config, instantiate
-from ...config.defaults import ProceduresType, ScriptsType, SequencesType
+from ...config import ConfigHandler, CONFIG, configurable
+from ...config.defaults import ProceduresConfig, SequencesConfig, ScriptsConfig
 from ...instruments import InstrumentManager, Instruments
+from ...procedures import Sequence
 from ...utils import get_status_message
 from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
 from ..widgets import ConfigWidget, LogsWidget, SQLiteWidget
@@ -22,15 +23,16 @@ from .sequence_window import SequenceWindow
 log = logging.getLogger(__name__)
 
 
+@configurable('Qt.MainWindow', on_definition=False, subclasses=False)
 class MainWindow(QtWidgets.QMainWindow):
     """The main window for program. It contains buttons to open
     the experiment windows, sequence windows, and run scripts.
     """
     def __init__(
         self,
-        procedures: ProceduresType,
-        sequences: SequencesType,
-        scripts: ScriptsType,
+        procedures: ProceduresConfig,
+        sequences: SequencesConfig,
+        scripts: ScriptsConfig,
         title: str = 'Main Window',
         size: tuple[int, int] = (640, 480),
         widget_size: tuple[int, int] = (640, 480),
@@ -55,7 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.procedures = procedures
         self.sequences = sequences
         self.scripts = scripts
-        self.config_handler = ConfigHandler(parent=self, config=config)
+        self.config_handler = ConfigHandler(parent=self, config=CONFIG)
 
         super().__init__(**kwargs)
         self.setWindowTitle(title)
@@ -65,16 +67,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(*size)
         self.setCentralWidget(QtWidgets.QWidget(parent=self))
 
-        self.windows: dict[type[Procedure] | str, QtWidgets.QMainWindow] = {}
+        self.windows: dict[
+            type[Procedure] | type[Sequence] | str, QtWidgets.QMainWindow
+        ] = {}
         self._layout = QtWidgets.QGridLayout(self.centralWidget())
 
         self.menu_bar = self.create_menu_bar()
         self.status_bar = self.statusBar()
 
-        thread = QtCore.QThread(parent=self)
-        worker = Worker(get_status_message, thread)
-        worker.finished.connect(lambda msg: self.status_bar.showMessage(msg, 3000))
-        thread.start()
+        self._thread = QtCore.QThread(parent=self)
+        self._worker = Worker(get_status_message, self._thread)
+        self._worker.finished.connect(lambda msg: self.status_bar.showMessage(msg, 3000))
+        self._thread.start()
 
         # README Widget
         readme = QtWidgets.QTextBrowser(parent=self)
@@ -94,23 +98,20 @@ class MainWindow(QtWidgets.QMainWindow):
         self.reload.setShortcut('Ctrl+R')
         self.status_bar.addPermanentWidget(self.reload)
 
-    def open_sequence(self, name: str, procedure_list: list[type[Procedure]]):
-        window = SequenceWindow(procedure_list, title=name,
-                                parent=self, **instantiate(config.Qt.SequenceWindow))
-        window.show()
-
-    def open_procedure(self, cls: type[Procedure]):
-        self.windows[cls] = ExperimentWindow(
-            cls, **instantiate(config.Qt.ExperimentWindow)
-        )
+    def open_sequence(self, cls: type[Sequence]):
+        self.windows[cls] = SequenceWindow(cls, parent=self)
         self.windows[cls].show()
 
-    def run_script(self, f: Callable):
+    def open_procedure(self, cls: type[Procedure]):
+        self.windows[cls] = ExperimentWindow(cls)
+        self.windows[cls].show()
+
+    def run_script(self, f: Callable, **kwargs):
         """Runs the given script function in the main thread."""
         try:
-            f(parent=self)
+            f(parent=self, **kwargs)
         except TypeError:
-            f()
+            f(**kwargs)
         self.suggest_reload()
 
     def open_widget(self, widget: QtWidgets.QWidget, title: str):
@@ -177,7 +178,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.open_widget(self.console_widget, 'Console')
 
     def open_database(self, db_name: str):
-        db_path = Path(config.Dir.data_dir) / db_name
+        db_path = Path(CONFIG.Dir.data_dir) / db_name
         if not db_path.exists():
             ans = self.question_box(
                 'Database not found', f'Database {db_path} not found. Create new database?'
@@ -214,9 +215,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         procedure_menu = menu.addMenu('&Procedures')
         procedure_menu.setToolTipsVisible(True)
-        for item in self.procedures:
-            cls = item.target
-            action = QtGui.QAction(item.name or getattr(cls, 'name', cls.__name__), self)
+        procedure_types: dict[str, type[Procedure]] = self.procedures.pop('_types')
+        for key, item in self.procedures.items():
+            cls = procedure_types[key]
+            name = getattr(cls, 'name', cls.__name__)
+            action = QtGui.QAction(name, self)
             doc = cls.__doc__.replace('    ', '').strip()
             action.triggered.connect(partial(self.open_procedure, cls))
             action.setToolTip(doc)
@@ -226,12 +229,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         sequence_menu = menu.addMenu('Se&quences')
         sequence_menu.setToolTipsVisible(True)
-        for name, seq_list in self.sequences.items():
-            action = QtGui.QAction(name, self)
-            doc = ", ".join([cls.__name__ for cls in seq_list])
-            action.triggered.connect(partial(
-                self.open_sequence, name, seq_list
-            ))
+        sequence_types: dict[str, type[Sequence]] = self.sequences.pop('_types')
+        for key, item in self.sequences.items():
+            cls = sequence_types[key]
+            name = getattr(item, 'name', cls.__name__)
+            action = QtGui.QAction(key, self)
+            doc = getattr(item, 'description', cls.__doc__.replace('    ', '').strip())
+            action.triggered.connect(partial(self.open_sequence, cls))
             action.setToolTip(doc)
             action.setStatusTip(doc)
             action.setShortcut(f'Ctrl+Shift+{len(sequence_menu.actions()) + 1}')
@@ -239,12 +243,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         script_menu = menu.addMenu('&Scripts')
         script_menu.setToolTipsVisible(True)
-        for item in self.scripts:
-            func = item.target
+        for key, item in self.scripts.items():
+            func: Callable = item.target
             action = QtGui.QAction(item.name or func.__doc__, self)
             doc = sys.modules[func.__module__].__doc__ or ''
             doc = doc.replace('    ', '').strip()
-            action.triggered.connect(partial(self.run_script, func))
+            action.triggered.connect(partial(self.run_script, func, **item.kwargs))
             action.setToolTip(doc)
             action.setStatusTip(doc)
             action.setShortcut(f'Alt+{len(script_menu.actions()) + 1}')
@@ -252,7 +256,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         view_menu = menu.addMenu('&View')
         db_action = view_menu.addAction(
-            'Parameter Database', partial(self.open_database, config.Dir.database)
+            'Parameter Database', partial(self.open_database, CONFIG.Dir.database)
         )
         db_action.setShortcut('Ctrl+Shift+D')
 
@@ -263,7 +267,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.log_widget.setWindowFlags(QtCore.Qt.WindowType.Dialog)
 
         self.log = logging.getLogger('laser_setup')
-        self.log.setLevel(config.Logging.console_level)
         self.log.addHandler(self.log_widget.handler)
 
         log_action = view_menu.addAction('Logs', partial(self.open_widget, self.log_widget, 'Logs'))

@@ -4,11 +4,12 @@ import numpy as np
 
 from pymeasure.experiment import Procedure, FloatParameter
 
-from laser_setup import log, config
+from laser_setup import log, CONFIG
 from laser_setup.display import display_experiment
 from laser_setup.instruments import Keithley2450
 
 np.random.seed(2)
+
 
 class Time(Procedure):
     """Docstring"""
@@ -19,7 +20,7 @@ class Time(Procedure):
     def startup(self):
         log.info("Setting up instruments")
         try:
-            self.meter = Keithley2450(config['Adapters']['keithley2450'])
+            self.meter = Keithley2450(CONFIG['Adapters']['keithley2450'])
         except ValueError:
             log.error("Could not connect to instruments")
             raise
@@ -41,7 +42,9 @@ class Time(Procedure):
             keithley_t = float(self.meter.ask(':READ? "IVBuffer", REL')[:-1])
             print(keithley_t, end='\r')
 
-            self.emit('results', dict(zip(self.DATA_COLUMNS, [keithley_t, time_time, (time_time - keithley_t) / keithley_t])))
+            self.emit('results', dict(zip(
+                self.DATA_COLUMNS, [keithley_t, time_time, (time_time - keithley_t) / keithley_t]
+            )))
 
     def shutdown(self):
         if not hasattr(self, 'meter'):
@@ -49,6 +52,7 @@ class Time(Procedure):
             return
 
         self.meter.shutdown()
+
 
 if __name__ == "__main__":
     display_experiment(Time, 'Time meas')

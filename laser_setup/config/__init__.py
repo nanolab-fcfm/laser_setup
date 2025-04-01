@@ -1,14 +1,43 @@
-from omegaconf import OmegaConf
+"""Module for loading and handling configuration. This includes loading config
+files, setting up logging, and creating the Argument Parser.
+"""
+import logging
 
-from .defaults import DefaultPaths  # noqa: F401
+from pymeasure.experiment.config import set_mpl_rcparams
+
+from .config import CONFIG
+from .defaults import DefaultPaths
 from .handler import ConfigHandler
-from .utils import instantiate, load_yaml, safeget, save_yaml  # noqa: F401
+from .log import setup_logging
+from .parameters import ParameterCatalog
+from .parser import Configurable, configurable, get_args
+from .utils import get_type, instantiate, load_yaml, safeget, save_yaml
 
-OmegaConf.register_new_resolver(
-    "class", lambda x: {'_target_': 'hydra.utils.get_class', 'path': x}
-)
-OmegaConf.register_new_resolver(
-    "function", lambda x: {'_target_': 'hydra.utils.get_method', 'path': x}
-)
+# Setup logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
-config = ConfigHandler.load_config()
+
+def setup(
+    cli_args: bool = True,
+    logging: bool = True,
+    matplotlib: bool = True,
+):
+    """Setup the configuration module. This includes loading config files,
+    setting up logging, and parsing CLI arguments.
+
+    :param cli_args: If True, parse command line arguments.
+    :param logging: If True, setup logging.
+    :param matplotlib: If True, setup matplotlib rcParams.
+    """
+    if cli_args:
+        args = get_args()
+        CONFIG._session.args = args
+
+    if logging:
+        setup_logging(instantiate(CONFIG.Logging))
+        logger.info(f"Using config file: {CONFIG._session.config_path_used}")
+
+    if matplotlib:
+        _rcparams = {'matplotlib.rcParams': CONFIG.matplotlib_rcParams}
+        set_mpl_rcparams(type('rcParams', (), {'_sections': _rcparams}))

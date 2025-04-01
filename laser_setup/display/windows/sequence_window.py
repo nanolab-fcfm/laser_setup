@@ -1,35 +1,19 @@
 import logging
 import time
-from enum import IntEnum
 from functools import partial
-from typing import Type, Literal
+from typing import Literal
 
-from pymeasure.display.widgets import InputsWidget
-
-from ...config import config, instantiate
-from ...procedures import BaseProcedure
+from ...config import configurable
+from ...patches import Status
+from ...procedures import Sequence
 from ..Qt import QtCore, QtGui, QtWidgets
+from ..widgets.inputs_widget import _InputsWidget
 from .experiment_window import ExperimentWindow, ProgressBar
 
 log = logging.getLogger(__name__)
 
 
-class Status(IntEnum):
-    """Enum to define the status of a procedure or sequence."""
-    FINISHED = 0
-    FAILED = 1
-    ABORTED = 2
-    QUEUED = 3
-    RUNNING = 4
-
-    @classmethod
-    def from_str(cls, status: str) -> 'Status':
-        return getattr(cls, status.upper())
-
-    def __str__(self):
-        return self.name.capitalize()
-
-
+@configurable('Qt.SequenceWindow', on_definition=False, subclasses=False)
 class SequenceWindow(QtWidgets.QMainWindow):
     """Window to set up a sequence of procedures. It manages the parameters
     for the sequence, and displays an ExperimentWindow for each procedure.
@@ -50,58 +34,56 @@ class SequenceWindow(QtWidgets.QMainWindow):
 
     def __init__(
         self,
-        procedure_list: list[Type[BaseProcedure]],
+        cls: type[Sequence],
         title: str = '',
         abort_timeout: int = 30,
-        common_procedure: Type[BaseProcedure] = BaseProcedure,
-        inputs_ignored: list[str] = [],
         **kwargs
     ):
         """Initialize the SequenceWindow with the given procedure list.
 
-        :param procedure_list: List of procedures to execute.
-        :param title: Title of the window.
-        :param abort_timeout: Timeout for the abort message box.
-        :param common_procedure: Class to group common parameters.
-        :param inputs_ignored: List of inputs to ignore when grouping parameters.
+        :param cls: Class of the sequence to run.
+        :param title: Title of the window. If not given, the class name is used.
+        :param abort_timeout: Number of seconds to wait after abort before continuing.
         :param kwargs: Additional keyword arguments to pass to the window.
         """
         super().__init__(**kwargs)
-        self.procedure_list = procedure_list
+        self.sequence_class = cls
         self.abort_timeout = int(abort_timeout)
-        self.common_procedure = common_procedure
-        self.inputs_ignored = inputs_ignored
-
-        self.sequence_start_time = 0.0
+        self.sequence_start_time = 0.
         self.procedure_start_times: list[float] = []
         self.procedure_status: list[Status] = []
         self.item_data: list[dict[str, QtWidgets.QLabel]] = []
 
-        self.resize(240 * (len(procedure_list) + 1), 480)
-        self.setWindowTitle(title + f" ({', '.join((proc.__name__ for proc in procedure_list))})")
+        self.resize(240 * (len(cls.procedures) + 1), 480)
+        _title = title or cls.name or cls.__name__
+        self.setWindowTitle(
+            (_title + f" ({cls.description})") if cls.description else _title
+        )
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addLayout(self._build_item_layout(title))
+        layout.addLayout(self._build_item_layout(_title))
         self.item_data[0]['timer_proc'].setText("")
         self.item_data[0]['timer_cum'].setText("0:00")
 
-        base_inputs = [i for i in self.common_procedure.INPUTS if i not in self.inputs_ignored]
+        base_inputs = [
+            i for i in cls._get_procedure_inputs(cls.common_procedure)
+            if i not in cls.inputs_ignored
+        ]
 
-        widget = InputsWidget(self.common_procedure, inputs=base_inputs)
+        widget = _InputsWidget(cls.common_procedure, inputs=base_inputs)
         widget.layout().setSpacing(10)
         widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(widget, 1)
-        for i, proc in enumerate(self.procedure_list):
+        for i, proc in enumerate(cls.procedures):
             layout.addLayout(self._build_item_layout(proc.__name__, i))
 
-            proc_inputs = list(proc.INPUTS)
-            for input in base_inputs:
-                try:
-                    proc_inputs.remove(input)
-                except ValueError:
-                    pass
+            proc_inputs = [
+                i for i in cls._get_procedure_inputs(proc)
+                if i not in base_inputs
+            ]
 
-            widget = InputsWidget(proc, inputs=proc_inputs)
+            procedure = cls.procedures[i](**cls.procedures_config[i])
+            widget = _InputsWidget(procedure=procedure, inputs=proc_inputs)
             widget.layout().setSpacing(10)
             widget.layout().setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(widget, 1)
@@ -188,21 +170,23 @@ class SequenceWindow(QtWidgets.QMainWindow):
 
     def queue(self):
         log.info("Queueing the procedures.")
+        self.sequence = self.sequence_class()
         self.sequence_start_time = time.time()
-        self.procedure_status = [Status.QUEUED]*len(self.procedure_list)
-        self.procedure_start_times = [self.sequence_start_time]*len(self.procedure_list)
+        self.procedure_status = [Status.QUEUED]*len(self.sequence_class.procedures)
+        self.procedure_start_times = [self.sequence_start_time]*len(self.sequence_class.procedures)
 
         self.set_status(0, Status.RUNNING)
-        for i in range(len(self.procedure_list)):
+        for i in range(len(self.sequence_class.procedures)):
             self.set_status(i+1, Status.QUEUED)
 
         self.queue_button.setEnabled(False)
-        inputs = self.findChildren(InputsWidget)
+        inputs = self.findChildren(_InputsWidget)
         self.set_inputs_enabled(inputs[0], False)
         base_parameters: dict = inputs[0].get_procedure()._parameters
-        base_parameters = {k: v for k, v in base_parameters.items() if k not in self.inputs_ignored}
+        base_parameters = {k: v for k, v in base_parameters.items()
+                           if k not in self.sequence_class.inputs_ignored}
 
-        for i, proc in enumerate(self.procedure_list):
+        for i, proc in enumerate(self.sequence_class.procedures):
             self.set_inputs_enabled(inputs[i+1], False)
             if proc.__name__ == 'Wait':
                 self.procedure_start_times[i] = time.time()
@@ -213,9 +197,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
                 continue
 
             window_name = getattr(proc, 'name', proc.__name__)
-            kwargs = {**instantiate(config.Qt.ExperimentWindow)}
-            kwargs['title'] = window_name
-            window = ExperimentWindow(proc, **kwargs)
+            window = ExperimentWindow(proc, title=window_name)
             procedure_parameters = inputs[i+1].get_procedure()._parameters
             parameters = procedure_parameters | base_parameters
             window.set_parameters(parameters)
@@ -253,7 +235,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         for i in range(len(self.procedure_list) + 1):
             self.set_inputs_enabled(inputs[i], True)
 
-        self.common_procedure.instruments.shutdown_all()
+        self.sequence_class.common_procedure.instruments.shutdown_all()
         self.queue_button.setEnabled(True)
         if self.status == Status.RUNNING:
             self.set_status(0, Status.FINISHED)
@@ -305,7 +287,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         else:
             time.sleep(wait_time)
 
-    def set_inputs_enabled(self, inputs_widget: InputsWidget, enabled: bool):
+    def set_inputs_enabled(self, inputs_widget: _InputsWidget, enabled: bool):
         """Set the enabled state of the inputs in the given InputsWidget."""
         for name in inputs_widget._inputs:
             getattr(inputs_widget, name).setEnabled(enabled)

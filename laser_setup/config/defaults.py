@@ -1,39 +1,58 @@
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
+
+from omegaconf import MISSING
 
 from ..display.Qt import QtWidgets
+from .log import default_log_config
+from .parameters import ParameterCatalog
+from .parser import CLIArguments
 
 
 class DefaultPaths:
     """Default paths for the configuration files."""
     _parent = Path(__file__).parent
     assets: Path = _parent.parent / 'assets'
+    new_config: Path = assets / 'new_config.yaml'
     allowed_files: str = 'YAML files (*.yaml)'
-    config: Path = assets / 'templates' / 'config.yaml'
-    parameters: Path = assets / 'templates' / 'parameters.yaml'
-    instruments: Path = assets / 'templates' / 'instruments.yaml'
+    templates: Path = assets / 'templates'
+    config: Path = templates / 'config.yaml'
+    user_config = Path('config') / 'config.yaml'
+    parameters: Path = templates / 'parameters.yaml'
+    procedures: Path = templates / 'procedures.yaml'
+    sequences: Path = templates / 'sequences.yaml'
+    instruments: Path = templates / 'instruments.yaml'
+    logs: Path = Path('log') / 'std.log'
     splash: Path = assets / 'img' / 'splash.png'
 
 
 @dataclass
 class DirConfig:
     global_config_file: str = field(
-        default=os.getenv('CONFIG') or 'config/config.yaml',
+        default=os.getenv('CONFIG') or DefaultPaths.user_config,
         metadata={'title': 'Global configuration file', 'readonly': True}
     )
     local_config_file: str = field(
-        default='config/config.yaml',
+        default=DefaultPaths.user_config,
         metadata={'title': 'Local configuration file', 'readonly': True}
     )
     parameters_file: str = field(
-        default=DefaultPaths.parameters.as_posix(),
+        default=DefaultPaths.parameters,
         metadata={'title': 'Parameters file', 'type': 'file'}
     )
-    procedure_config_file: str = field(
-        default='',
+    procedures_file: str = field(
+        default=DefaultPaths.procedures,
         metadata={'title': 'Procedures file', 'type': 'file'}
+    )
+    sequences_file: str = field(
+        default=DefaultPaths.sequences,
+        metadata={'title': 'Sequences file', 'type': 'file'}
+    )
+    instruments_file: str = field(
+        default=DefaultPaths.instruments,
+        metadata={'title': 'Instruments file', 'type': 'file'}
     )
     data_dir: str = field(
         default='data',
@@ -76,7 +95,7 @@ class GUIConfig:
         metadata={'title': 'Font size', 'type': 'int'}
     )
     splash_image: str = field(
-        default=DefaultPaths.splash.as_posix(),
+        default=DefaultPaths.splash,
         metadata={'title': 'Splash image', 'type': 'file'}
     )
 
@@ -92,7 +111,7 @@ class ExperimentWindowConfig:
         metadata={'title': 'Inputs in scroll area', 'type': 'bool'}
     )
     enable_file_input: bool = field(
-        default=True,
+        default=False,
         metadata={'title': 'Enable file input', 'type': 'bool'}
     )
     dock_plot_number: int = field(
@@ -113,12 +132,22 @@ class ExperimentWindowConfig:
 class MenuItemConfig:
     name: str
     target: Any
-    alias: str
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
-ScriptsType = list[MenuItemConfig]
-ProceduresType = list[MenuItemConfig]
-SequencesType = dict[str, list[Any]]
+ScriptsConfig = dict[str, MenuItemConfig]
+ProceduresConfig = dict[str, Any]
+SequencesConfig = dict[str, Any]
+
+
+@dataclass
+class InstrumentConfig:
+    adapter: str
+    target: Any | None = None
+    name: str | None = None
+    IDN: str | None = None
+    alias: str | None = None
+    kwargs: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -143,34 +172,17 @@ class MainWindowConfig:
         default='',
         metadata={'title': 'Icon', 'type': 'file'}
     )
-    scripts: ScriptsType = field(
-        default_factory=lambda: [
-            MenuItemConfig(
-                name='Init Config',
-                target='${function:laser_setup.cli.init_config.init_config}',
-                alias='init'
-            )
-        ],
-        metadata={'title': 'Scripts'}
+    scripts: ScriptsConfig = field(
+        default='${scripts}',
+        metadata={'title': 'Scripts', 'readonly': True}
     )
-    procedures: ProceduresType = field(
-        default_factory=lambda: [
-            MenuItemConfig(
-                name='Fake Procedure',
-                target='${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
-                alias='FakeProcedure'
-            )
-        ],
-        metadata={'title': 'Procedures'}
+    procedures: ProceduresConfig = field(
+        default='${procedures}',
+        metadata={'title': 'Procedures', 'readonly': True}
     )
-    sequences: SequencesType = field(
-        default_factory=lambda: {
-            'TestSequence': [
-                '${class:laser_setup.procedures.FakeProcedure.FakeProcedure}',
-                '${class:laser_setup.procedures.Wait}'
-            ]
-        },
-        metadata={'title': 'Sequences'}
+    sequences: SequencesConfig = field(
+        default='${sequences}',
+        metadata={'title': 'Sequences', 'readonly': True}
     )
 
 
@@ -179,14 +191,6 @@ class SequenceWindowConfig:
     abort_timeout: float = field(
         default=30.,
         metadata={'title': 'Abort timeout'}
-    )
-    common_procedure: Any = field(
-        default='${class:laser_setup.procedures.BaseProcedure}',
-        metadata={'title': 'Common procedure'}
-    )
-    inputs_ignored: list[str] = field(
-        default_factory=list,
-        metadata={'title': 'Inputs ignored'}
     )
 
 
@@ -224,17 +228,25 @@ class FilenameConfig:
 
 
 @dataclass
-class LoggingConfig:
-    console: bool = field(default=True, metadata={'title': 'Console'})
-    console_level: str = field(default='INFO', metadata={'title': 'Console level'})
-    filename: str = field(default='log/std.log', metadata={'title': 'Filename', 'type': 'file'})
-    file_level: str = field(default='INFO', metadata={'title': 'File level'})
+class TelegramConfig:
+    token: str | None = field(default='', metadata={'title': 'Token'})
+    chat_ids: list[str] = field(default_factory=list, metadata={'title': 'Chat IDs'})
 
 
 @dataclass
-class TelegramConfig:
-    token: Optional[str] = field(default='', metadata={'title': 'Token'})
-    chat_ids: list[str] = field(default_factory=list, metadata={'title': 'Chat IDs'})
+class SessionConfig:
+    args: CLIArguments = field(
+        default_factory=CLIArguments,
+        metadata={'title': 'Command line arguments', 'readonly': True}
+    )
+    save_path: str = field(
+        default=DefaultPaths.user_config,
+        metadata={'title': 'Save path', 'type': 'file'}
+    )
+    config_path_used: str = field(
+        default='default',
+        metadata={'title': 'Configuration path used', 'readonly': True}
+    )
 
 
 @dataclass
@@ -243,10 +255,59 @@ class AppConfig:
     Adapters: AdapterConfig = field(default_factory=AdapterConfig, metadata={'expanded': False})
     Qt: QtConfig = field(default_factory=QtConfig)
     Filename: FilenameConfig = field(default_factory=FilenameConfig)
-    Logging: LoggingConfig = field(default_factory=LoggingConfig)
+    Logging: dict[str, Any] = field(
+        default_factory=lambda: default_log_config,
+        metadata={'title': 'Logging configuration'}
+    )
     matplotlib_rcParams: dict[str, str] = field(
         default_factory=lambda: {'axes.grid': 'True', 'figure.autolayout': 'True'},
         metadata={'title': 'Matplotlib rcParams'}
     )
-    Telegram: TelegramConfig = field(default_factory=TelegramConfig)
-    _session: dict = field(default_factory=dict, metadata={'title': 'Session', 'readonly': True})
+    Telegram: TelegramConfig = field(default_factory=TelegramConfig, metadata={'expanded': False})
+
+    parameters: ParameterCatalog = field(
+        default=MISSING,
+        metadata={'title': 'Parameters', 'readonly': True}
+    )
+
+    scripts: ScriptsConfig = field(
+        default_factory=lambda: {
+            'init': MenuItemConfig(
+                name='Init Config',
+                target='${function:laser_setup.cli.init_config.init_config}'
+            ),
+            'setup_adapters': MenuItemConfig(
+                name="Set up Adapters",
+                target='${function:laser_setup.cli.setup_adapters.setup}'
+            ),
+            'get_updates': MenuItemConfig(
+                name="Get updates",
+                target='${function:laser_setup.cli.get_updates.main}'
+            ),
+            'parameters_to_db': MenuItemConfig(
+                name="Parameters to Database",
+                target='${function:laser_setup.cli.parameters_to_db.main}'
+            ),
+            'find_calibration_voltage': MenuItemConfig(
+                name="Find calibration voltage",
+                target='${function:laser_setup.cli.find_calibration_voltage.main}'
+            ),
+        },
+        metadata={'title': 'Scripts', 'readonly': True}
+    )
+    procedures: ProceduresConfig = field(
+        default_factory=lambda: {'_types': {}},
+        metadata={'title': 'Procedures', 'readonly': True}
+    )
+    sequences: SequencesConfig = field(
+        default_factory=lambda: {'_types': {}},
+        metadata={'title': 'Sequences', 'readonly': True}
+    )
+    instruments: dict[str, InstrumentConfig] = field(
+        default_factory=dict,
+        metadata={'title': 'Instruments', 'readonly': True}
+    )
+    _session: SessionConfig = field(
+        default_factory=SessionConfig,
+        metadata={'title': 'Session', 'readonly': True}
+    )
