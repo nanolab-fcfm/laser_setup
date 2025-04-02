@@ -31,6 +31,7 @@ class SequenceWindow(QtWidgets.QMainWindow):
         Status.FINISHED: {'label': '✔', 'color': 'green'},
     }
     status: Status | None = None
+    enabled_inputs: list[str] = ['show_more']
 
     def __init__(
         self,
@@ -293,7 +294,8 @@ class SequenceWindow(QtWidgets.QMainWindow):
     def set_inputs_enabled(self, inputs_widget: _InputsWidget, enabled: bool):
         """Set the enabled state of the inputs in the given InputsWidget."""
         for name in inputs_widget._inputs:
-            getattr(inputs_widget, name).setEnabled(enabled)
+            if name not in self.enabled_inputs:
+                getattr(inputs_widget, name).setEnabled(enabled)
 
     def current_index(self) -> int | None:
         """Return the index of the current running procedure."""
