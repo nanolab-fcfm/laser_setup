@@ -137,7 +137,6 @@ class ExperimentWindow(ManagedWindowBase):
                 self.procedure_class.instruments.shutdown_all()
             time.sleep(0.5)
 
-        self.log_widget._blinking_stop(self.log_widget.tab_index)
         self.log.removeHandler(self.log_widget.handler)
         if self.use_estimator:
             self.estimator.update_thread.join()
