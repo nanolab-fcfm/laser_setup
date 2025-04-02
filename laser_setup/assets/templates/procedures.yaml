@@ -8,6 +8,8 @@ It:
       value: 2.1.0
     laser_T:
       value: 120.
+    initial_T:
+      value: 0.
     vg:
       value: DP + 0. V
 
