@@ -5,7 +5,7 @@ from typing import Literal
 
 from ...config import configurable
 from ...patches import Status
-from ...procedures import Sequence
+from ...procedures import BaseProcedure, Sequence
 from ..Qt import QtCore, QtGui, QtWidgets
 from ..widgets.inputs_widget import _InputsWidget
 from .experiment_window import ExperimentWindow, ProgressBar
@@ -172,11 +172,11 @@ class SequenceWindow(QtWidgets.QMainWindow):
         log.info("Queueing the procedures.")
         self.sequence = self.sequence_class()
         self.sequence_start_time = time.time()
-        self.procedure_status = [Status.QUEUED]*len(self.sequence_class.procedures)
-        self.procedure_start_times = [self.sequence_start_time]*len(self.sequence_class.procedures)
+        self.procedure_status = [Status.QUEUED]*len(self.sequence)
+        self.procedure_start_times = [self.sequence_start_time]*len(self.sequence)
 
         self.set_status(0, Status.RUNNING)
-        for i in range(len(self.sequence_class.procedures)):
+        for i in range(len(self.sequence)):
             self.set_status(i+1, Status.QUEUED)
 
         self.queue_button.setEnabled(False)
@@ -184,9 +184,9 @@ class SequenceWindow(QtWidgets.QMainWindow):
         self.set_inputs_enabled(inputs[0], False)
         base_parameters: dict = inputs[0].get_procedure()._parameters
         base_parameters = {k: v for k, v in base_parameters.items()
-                           if k not in self.sequence_class.inputs_ignored}
+                           if k not in self.sequence.inputs_ignored}
 
-        for i, proc in enumerate(self.sequence_class.procedures):
+        for i, proc in enumerate(self.sequence.procedures):
             self.set_inputs_enabled(inputs[i+1], False)
             if proc.__name__ == 'Wait':
                 self.procedure_start_times[i] = time.time()
@@ -232,10 +232,13 @@ class SequenceWindow(QtWidgets.QMainWindow):
             if self.status == Status.ABORTED:
                 break
 
-        for i in range(len(self.procedure_list) + 1):
+        for i in range(len(self.sequence) + 1):
             self.set_inputs_enabled(inputs[i], True)
 
-        self.sequence_class.common_procedure.instruments.shutdown_all()
+        # Shutdown common instruments if possible
+        if issubclass(self.sequence.common_procedure, BaseProcedure):
+            self.sequence.common_procedure.instruments.shutdown_all()
+
         self.queue_button.setEnabled(True)
         if self.status == Status.RUNNING:
             self.set_status(0, Status.FINISHED)
