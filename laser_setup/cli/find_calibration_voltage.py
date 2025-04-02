@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from tkinter import Tk, simpledialog
 from tkinter.filedialog import askopenfilenames
 
@@ -74,7 +75,7 @@ def main(parent=None):
     for path in path_to_files:
         try:
             data = read_pymeasure(path)
-            print(f"File: '{path.split('/')[-1] if '/' in path else path.split('\\')[-1]}'")
+            print(f"File: '{Path(path)}'")
 
             for power in powers:
                 voltage = get_calibration_voltage(data[1], power*1e-6)
