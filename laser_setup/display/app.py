@@ -99,8 +99,9 @@ def display_window(procedure: type[Procedure] | None = None, **kwargs):
 
     if not (splash_image := Path(CONFIG.Qt.GUI.splash_image)).is_file():
         splash_image = DefaultPaths.splash
-    pixmap = QtGui.QPixmap(splash_image.as_posix())
-    pixmap = pixmap.scaledToHeight(480)
+    pixmap = QtGui.QPixmap(
+        QtGui.QIcon(splash_image.as_posix()).pixmap(QtCore.QSize(480, 480))
+    )
     splash = QtWidgets.QSplashScreen(pixmap)
     splash.show()
 
