@@ -28,6 +28,7 @@ class IV(ChipProcedure):
     )
 
     # Important Parameters
+    vg_toggle = Parameters.Control.vg_toggle
     vg = Parameters.Control.vg_dynamic
     vsd_start = Parameters.Control.vsd_start
     vsd_end = Parameters.Control.vsd_end
@@ -46,18 +47,20 @@ class IV(ChipProcedure):
     NPLC = Parameters.Instrument.NPLC
 
     INPUTS = ChipProcedure.INPUTS + [
-        'vg', 'vsd_start', 'vsd_end', 'vsd_step', 'Irange', 'step_time', 'laser_toggle', 'laser_wl',
-        'laser_v', 'burn_in_t', 'sense_T', 'NPLC'
+        'vg_toggle', 'vg', 'vsd_start', 'vsd_end', 'vsd_step', 'Irange', 'step_time',
+        'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'sense_T', 'NPLC'
     ]
     DATA_COLUMNS = ['Vsd (V)', 'I (A)'] + PT100SerialSensor.DATA_COLUMNS
     SEQUENCER_INPUTS = ['laser_v', 'vg', 'vds']
-    EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
+    EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T', 'vg_toggle']
 
     def pre_startup(self):
         vg = str(self.vg)
         if vg.endswith(' V'):
             vg = vg[:-2]
-        if 'DP' in vg:
+        if not self.vg_toggle:
+            vg = vg.replace('DP', f"{0.:.2f}")
+        elif 'DP' in vg:
             latest_DP = get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20)
             vg = vg.replace('DP', f"{latest_DP:.2f}")
 
@@ -66,6 +69,8 @@ class IV(ChipProcedure):
         self.vg = self._parameters['vg'].value
 
     def connect_instruments(self):
+        self.tenma_neg = None if not self.vg_toggle else self.tenma_neg
+        self.tenma_pos = None if not self.vg_toggle else self.tenma_pos
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
         self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
         super().connect_instruments()
@@ -82,16 +87,18 @@ class IV(ChipProcedure):
         )
 
         # TENMA sources
-        self.tenma_neg.apply_voltage(0.)
-        self.tenma_pos.apply_voltage(0.)
+        if self.vg_toggle:
+            self.tenma_neg.apply_voltage(0.)
+            self.tenma_pos.apply_voltage(0.)
         if self.laser_toggle:
             self.tenma_laser.apply_voltage(0.)
 
         # Turn on the outputs
         self.meter.enable_source()
         time.sleep(0.5)
-        self.tenma_neg.output = True
-        self.tenma_pos.output = True
+        if self.vg_toggle:
+            self.tenma_neg.output = True
+            self.tenma_pos.output = True
         if self.laser_toggle:
             self.tenma_laser.output = True
         time.sleep(1.)
@@ -101,12 +108,13 @@ class IV(ChipProcedure):
         self.meter.clear_buffer()
 
         # Set the Vg
-        if self.vg >= 0:
-            self.tenma_pos.ramp_to_voltage(self.vg)
-            self.tenma_neg.ramp_to_voltage(0)
-        elif self.vg < 0:
-            self.tenma_pos.ramp_to_voltage(0)
-            self.tenma_neg.ramp_to_voltage(-self.vg)
+        if self.vg_toggle:
+            if self.vg >= 0:
+                self.tenma_pos.ramp_to_voltage(self.vg)
+                self.tenma_neg.ramp_to_voltage(0)
+            elif self.vg < 0:
+                self.tenma_pos.ramp_to_voltage(0)
+                self.tenma_neg.ramp_to_voltage(-self.vg)
 
         # Set the laser if toggled and wait for burn-in
         if self.laser_toggle:

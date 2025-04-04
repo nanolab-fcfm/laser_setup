@@ -199,6 +199,12 @@ Control:
       Use 'DP' for the sample's previously measured Dirac Point.
       If no DP is found, the value will be 0. V
 
+  vg_toggle:
+    _target_: *BooleanParameter
+    default: true
+    name: VG toggle
+    description: Whether to apply VG or not
+
   ids:
     _target_: *FloatParameter
     default: 1.e-4

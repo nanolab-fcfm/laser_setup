@@ -42,6 +42,8 @@ IV:
   parameters:
     procedure_version:
       value: 2.0.0
+    vg:
+      group_by: {vg_toggle: true}
     laser_wl:
       group_by: *laser_toggle
     laser_v:
