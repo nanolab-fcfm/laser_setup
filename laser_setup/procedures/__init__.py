@@ -1,4 +1,5 @@
-from .BaseProcedure import BaseProcedure, ChipProcedure, Procedure
+from .BaseProcedure import BaseProcedure, Procedure
+from .ChipProcedure import ChipProcedure
 from .IVg import IVg
 from .It import It
 from .Vt import Vt

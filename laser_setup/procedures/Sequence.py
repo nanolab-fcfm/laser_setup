@@ -12,6 +12,7 @@ from ..config import CONFIG, instantiate, configurable
 from ..patches import Status
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 @configurable('sequences', on_definition=False)

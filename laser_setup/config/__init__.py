@@ -9,7 +9,6 @@ from .config import CONFIG
 from .defaults import DefaultPaths
 from .handler import ConfigHandler
 from .log import setup_logging
-from .parameters import ParameterCatalog
 from .parser import Configurable, configurable, get_args
 from .utils import get_type, instantiate, load_yaml, safeget, save_yaml
 

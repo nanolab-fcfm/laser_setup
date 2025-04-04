@@ -6,10 +6,10 @@ import numpy as np
 from pymeasure.experiment import FloatParameter
 from scipy.signal import find_peaks
 
-from ..parameters import Parameters
 from ..utils import voltage_sweep_ramp
 from .BaseProcedure import BaseProcedure
 from .IVg import IVg
+from .utils import Parameters
 
 log = logging.getLogger(__name__)
 

@@ -6,14 +6,12 @@
 Keithley2450:
   adapter: USB0::0x05E6::0x2450::04448997::0::INSTR
   name: Keithley 2450
-  alias: meter
-  IDN: Keithley
+  IDN: KEITHLEY
   target: ${class:laser_setup.instruments.keithley.Keithley2450}
 
 Bentham:
   adapter: COM6
   name: Bentham TLS120Xe
-  alias: light_source
   IDN: USB\VID_04D8&PID_1705\41839/1
   target: ${class:laser_setup.instruments.bentham.Bentham}
   kwargs:
@@ -24,37 +22,31 @@ Bentham:
 
 TENMANEG:
   adapter: COM3
-  alias: tenma_neg
-  IDN: 'TENMA 72-2715 V6.6 SN:37793902\n'
+  IDN: TENMA 72-2715 V6.6 SN:37793902
   target: ${class:laser_setup.instruments.tenma.TENMA}
 
 TENMAPOS:
   adapter: COM4
-  alias: tenma_pos
-  IDN: 'TENMA 72-2715 V6.6 SN:37793916\n'
+  IDN: TENMA 72-2715 V6.6 SN:37793916
   target: ${class:laser_setup.instruments.tenma.TENMA}
 
 TENMALASER:
   adapter: COM7
-  alias: tenma_laser
-  IDN: 'TENMA 72-2715 V6.6 SN:37793899\n'
+  IDN: TENMA 72-2715 V6.6 SN:37793899
   target: ${class:laser_setup.instruments.tenma.TENMA}
 
 ThorlabsPM100USB:
   adapter: USB0::0x1313::0x8078::P0037982::INSTR
-  alias: power_meter
-  IDN: 'Thorlabs,PM100D,P0037982,2.8.1\n'
+  IDN: Thorlabs,PM100D,P0037982,2.8.1
   target: ${class:pymeasure.instruments.thorlabs.ThorlabsPM100USB}
 
 PT100SerialSensor:
   adapter: COM8
-  alias: pt100_port
   IDN: ROSATECH,TSN100,P0000002,1.0.1
   target: ${class:laser_setup.instruments.serial.PT100SerialSensor}
 
 Clicker:
   adapter: COM8
-  alias: clicker
   IDN: ROSATECH,CLK100,P0000003,1.0.0
   target: ${class:laser_setup.instruments.serial.Clicker}
 

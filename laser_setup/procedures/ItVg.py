@@ -1,13 +1,13 @@
 import logging
 import time
 
-from ..config import CONFIG
 from ..instruments import TENMA, InstrumentManager, Keithley2450
-from ..parameters import Parameters
 from ..utils import up_down_ramp
-from .BaseProcedure import ChipProcedure
+from .ChipProcedure import ChipProcedure
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class ItVg(ChipProcedure):
@@ -19,10 +19,10 @@ class ItVg(ChipProcedure):
     name = 'I vs t (Vg)'
 
     instruments = InstrumentManager()
-    meter = instruments.queue(Keithley2450, CONFIG.instruments.Keithley2450.adapter)
-    tenma_neg = instruments.queue(TENMA, CONFIG.instruments.TENMANEG.adapter)
-    tenma_pos = instruments.queue(TENMA, CONFIG.instruments.TENMAPOS.adapter)
-    tenma_laser = instruments.queue(TENMA, CONFIG.instruments.TENMALASER.adapter)
+    meter: Keithley2450 = instruments.queue(**Instruments.Keithley2450)
+    tenma_neg: TENMA = instruments.queue(**Instruments.TENMANEG)
+    tenma_pos: TENMA = instruments.queue(**Instruments.TENMAPOS)
+    tenma_laser: TENMA = instruments.queue(**Instruments.TENMALASER)
 
     # Important Parameters
     vds = Parameters.Control.vds

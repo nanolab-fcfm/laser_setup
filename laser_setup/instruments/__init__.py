@@ -9,14 +9,3 @@ from .manager import InstrumentManager, InstrumentProxy
 from .keithley import Keithley2450, Keithley6517B
 from .serial import Clicker, PT100SerialSensor
 from .tenma import TENMA
-
-Instruments: list[type[Instrument]] = [
-    Instrument,
-    Keithley2450,
-    Keithley6517B,
-    PT100SerialSensor,
-    Clicker,
-    TENMA,
-    Bentham,
-    ThorlabsPM100USB
-]

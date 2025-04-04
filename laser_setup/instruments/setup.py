@@ -82,7 +82,7 @@ def setup(parent=None, visa_library: str = '') -> None:
             continue
 
         if not (key := match_idn(idn, devices, False)):
-            log.info(f"Device with IDN '{idn}' exists but is not in config.")
+            log.info(f"Device with IDN '{idn}' exists in port '{res}' but is not in config.")
             missing_ports.append(res)
             continue
 

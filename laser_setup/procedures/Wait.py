@@ -6,6 +6,7 @@ from pymeasure.experiment import FloatParameter
 from .BaseProcedure import BaseProcedure
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class Wait(BaseProcedure):

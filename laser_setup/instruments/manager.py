@@ -2,7 +2,7 @@ import inspect
 import logging
 import random
 import time
-from typing import Generic, Iterator, Optional, TypeVar, cast
+from typing import Any, Generic, Iterator, Mapping, TypeVar, cast
 
 from pymeasure.adapters import Adapter, FakeAdapter
 from pymeasure.instruments import Instrument
@@ -22,8 +22,8 @@ class InstrumentProxy(Generic[T]):
     def __init__(
         self,
         instrument_class: type[T],
-        adapter: Optional[str | int | Adapter] = None,
-        name: Optional[str] = None,
+        adapter: str | int | Adapter | None = None,
+        name: str | None = None,
         includeSCPI: bool = False,
         **kwargs
     ):
@@ -67,13 +67,13 @@ class InstrumentManager:
             param = Parameter("Example parameter", default="foo")
 
             def startup(self):
-                instruments.connect_all(self)
+                self.instruments.connect_all(self)
 
             def execute(self):
                 ...
 
             def shutdown(self):
-                instruments.shutdown_all()
+                self.instruments.shutdown_all()
     """
     id_template = "{instrument.__name__}/{adapter}"
 
@@ -101,40 +101,42 @@ class InstrumentManager:
 
     def queue(
         self,
-        instrument_class: type[T],
-        adapter: Optional[str | int | Adapter] = None,
-        name: Optional[str] = None,
+        target: type[T] | None = Instrument,
+        adapter: str | int | Adapter | None = None,
+        name: str | None = None,
         includeSCPI: bool = False,
-        **kwargs
+        IDN: str | None = None,
+        kwargs: Mapping[str, Any] | None = None
     ) -> T:
         """Queue an instrument for later connection.
 
         Returns a proxy that acts like the instrument for type checking purposes.
         The actual connection will be established when connect_all() is called.
 
-        :param instrument_class: The instrument class to set up.
+        :param target: The instrument class to set up.
         :param adapter: The adapter to use for the communication.
         :param name: The name of the instrument.
         :param includeSCPI: Flag indicating whether to include SCPI commands.
+        :param IDN: The IDN string of the instrument.
+
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         :return: A proxy object that represents the queued instrument.
         """
         proxy = InstrumentProxy(
-            instrument_class=instrument_class,
+            instrument_class=target,
             adapter=adapter,
             name=name,
             includeSCPI=includeSCPI,
-            **kwargs
+            **(kwargs or {})
         )
 
-        instance_id = self.id_template.format(instrument=instrument_class, adapter=adapter)
-        proxy._instance_id = instance_id
+        proxy._instance_id = IDN or self.id_template.format(instrument=target, adapter=adapter)
         return cast(T, proxy)
 
     @staticmethod
     def setup_adapter(
         instrument_class: type[T],
-        adapter: Optional[str | int | Adapter] = None,
+        adapter: str | int | Adapter | None = None,
         debug: bool = False,
         **kwargs
     ) -> T | 'DebugInstrument':
@@ -188,10 +190,10 @@ class InstrumentManager:
     def connect(
         self,
         instrument_class: type[T],
-        adapter: Optional[str | int | Adapter] = None,
-        name: Optional[str] = None,
+        adapter: str | int | Adapter | None = None,
+        name: str | None = None,
         includeSCPI: bool = False,
-        _instance_id: Optional[str] = None,
+        _instance_id: str | None = None,
         debug: bool = False,
         **kwargs
     ) -> T | 'DebugInstrument':
@@ -401,6 +403,10 @@ class DebugInstrument(FakeInstrument):
     def apply_voltage(self, value=0., **kwargs):
         """Apply a voltage."""
         self.voltage = value
+
+    def apply_current(self, value=0., **kwargs):
+        """Apply a current."""
+        self.current = value
 
     def ramp_to_voltage(self, value):
         """Ramp to a voltage."""

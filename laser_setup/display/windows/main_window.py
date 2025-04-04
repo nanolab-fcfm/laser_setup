@@ -10,8 +10,8 @@ from pymeasure.experiment import Procedure
 
 from ...cli import parameters_to_db
 from ...config import ConfigHandler, CONFIG, configurable
-from ...config.defaults import ProceduresConfig, SequencesConfig, ScriptsConfig
-from ...instruments import InstrumentManager, Instruments
+from ...config.defaults import ProceduresConfig, SequencesConfig, ScriptsConfig, InstrumentConfig
+from ...instruments import InstrumentManager
 from ...procedures import Sequence
 from ...utils import get_status_message
 from ..Qt import ConsoleWidget, QtCore, QtGui, QtWidgets, Worker
@@ -33,6 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         procedures: ProceduresConfig,
         sequences: SequencesConfig,
         scripts: ScriptsConfig,
+        instruments: dict[str, InstrumentConfig],
         title: str = 'Main Window',
         size: tuple[int, int] = (640, 480),
         widget_size: tuple[int, int] = (640, 480),
@@ -57,6 +58,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.procedures = procedures
         self.sequences = sequences
         self.scripts = scripts
+        self.instruments = instruments
         self.config_handler = ConfigHandler(parent=self, config=CONFIG)
 
         super().__init__(**kwargs)
@@ -289,7 +291,8 @@ class MainWindow(QtWidgets.QMainWindow):
         help_menu.setToolTipsVisible(True)
 
         instrument_help = help_menu.addMenu('Instruments')
-        for cls in Instruments:
+        unique_instruments = {i.target for i in self.instruments.values()}
+        for cls in unique_instruments:
             name = getattr(cls, 'name', cls.__name__)
             action = QtGui.QAction(name, self)
             action.triggered.connect(partial(

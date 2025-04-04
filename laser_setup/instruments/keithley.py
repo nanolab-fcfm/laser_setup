@@ -3,7 +3,8 @@ import time
 from typing import TypeVar
 
 from pymeasure.instruments import Instrument
-from pymeasure.instruments.keithley import Keithley2450, Keithley6517B  # noqa: F401
+from pymeasure.instruments.keithley import Keithley2450 as _Keithley2450
+from pymeasure.instruments.keithley import Keithley6517B  # noqa: F401
 
 log = logging.getLogger(__name__)
 AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
@@ -15,7 +16,7 @@ class Songs:
     A = [(440, 0.2)]
 
 
-class Keithley2450(Keithley2450):
+class Keithley2450(_Keithley2450):
     buffer_name: str = "defbuffer1"
     buffer_modes = ['CONT', 'ONCE']
 

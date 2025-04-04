@@ -7,7 +7,6 @@ from omegaconf import MISSING
 
 from ..display.Qt import QtWidgets
 from .log import default_log_config
-from .parameters import ParameterCatalog
 from .parser import CLIArguments
 
 
@@ -146,7 +145,6 @@ class InstrumentConfig:
     target: Any | None = None
     name: str | None = None
     IDN: str | None = None
-    alias: str | None = None
     kwargs: dict[str, Any] = field(default_factory=dict)
 
 
@@ -183,6 +181,10 @@ class MainWindowConfig:
     sequences: SequencesConfig = field(
         default='${sequences}',
         metadata={'title': 'Sequences', 'readonly': True}
+    )
+    instruments: dict[str, InstrumentConfig] = field(
+        default='${instruments}',
+        metadata={'title': 'Instruments', 'readonly': True}
     )
 
 
@@ -265,7 +267,7 @@ class AppConfig:
     )
     Telegram: TelegramConfig = field(default_factory=TelegramConfig, metadata={'expanded': False})
 
-    parameters: ParameterCatalog = field(
+    parameters: dict[str, Any] = field(
         default=MISSING,
         metadata={'title': 'Parameters', 'readonly': True}
     )

@@ -3,12 +3,12 @@ import logging
 
 import numpy as np
 
-from ..config import CONFIG
 from ..instruments import TENMA, ThorlabsPM100USB, InstrumentManager
-from ..parameters import Parameters
 from ..procedures import BaseProcedure
+from .utils import Parameters, Instruments
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class Pt(BaseProcedure):
@@ -19,8 +19,8 @@ class Pt(BaseProcedure):
     name = 'P vs t'
 
     instruments = InstrumentManager()
-    power_meter = instruments.queue(ThorlabsPM100USB, CONFIG.instruments.ThorlabsPM100USB.adapter)
-    tenma_laser = instruments.queue(TENMA, CONFIG.instruments.TENMALASER.adapter)
+    power_meter: ThorlabsPM100USB = instruments.queue(**Instruments.ThorlabsPM100USB)
+    tenma_laser: TENMA = instruments.queue(**Instruments.TENMALASER)
 
     # Important Parameters
     laser_wl = Parameters.Laser.laser_wl

@@ -1,14 +1,14 @@
 import logging
 import time
 
-from ..config import CONFIG
 from ..instruments import (TENMA, Clicker, InstrumentManager, Keithley2450,
                            PT100SerialSensor)
-from ..parameters import Parameters
 from ..utils import get_latest_DP
-from .BaseProcedure import ChipProcedure
+from .ChipProcedure import ChipProcedure
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class It(ChipProcedure):
@@ -21,14 +21,14 @@ class It(ChipProcedure):
 
     # Instruments
     instruments = InstrumentManager()
-    meter = instruments.queue(Keithley2450, CONFIG.instruments.Keithley2450.adapter)
-    tenma_neg = instruments.queue(TENMA, CONFIG.instruments.TENMANEG.adapter)
-    tenma_pos = instruments.queue(TENMA, CONFIG.instruments.TENMAPOS.adapter)
-    tenma_laser = instruments.queue(TENMA, CONFIG.instruments.TENMALASER.adapter)
-    temperature_sensor = instruments.queue(
-        PT100SerialSensor, CONFIG.instruments.PT100SerialSensor.adapter
+    meter: Keithley2450 = instruments.queue(**Instruments.Keithley2450)
+    tenma_neg: TENMA = instruments.queue(**Instruments.TENMANEG)
+    tenma_pos: TENMA = instruments.queue(**Instruments.TENMAPOS)
+    tenma_laser: TENMA = instruments.queue(**Instruments.TENMALASER)
+    temperature_sensor: PT100SerialSensor = instruments.queue(
+        **Instruments.PT100SerialSensor
     )
-    clicker = instruments.queue(Clicker, CONFIG.instruments.Clicker.adapter)
+    clicker: Clicker = instruments.queue(**Instruments.Clicker)
 
     # Important Parameters
     vds = Parameters.Control.vds

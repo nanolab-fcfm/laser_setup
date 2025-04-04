@@ -1,5 +1,4 @@
 from .handler import ConfigHandler
-from .parameters import ParameterCatalog
 from .utils import load_yaml
 
 from omegaconf import OmegaConf
@@ -23,11 +22,7 @@ OmegaConf.register_new_resolver(
 )
 
 CONFIG = ConfigHandler.load_config()
-CONFIG.parameters = load_yaml(
-    CONFIG.Dir.parameters_file, ParameterCatalog, flags={'allow_objects': True}
-)
+CONFIG.parameters = load_yaml(CONFIG.Dir.parameters_file, flags={'allow_objects': True})
 CONFIG.procedures = load_yaml(CONFIG.Dir.procedures_file, flags={'allow_objects': True})
 CONFIG.sequences = load_yaml(CONFIG.Dir.sequences_file, flags={'allow_objects': True})
-CONFIG.instruments = load_yaml(
-    CONFIG.Dir.instruments_file, flags={'allow_objects': True}
-)
+CONFIG.instruments = load_yaml(CONFIG.Dir.instruments_file, flags={'allow_objects': True})

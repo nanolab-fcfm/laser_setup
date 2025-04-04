@@ -3,12 +3,12 @@ import time
 
 import numpy as np
 
-from ..config import CONFIG
 from ..instruments import Clicker, PT100SerialSensor, InstrumentManager
-from ..parameters import Parameters
 from .BaseProcedure import BaseProcedure
+from .utils import Parameters, Instruments
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class Tt(BaseProcedure):
@@ -18,10 +18,8 @@ class Tt(BaseProcedure):
     name = 'T vs t'
 
     instruments = InstrumentManager()
-    temperature_sensor = instruments.queue(
-        PT100SerialSensor, CONFIG.instruments.PT100SerialSensor.adapter, includeSCPI=False
-    )
-    clicker = instruments.queue(Clicker, CONFIG.instruments.Clicker.adapter)
+    temperature_sensor: PT100SerialSensor = instruments.queue(**Instruments.PT100SerialSensor)
+    clicker: Clicker = instruments.queue(**Instruments.Clicker)
 
     sampling_t = Parameters.Control.sampling_t
 
