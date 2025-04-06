@@ -1,0 +1,222 @@
+# Configuration template.
+
+# You can copy this file and use it as a reference to create your own global
+# and local configuration files.
+
+
+############################################
+# Directory configuration
+############################################
+
+
+Dir:
+  # Local configuration file. Overrides the global config. If not found, it will be skipped
+  local_config_file: ./config/config.yaml
+
+  # Parameters file. Useful for Procedures that share the same parameters
+  parameters_file: ./config/parameters.yaml
+
+  # Procedure configuration. Overrides the parameter defaults if given.
+  procedures_file: ./config/procedures.yaml
+
+  # Sequences configuration. Overrides the procedure defaults if given.
+  sequences_file: ./config/sequences.yaml
+
+  # Data directory. Where the data will be saved
+  data_dir: ./data
+
+  # Database location, relative to the data directory
+  database: database.db
+
+
+############################################
+# Scripts menu
+############################################
+
+
+scripts:
+  setup_adapters:
+    name: "Set up Adapters"
+    target: ${function:laser_setup.cli.setup_adapters.setup}
+
+  get_updates:
+    name: "Get updates"
+    target: ${function:laser_setup.cli.get_updates.main}
+
+  parameters_to_db:
+    name: "Parameters to Database"
+    target: ${function:laser_setup.cli.parameters_to_db.main}
+
+  init:
+    name: "Init Config"
+    target: ${function:laser_setup.cli.init_config.init_config}
+
+  find_calibration_voltage:
+    name: "Find calibration voltage"
+    target: ${function:laser_setup.cli.find_calibration_voltage.main}
+
+
+############################################
+# Adapter configuration
+############################################
+
+
+Adapters:
+  # Keithley 2450 USB Device Port
+  keithley2450: USB0::0x05E6::0x2450::04448997::0::INSTR
+
+  # Negative Voltage TENMA
+  tenma_neg: COM9
+
+  # Positive Voltage TENMA
+  tenma_pos: COM3
+
+  # Laser controller TENMA
+  tenma_laser: COM4
+
+  # Power meter
+  power_meter: COM7
+
+  # Temperature sensor
+  pt100_port: COM8
+
+  # temperature sensor clicker
+  clicker: COM5
+
+  # Light source
+  light_source: COM6
+
+
+############################################
+# PyQt configuration
+############################################
+
+
+Qt:
+  GUI:
+    # PyQt GUI style. Options vary with OS. Examples: windows11, Fusion (Recommended). Use 'default' for the system's default
+    style: Fusion
+
+    # toggle dark mode. If False, the computer's theme will be used
+    dark_mode: true
+
+    # Font options. If empty it uses the style's default font
+    # font: ''
+    font_size: 12
+
+    # Splash screen image. Leave empty to set default
+    # splash_image: ''
+
+
+  ExperimentWindow:
+    # title: ''
+
+    # Whether to add a scrollbar
+    inputs_in_scrollarea: true
+
+    # Displays a file input widget (not implemented yet)
+    enable_file_input: false
+
+    # Number of plots to show in the Dock tab
+    dock_plot_number: 2
+
+    # File to open in the Info tab
+    info_file: ./docs/led_protocol.md
+
+    # icon: ''
+
+
+  MainWindow:
+    # README file to open in the main window
+    readme_file: ./README.md
+
+    title: Laser Setup
+
+    size: [640, 480]
+
+    widget_size: [640, 480]
+
+    # icon: ''
+
+
+  SequenceWindow:
+    # Timeout when aborting a sequence
+    abort_timeout: 30
+
+
+############################################
+# PyMeasure configuration
+############################################
+
+
+Filename:
+  # Configure the data filenames. With this config,
+  # a file would be created at {config.Dir.data}/YYYY-MM-DD/ProcedureClassYYYY-MM-DD_1.csv
+  # File prefix. Leave empty to use the procedure class name instead
+  # prefix: ''
+
+  # suffix: ''
+  ext: csv
+  dated_folder: true
+  index: true
+  datetimeformat: "%Y-%m-%d"
+
+
+############################################
+# Logging configuration
+############################################
+
+
+Logging:
+  # Log levels: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  version: 1
+  disable_existing_loggers: False
+  formatters:
+    console:
+      '()': ${class:laser_setup.config.log.ColoredFormatter}
+      format: '%(asctime)s: [%(levelname)s] %(message)s (%(name)s)'
+      datefmt: '%I:%M:%S %p'
+    file:
+      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+  handlers:
+      console:
+        class: logging.StreamHandler
+        level: INFO
+        formatter: console
+      file:
+        class: logging.FileHandler
+        level: DEBUG
+        formatter: file
+        filename: log/laser_setup.log
+        mode: a
+        encoding: null
+  loggers:
+      root:
+          level: INFO
+          handlers: ['file']
+      laser_setup:
+          level: INFO
+          handlers: ['console']
+      pymeasure.log:
+          level: WARNING
+
+
+matplotlib_rcParams:
+  # Matplotlib configuration, parsed by PyMeasure. All values must be strings
+  axes.grid: "True"
+  figure.autolayout: "True"
+
+
+############################################
+# Extra
+############################################
+
+
+Telegram:
+  # Telegram bot token
+  token: ''
+
+  # Chat IDs for the Telegram bot to send messages to
+  chat_ids:
+    - ''

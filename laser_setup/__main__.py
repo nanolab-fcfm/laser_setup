@@ -1,30 +1,26 @@
-import argparse
-
-from .display import MainWindow, ExperimentWindow, display_window
-from .cli import Scripts, script_list
-from .procedures import Experiments, experiment_list
+from .config import CONFIG, instantiate, setup
+from .display.app import display_window
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Laser Setup')
-    parser.add_argument('procedure', nargs='?', help='Procedure to run', choices=experiment_list + script_list)
-    parser.add_argument('-d', '--debug', action='store_true', default=False, help='Enable debug mode')
-    args = parser.parse_args()
+    setup()
 
+    args = CONFIG._session.args
     if args.procedure is None:
-        display_window(MainWindow)
+        display_window()
 
-    elif args.procedure in experiment_list:
-        idx = experiment_list.index(args.procedure)
-        display_window(
-            ExperimentWindow, Experiments[idx][0], title=Experiments[idx][1]
-        )
+    elif args.procedure in CONFIG.procedures:
+        display_window(instantiate(
+            CONFIG.procedures._types[args.procedure], level=1
+        ))
 
-    elif args.procedure in script_list:
-        idx = script_list.index(args.procedure)
-        Scripts[idx][0]()
+    elif args.procedure in CONFIG.scripts:
+        func = instantiate(CONFIG.scripts[args.procedure].target, level=1)
+        if callable(func):
+            func(**CONFIG.scripts[args.procedure].kwargs)
 
     else:
+        # This should never happen
         raise ValueError(f"Invalid argument: {args.procedure}")
 
 

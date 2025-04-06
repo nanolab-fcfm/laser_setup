@@ -30,14 +30,14 @@ def get_updates(parent=None):
     common_ancestor = repo.merge_base(latest_commit_local, latest_commit_remote)[0].hexsha
     if latest_commit_remote != common_ancestor:
         if parent is not None:
-            reply = parent.question_box('Updates',
-                "New updates are available. Do you want to update?"
+            reply = parent.question_box(
+                'Updates', "New updates are available. Do you want to update?"
             )
             if not reply:
                 return
 
             repo.remotes.origin.pull(kill_after_timeout=timeout)
-            file_to_check='pyproject.toml'
+            file_to_check = 'pyproject.toml'
             diff = repo.git.diff(latest_commit_local, latest_commit_remote, file_to_check)
             if diff:
                 log.warning(f"Changes in {file_to_check}. Update the environment.")
@@ -50,6 +50,7 @@ def get_updates(parent=None):
 
 
 def main(parent=None):
+    """Get updates"""
     get_updates(parent=parent)
 
 

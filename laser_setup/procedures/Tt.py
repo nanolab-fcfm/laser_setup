@@ -1,67 +1,71 @@
-import time
 import logging
+import time
 
-from .. import config
-from .BaseProcedure import ChipProcedure
-from ..parameters import Parameters
-from ..instruments import PT100SerialSensor, PendingInstrument
+import numpy as np
+
+from ..instruments import Clicker, PT100SerialSensor, InstrumentManager
+from .BaseProcedure import BaseProcedure
+from .utils import Parameters, Instruments
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
-class Tt(ChipProcedure):
+class Tt(BaseProcedure):
     """Measures temperature over time using a PT100 sensor connected via
-    Arduino."""
-    # Instrument
-    temperature_sensor: PT100SerialSensor = PendingInstrument(
-        PT100SerialSensor, config['Adapters']['pt100_port'], includeSCPI=False
-    )
-    # Parameters
-    sampling_t = Parameters.Control.sampling_t; sampling_t.value = 0.15
-    laser_T = Parameters.Laser.laser_T  # Using laser_T as total measurement time
+    Arduino. The clicker is used to control the plate temperature.
+    """
+    name = 'T vs t'
 
-    # Inputs and data columns
-    INPUTS = ChipProcedure.INPUTS + ['sampling_t', 'laser_T']
-    DATA_COLUMNS = ['Time (s)', 'Plate Temperature (degC)', 'Ambient Temperature (degC)',  "Clock"]
+    instruments = InstrumentManager()
+    temperature_sensor: PT100SerialSensor = instruments.queue(**Instruments.PT100SerialSensor)
+    clicker: Clicker = instruments.queue(**Instruments.Clicker)
 
-    def startup(self):
-        """Connect to the temperature sensor."""
-        self.connect_instruments()
-        self.__class__.startup_executed = True
-        log.info("Temperature sensor connected and ready.")
+    sampling_t = Parameters.Control.sampling_t
+
+    # Temperature Array Parameters
+    initial_T = Parameters.Control.initial_T
+    T_start = Parameters.Control.T_start
+    T_end = Parameters.Control.T_end
+    T_step = Parameters.Control.T_step
+    step_time = Parameters.Control.step_time
+
+    INPUTS = BaseProcedure.INPUTS + [
+        'sampling_t', 'initial_T', 'T_start', 'T_end', 'T_step', 'step_time'
+    ]
+    DATA_COLUMNS = ['Time (s)'] + PT100SerialSensor.DATA_COLUMNS
+
+    def connect_instruments(self):
+        self.clicker = None if self.T_start < 10 else self.clicker
+        super().connect_instruments()
 
     def execute(self):
         """Perform the temperature measurement over time."""
-        log.info("Starting temperature measurement.")
-        start_time = time.time()
-        total_time = self.laser_T  # Total measurement time
+        log.info("Starting the measurement")
 
-        while True:
-            if self.should_stop():
-                log.warning('Measurement aborted by user.')
-                break
+        if bool(self.initial_T) and self.clicker is not None:
+            self.clicker.CT = self.initial_T
 
-            elapsed_time = time.time() - start_time
-            if elapsed_time > total_time:
-                log.info('Measurement time completed.')
-                break
+        self.T_ramp = np.arange(self.T_start, self.T_end + self.T_step, self.T_step)
+        t_total = len(self.T_ramp) * self.step_time
+        initial_time = time.time()
 
-            # Read temperature from PT100 sensor
-            data = self.temperature_sensor.data
-            if data is None:
-                log.error("Failed to read temperature. Recording NaN.")
-                data = float('nan'), float('nan'), float('nan')
+        def measuring_loop(t_end: float):
+            while (time_elapsed := time.time() - initial_time) < t_end:
+                if self.should_stop():
+                    log.warning('Measurement aborted.')
+                    break
 
-            # Emit results
-            self.emit(
-                'results',
-                {
-                    column: value for column, value in zip(self.DATA_COLUMNS, [elapsed_time] + list(data))
-                },
-            )
+                temperature_data = self.temperature_sensor.data
 
-            # Emit progress
-            self.emit('progress', 100 * elapsed_time / total_time)
+                self.emit('progress', 100 * time_elapsed / t_total)
+                self.emit('results', dict(zip(
+                    self.DATA_COLUMNS, [time_elapsed, *temperature_data]
+                )))
+                time.sleep(self.sampling_t)
 
-            time.sleep(self.sampling_t)
-
+        for i, T in enumerate(self.T_ramp):
+            if self.clicker is not None:
+                self.clicker.set_target_temperature(T)
+                self.clicker.go()
+            measuring_loop(self.step_time * (i + 1))

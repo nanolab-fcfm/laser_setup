@@ -1,16 +1,15 @@
-import sqlite3
-import os
 import re
+import sqlite3
 import logging
-from glob import glob
+from pathlib import Path
 from typing import Dict, Set
 
-from .. import config
-from ..utils import read_file_parameters
+from ..config import CONFIG
+from ..utils import read_file_parameters, get_data_files
 
 log = logging.getLogger(__name__)
-csv_files = glob(config['Filename']['directory'] + '/**/*.csv', recursive=True)
 all_params: Dict[str, Set[str]] = {}
+
 
 def create_table_if_not_exists(cursor: sqlite3.Cursor, table_name: str, columns: set):
     """Creates the table if it doesn't exist, adding the columns from all_params."""
@@ -22,7 +21,11 @@ def create_table_if_not_exists(cursor: sqlite3.Cursor, table_name: str, columns:
         )
     ''')
 
-def insert_data_with_columns(cursor: sqlite3.Cursor, table_name: str, row_name: str, params: dict, all_params: Dict[str, Set[str]]):
+
+def insert_data_with_columns(
+    cursor: sqlite3.Cursor, table_name: str, row_name: str,
+    params: dict, all_params: Dict[str, Set[str]]
+):
     """Inserts data into the table, filling missing columns with None."""
     # Update all_params with any new keys from params, adding columns as necessary
     for key in params.keys():
@@ -43,34 +46,44 @@ def insert_data_with_columns(cursor: sqlite3.Cursor, table_name: str, row_name: 
         VALUES (?, {param_placeholders})
     ''', [row_name] + row_filled)
 
-def add_to_parameters_db(csv_file, conn):
-            params = read_file_parameters(csv_file)
 
-            # Use the base filename as the row name
-            basename = os.path.basename(csv_file).split('.csv')[0]
+def add_to_parameters_db(csv_file: Path, conn: sqlite3.Connection):
+    params = read_file_parameters(csv_file)
 
-            # Extract the procedure type from the table name
-            procedure_type = re.match(r'\D*', basename).group()
+    # Use the base filename as the row name
+    basename = csv_file.stem
 
-            # Add the first parameters to all_params to create the table
-            if procedure_type not in all_params:
-                all_params[procedure_type] = set(params.keys())
+    # Extract the procedure type from the table name
+    procedure_type = re.match(r'\D*', basename).group()
 
-            # Create the table for this procedure type if it doesn't exist
-            create_table_if_not_exists(conn, procedure_type, all_params[procedure_type])
+    # Add the first parameters to all_params to create the table
+    if procedure_type not in all_params:
+        all_params[procedure_type] = set(params.keys())
 
-            # Insert the data into the parameters table
-            insert_data_with_columns(conn, procedure_type, basename, params, all_params)
+    cursor = conn.cursor()
+    # Create the table for this procedure type if it doesn't exist
+    create_table_if_not_exists(cursor, procedure_type, all_params[procedure_type])
+
+    # Insert the data into the parameters table
+    insert_data_with_columns(cursor, procedure_type, basename, params, all_params)
 
 
 def create_db(parent=None):
-    new_db = config['Filename']['directory'] + '/parameters.db'
-    if os.path.exists(new_db):
-        if os.path.exists(new_db + '.bak'):
-            log.debug(f'Removing old backup file {new_db}.bak')
-            os.remove(new_db + '.bak')
+    csv_files = get_data_files()
+    new_db: Path = Path(CONFIG.Dir.data_dir) / CONFIG.Dir.database
 
-        os.rename(new_db, new_db + '.bak')
+    new_db.parent.mkdir(parents=True, exist_ok=True)
+
+    if new_db.exists():
+        new_db_bak = Path(f'{new_db}.bak')
+        if new_db_bak.exists():
+            log.debug(f'Removing old backup file {new_db_bak}')
+            new_db_bak.unlink()
+
+        new_db.rename(new_db_bak)
+
+    else:
+        new_db.touch()
 
     with sqlite3.connect(new_db) as conn:
         for i, csv_file in enumerate(csv_files):
@@ -92,4 +105,5 @@ def create_db(parent=None):
 
 
 def main():
+    """Parameters to Database"""
     create_db(parent=None)

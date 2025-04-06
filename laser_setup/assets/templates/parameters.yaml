@@ -1,0 +1,329 @@
+# Default procedure parameter configuration file
+# To create a new parameter, copy the following snippet, uncomment and modify or delete the values as needed
+
+#Category:
+#  parameter_name: !ParameterType               # PyMeasure parameter type, choose from !Parameter, !BooleanParameter, !IntegerParameter, !FloatParameter, !ListParameter, !Metadata
+#    fget: function_name (optional).            # If type is Metadata, the function or attribute to get the value from
+#    default: default_value
+#    name: Parameter name                       # Name to be displayed in the GUI and stored in the data file
+#    #description: "Parameter description." (optional)  # Description to be displayed in the GUI. Not implemented yet
+#    units: units (optional)
+#    minimum: minimum_value (optional)
+#    maximum: maximum_value (optional)
+#    choices: [choice1, choice2] (optional).    # Dropdown list of choices for ListParameter, ignored for other types
+#    group_by: parameter_name (optional).       # Show and hide parameters based on the boolean value of another parameter
+#    decimals: number_of_decimals (optional).   # Number of decimals to use
+
+_types:
+  - &Parameter pymeasure.experiment.Parameter
+  - &BooleanParameter pymeasure.experiment.BooleanParameter
+  - &IntegerParameter pymeasure.experiment.IntegerParameter
+  - &FloatParameter pymeasure.experiment.FloatParameter
+  - &ListParameter pymeasure.experiment.ListParameter
+  - &Metadata pymeasure.experiment.Metadata
+
+
+Chip:
+  chip_group:
+    _target_: *ListParameter
+    default: other
+    name: Chip group name
+    description: The cool name assigned to the chip
+    choices: ['other', 'Alfredo Godofredo', 'Johann Sebastian Mastropiero', 'Coni', 'Fiona', 'Margarita', 'Miguel', 'Rosita', 'Miguel-B24', 'Pepe (no ALD)', 'Lucho', 'Unbonded', '8', 'Box1', 'Box2', 'Box3', 'Box4', 'Box 1 bonding']
+
+  chip_number:
+    _target_: *IntegerParameter
+    default: 1
+    name: Chip number
+    minimum: 1
+
+  sample:
+    _target_: *ListParameter
+    default: other
+    name: Sample
+    choices: [other, A, B, C, D, E, F, G, H, I, J]
+
+
+Laser:
+  laser_toggle:
+    _target_: *BooleanParameter
+    default: false
+    name: Laser toggle
+    description: Turn the laser on or off. Controlled by the tenma_laser
+
+  laser_wl:
+    _target_: *ListParameter
+    default: 0
+    name: Laser wavelength
+    units: nm
+    choices: [0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]
+
+  laser_v:
+    _target_: *FloatParameter
+    default: 0.
+    name: Laser voltage
+    units: V
+
+  laser_T:
+    _target_: *FloatParameter
+    default: 120.
+    name: Laser ON+OFF period
+    description: One period of the laser ON+OFF cycle
+    units: s
+
+  burn_in_t:
+    _target_: *FloatParameter
+    default: 60.
+    name: Burn-in time
+    description: Time to wait before starting the measurement
+    units: s
+
+  fiber:
+    _target_: *ListParameter
+    default: other
+    name: Optical fiber
+    choices: [other, "F1 (M92L02)", "F2 (M92L02)", "F3 (M96L02)", "F4 (M96L02)"]
+
+  wl:
+    _target_: *FloatParameter
+    default: 400.0
+    name: Wavelength
+    units: nm
+
+  wl_start:
+    _target_: *FloatParameter
+    default: 400.0
+    name: Start Wavelength
+    units: nm
+
+  wl_end:
+    _target_: *FloatParameter
+    default: 700.0
+    name: End Wavelength
+    units: nm
+
+  wl_step:
+    _target_: *FloatParameter
+    default: 1.0
+    name: Wavelength Step
+    units: nm
+
+
+Instrument:
+  N_avg:
+    _target_: *IntegerParameter
+    default: 2
+    name: N_avg
+    description: Number of averages per data point
+    group_by: show_more
+
+  Irange:
+    _target_: *FloatParameter
+    default: 0.001
+    name: Irange
+    description: |-
+      Max current range for the Keithley.
+      Higher values will return 9.9e37 (overflow).
+      Set to 0 for auto-range.
+    units: A
+    minimum: 0.
+    maximum: 1.
+
+  Vrange:
+    _target_: *FloatParameter
+    default: 2.
+    name: Vrange
+    description: |-
+      Max voltage range for the Keithley.
+      Higher values will return 9.9e37 (overflow).
+      Set to 0 for auto-range.
+    units: V
+    minimum: 0.
+    maximum: 200.
+
+  NPLC:
+    _target_: *FloatParameter
+    default: 1.0
+    name: NPLC
+    description: Number of power line cycles
+    minimum: 0.01
+    maximum: 10
+    group_by: show_more
+
+  sensor:
+    _target_: *Metadata
+    fget: power_meter.sensor_name
+    name: Sensor model
+
+  sense_T:
+    _target_: *BooleanParameter
+    default: true
+    name: Use temperature sensor
+    description: Connects to the temperature sensor
+
+
+Control:
+  sampling_t:
+    _target_: *FloatParameter
+    default: 0.
+    name: Sampling time (excluding Keithley)
+    description: Time to wait before taking a measurement
+    units: s
+    group_by: show_more
+
+  vds:
+    _target_: *FloatParameter
+    default: 0.075
+    name: VDS
+    description: Drain-Source voltage
+    units: V
+    minimum: -210.
+    maximum: 210.
+    decimals: 10
+
+  vg:
+    _target_: *FloatParameter
+    default: 0.
+    name: VG
+    description: Gate voltage
+    units: V
+    minimum: -100.
+    maximum: 100.
+
+  vg_dynamic:
+    _target_: *Parameter
+    default: "DP + 0. V"
+    name: VG
+    description: |-
+      Dynamically evaluated VG value.
+      Use 'DP' for the sample's previously measured Dirac Point.
+      If no DP is found, the value will be 0. V
+
+  vg_toggle:
+    _target_: *BooleanParameter
+    default: true
+    name: VG toggle
+    description: Whether to apply VG or not
+
+  ids:
+    _target_: *FloatParameter
+    default: 1.e-4
+    name: Drain-Source current
+    units: A
+    minimum: -1.05
+    maximum: 1.05
+
+  # Voltage ramps
+  step_time:
+    _target_: *FloatParameter
+    default: 0.01
+    name: Step time
+    description: Time to wait between steps
+    units: s
+    group_by: show_more
+
+  vg_start:
+    _target_: *FloatParameter
+    default: -35.
+    name: VG start
+    units: V
+
+  vg_end:
+    _target_: *FloatParameter
+    default: 35.
+    name: VG end
+    units: V
+
+  vg_step:
+    _target_: *FloatParameter
+    default: 0.2
+    name: VG step
+    units: V
+    group_by: show_more
+
+  vsd_start:
+    _target_: *FloatParameter
+    default: -1.
+    name: VSD start
+    units: V
+
+  vsd_end:
+    _target_: *FloatParameter
+    default: 1.
+    name: VSD end
+    units: V
+
+  vsd_step:
+    _target_: *FloatParameter
+    default: 0.01
+    name: VSD step
+    units: V
+    group_by: show_more
+
+  vl_start:
+    _target_: *FloatParameter
+    default: 0.
+    name: Laser voltage start
+    units: V
+
+  vl_end:
+    _target_: *FloatParameter
+    default: 5.
+    name: Laser voltage end
+    units: V
+
+  vl_step:
+    _target_: *FloatParameter
+    default: 0.1
+    name: Laser voltage step
+    units: V
+
+  initial_T:
+    _target_: *IntegerParameter
+    default: 0
+    name: Initial (current) T
+    description: Current plate temperature, to be set manually
+    units: C
+    minimum: 0
+    maximum: 350
+    group_by: sense_T
+
+  target_T:
+    _target_: *IntegerParameter
+    default: 25
+    name: Target T
+    description: Target temperature
+    units: C
+    minimum: 10
+    maximum: 350
+    group_by: sense_T
+
+  T_start_t:
+    _target_: *FloatParameter
+    default: 120.
+    name: T step start time
+    description: Time at which the temperature target is set
+    units: s
+    group_by: sense_T
+
+  T_start:
+    _target_: *IntegerParameter
+    default: 10
+    name: T start
+    units: C
+    minimum: 10
+    maximum: 350
+
+  T_end:
+    _target_: *IntegerParameter
+    default: 25
+    name: T end
+    units: C
+    minimum: 10
+    maximum: 350
+
+  T_step:
+    _target_: *IntegerParameter
+    default: 5
+    name: T step
+    units: C

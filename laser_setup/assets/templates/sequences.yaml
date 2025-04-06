@@ -1,0 +1,96 @@
+# Sequence: list of Procedures to run sequentially. Procedures must be defined in procedures.yaml.
+# Otherwise, a reference to the procedure class must be given.
+
+MainSequence:
+  name: Main Sequence
+
+  # Description of the sequence
+  description: Runs IVg, It, IVg, Wait, IVg
+
+  # Common procedure parameters that will be used for all procedures in the sequence
+  common_procedure: ${class:laser_setup.procedures.ChipProcedure}
+
+  # Inputs in common_procedure that should be shown for each procedure
+  inputs_ignored: ['show_more', 'skip_startup', 'skip_shutdown']
+
+  # Procedures to run sequentially. You can override attributes and parameters
+  # for each procedure by having a key with the procedure name. The value of this
+  # key is a dictionary that will be passed to the procedure's __init__ method.
+  procedures:
+  - IVg:
+      parameters:
+        laser_wl: {group_by: {laser_toggle: true}}
+  - It
+  - IVg
+  - Wait
+  - IVg
+
+TestSequence:
+  name: Test Sequence
+  description: Runs FakeProcedure, Wait
+  common_procedure: ${class:laser_setup.procedures.ChipProcedure}
+  inputs_ignored: ['show_more', 'skip_startup', 'skip_shutdown']
+  procedures:
+  - FakeProcedure
+  - Wait
+
+ItMadness:
+  name: It Madness
+  description: Runs IVg, It with a range of target_T, IVg
+  common_procedure: ${class:laser_setup.procedures.ChipProcedure}
+  inputs_ignored: ['show_more', 'skip_startup', 'skip_shutdown']
+  procedures:
+  - IVg:
+      parameters:
+        skip_startup: {value: false}
+        skip_shutdown: {value: false}
+        vg_start: {value: -50.}
+        vg_end: {value: 50.}
+        vds: &v_ds {value: 0.75}
+  - It:
+      parameters:
+        skip_startup: {value: false}
+        skip_shutdown: {value: true}
+        target_T: {value: 15.}
+        vg: &v_g {value: "40."}
+        initial_T: {value: 10.}
+        laser_T: {value: 1000.}
+        vds: *v_ds
+  - It:
+      sequencer: |-
+        - "target_T", "arange(35., 71., 5)"
+      parameters:
+        skip_startup: {value: true}
+        skip_shutdown: {value: true}
+        vg: *v_g
+        laser_T: {value: 1000.}
+        vds: *v_ds
+  - It:
+      sequencer: |-
+        - "target_T", "arange(65., 34., -5)"
+      parameters:
+        skip_startup: {value: true}
+        skip_shutdown: {value: true}
+        vg: *v_g
+        laser_T: {value: 3000.}
+        vds: *v_ds
+  - It:
+      parameters:
+        skip_startup: {value: true}
+        skip_shutdown: {value: false}
+        target_T: {value: 15.}
+        vg: *v_g
+        laser_T: {value: 3000.}
+        vds: *v_ds
+  - IVg:
+      parameters:
+        skip_startup: {value: false}
+        skip_shutdown: {value: false}
+        vg_start: {value: -50.}
+        vg_end: {value: 50.}
+        vds: *v_ds
+
+_types:
+  MainSequence: ${sequence:MainSequence}
+  TestSequence: ${sequence:TestSequence}
+  ItMadness: ${sequence:ItMadness}

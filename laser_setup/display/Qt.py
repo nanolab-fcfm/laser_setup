@@ -2,20 +2,10 @@
 Module to ensure compatibility with any Qt version. By default,
 pyqtgraph.Qt from pymeasure.display.Qt is used.
 """
-from importlib import import_module
-from typing import TYPE_CHECKING
+import sys
 
-from pyqtgraph.Qt import QT_LIB
-from pymeasure.display.Qt import QtGui, QtWidgets, QtCore
-
-
-if not TYPE_CHECKING:
-    # Import Qt modules from the current Qt library
-    QtSql = import_module(f'{QT_LIB}.QtSql')
-
-else:
-    # For type checking, PyQt6 is used
-    from PyQt6 import QtSql
+from pyqtgraph.console import ConsoleWidget  # noqa: F401
+from qtpy import QtCore, QtGui, QtSql, QtWidgets  # noqa: F401
 
 
 class Worker(QtCore.QObject):
@@ -24,7 +14,8 @@ class Worker(QtCore.QObject):
     moved to that thread, and the thread is stopped when the worker is
     done.
     """
-    finished = QtCore.pyqtSignal(object)
+    finished = QtCore.Signal(object)
+
     def __init__(
         self,
         func: callable,
@@ -39,7 +30,16 @@ class Worker(QtCore.QObject):
             thread.started.connect(self.run)
             thread.finished.connect(self.deleteLater)
             thread.finished.connect(thread.deleteLater)
+            self.finished.connect(thread.quit)
 
     def run(self):
         result = self.func(**self.kwargs)
         self.finished.emit(result)
+
+
+def make_app():
+    """Make a Qt Application."""
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        app = QtWidgets.QApplication(sys.argv)
+    return app

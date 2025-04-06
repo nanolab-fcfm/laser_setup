@@ -1,21 +1,87 @@
-import time
 import logging
-import numpy as np
 import threading
+import time
 
-from pymeasure.instruments import Instrument
+import numpy as np
 from pymeasure.adapters import SerialAdapter
+from pymeasure.instruments import Instrument, SCPIMixin
+from pymeasure.instruments.validators import truncated_range
 
 log = logging.getLogger(__name__)
 
 
-class PT100SerialSensor(Instrument):
+class Clicker(SCPIMixin, Instrument):
+    gone = False
+
+    CT = Instrument.control(
+        "RCT",
+        "SCT%d",
+        """Sets the current plate temperature in degrees Celsius.""",
+        validator=truncated_range,
+        values=[10, 350],
+        cast=int,
+    )
+
+    TT = Instrument.control(
+        "RTT",
+        "STT%d",
+        """Sets the target plate temperature in degrees Celsius.""",
+        validator=truncated_range,
+        values=[10, 350],
+        cast=int,
+    )
+
+    def __init__(
+        self,
+        adapter: str,
+        name: str = "ESP8266 Clicker",
+        baudrate: int = 115200,
+        timeout: float = 0.15,
+        includeSCPI=False,
+        **kwargs
+    ):
+        adapter = SerialAdapter(port=adapter, baudrate=baudrate, timeout=timeout,
+                                read_termination='\r\n', write_termination='\n')
+        super().__init__(
+            adapter,
+            name=name,
+            includeSCPI=includeSCPI,
+            **kwargs
+        )
+        log.info(f"{self.name} initialized on port {adapter} at {baudrate} baud.")
+
+    def go(self):
+        """Sends the 'GO' command to the clicker, setting the plate temperature
+        to the target temperature. Only sends the command if the 'gone' flag is
+        False.
+        """
+        if not self.gone:
+            self.write('GO')
+            self.gone = True
+
+    def set_target_temperature(self, T: int):
+        """Sets the target temperature for the clicker. Sets the 'gone' flag to
+        False.
+
+        :param T: The target temperature in degrees Celsius.
+        """
+        self.TT = int(T)
+        self.gone = False
+
+    def shutdown(self):
+        self.adapter.close()
+        super().shutdown()
+
+
+class PT100SerialSensor(SCPIMixin, Instrument):
     """Instrument class for the PT100 temperature sensor using PyMeasure's
     SerialAdapter.
     """
+    DATA_COLUMNS = ['Plate T (degC)', 'Ambient T (degC)',  'Clock (ms)']
+
     def __init__(
         self,
-        port: str,
+        adapter: str,
         name: str = "PT100 Sensor",
         baudrate: int = 115200,
         timeout: float = 0.15,
@@ -32,14 +98,14 @@ class PT100SerialSensor(Instrument):
         :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param kwargs: Additional keyword arguments.
         """
-        adapter = SerialAdapter(port, baudrate=baudrate, timeout=timeout)
+        adapter = SerialAdapter(port=adapter, baudrate=baudrate, timeout=timeout)
         super().__init__(
             adapter,
             name=name,
             includeSCPI=includeSCPI,
             **kwargs
         )
-        log.info(f"{self.name} initialized on port {port} at {baudrate} baud.")
+        log.info(f"{self.name} initialized on port {adapter} at {baudrate} baud.")
         self.clock = np.nan
         self.plate_temp = np.nan
         self.ambient_temp = np.nan

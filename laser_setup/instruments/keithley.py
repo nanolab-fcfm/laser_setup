@@ -1,17 +1,22 @@
-import time
 import logging
+import time
 from typing import TypeVar
 
 from pymeasure.instruments import Instrument
-from pymeasure.instruments.keithley import Keithley2450, Keithley6517B
-
-from ..utils import SONGS
+from pymeasure.instruments.keithley import Keithley2450 as _Keithley2450
+from pymeasure.instruments.keithley import Keithley6517B  # noqa: F401
 
 log = logging.getLogger(__name__)
 AnyInstrument = TypeVar('AnyInstrument', bound=Instrument)
 
 
-class Keithley2450(Keithley2450):
+# Songs for the Keithley to play when it's done with a measurement :)
+class Songs:
+    triad = [(6/4*1000, 0.25), (5/4*1000, 0.25), (1000, 0.25)]
+    A = [(440, 0.2)]
+
+
+class Keithley2450(_Keithley2450):
     buffer_name: str = "defbuffer1"
     buffer_modes = ['CONT', 'ONCE']
 
@@ -60,8 +65,10 @@ class Keithley2450(Keithley2450):
         return time
 
     def shutdown(self):
-        for freq, t in SONGS['triad']:
-            self.beep(freq, t)
+        for freq, t in Songs.triad:
+            if freq != 0:
+                self.beep(freq, t)
+
             time.sleep(t)
 
         super().shutdown()

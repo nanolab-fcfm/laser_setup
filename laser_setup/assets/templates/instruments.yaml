@@ -1,0 +1,62 @@
+############################################
+# Adapter configuration
+############################################
+
+# Keithley 2450 USB Device Port
+Keithley2450:
+  adapter: USB0::0x05E6::0x2450::04448997::0::INSTR
+  name: Keithley 2450
+  IDN: KEITHLEY
+  target: ${class:laser_setup.instruments.keithley.Keithley2450}
+
+Bentham:
+  adapter: COM6
+  name: Bentham TLS120Xe
+  IDN: USB\VID_04D8&PID_1705\41839/1
+  target: ${class:laser_setup.instruments.bentham.Bentham}
+  kwargs:
+    manufacturer: Bentham
+    vendor_id: 1240
+    read_termination: \r\n\x00
+    write_termination: \r\n\x00
+
+TENMANEG:
+  adapter: COM3
+  IDN: TENMA 72-2715 V6.6 SN:37793902
+  target: ${class:laser_setup.instruments.tenma.TENMA}
+
+TENMAPOS:
+  adapter: COM4
+  IDN: TENMA 72-2715 V6.6 SN:37793916
+  target: ${class:laser_setup.instruments.tenma.TENMA}
+
+TENMALASER:
+  adapter: COM7
+  IDN: TENMA 72-2715 V6.6 SN:37793899
+  target: ${class:laser_setup.instruments.tenma.TENMA}
+
+ThorlabsPM100USB:
+  adapter: USB0::0x1313::0x8078::P0037982::INSTR
+  IDN: Thorlabs,PM100D,P0037982,2.8.1
+  target: ${class:pymeasure.instruments.thorlabs.ThorlabsPM100USB}
+
+PT100SerialSensor:
+  adapter: COM8
+  IDN: ROSATECH,TSN100,P0000002,1.0.1
+  target: ${class:laser_setup.instruments.serial.PT100SerialSensor}
+
+Clicker:
+  adapter: COM8
+  IDN: ROSATECH,CLK100,P0000003,1.0.0
+  target: ${class:laser_setup.instruments.serial.Clicker}
+
+# {'path': b'\\\\?\\HID#MSFT0001&Col01#5&1fa4e1d8&0&0000#{4d1e55b2-f16f-11cf-88cb-001111000030}',
+#'vendor_id': 1739,
+#'product_id': 32552,
+#'serial_number': '9999',
+#'release_number': 3,
+#'manufacturer_string': 'Microsoft',
+#'product_string': 'HIDI2C Device',
+#'usage_page': 1,
+#'usage': 2,
+#'interface_number': -1},

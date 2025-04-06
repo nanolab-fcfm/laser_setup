@@ -1,31 +1,28 @@
-from .BaseProcedure import BaseProcedure, ChipProcedure, Procedure
-from .FakeProcedure import FakeProcedure
+from .BaseProcedure import BaseProcedure, Procedure
+from .ChipProcedure import ChipProcedure
 from .IVg import IVg
 from .It import It
+from .Vt import Vt
 from .ItVg import ItVg
 from .IV import IV
 from .Pt import Pt
+from .Pwl import Pwl
 from .Tt import Tt
-from .ITt import ITt
-from .IVgT import IVgT
+from .ItWl import ItWl
 from .Wait import Wait
 from .LaserCalibration import LaserCalibration
+from .Sequence import Sequence
 
-Experiments: list[tuple[Procedure, str]] = [
-    (IV, 'I vs V'),
-    (IVg, 'I vs Vg'),
-    (It, 'I vs t'),
-    (ItVg, 'I vs t (Vg)'),
-    (ITt, 'I,T vs t'),
-    (IVgT, 'I,T vs Vg'),
-    (Tt, 'T vs t'),
-    (Pt, 'P vs t'),
-    (LaserCalibration, 'Calibrate Laser'),
-]
-
-experiment_list = [cls.__name__ for cls, desc in Experiments]
+# Keep subclasses for backwards compatibility
 
 
-def from_str(s: str) -> list[Procedure] | Procedure:
-    """Evaluates a string and returns the output"""
-    return eval(s)
+class IVT(IV):
+    pass
+
+
+class ITt(It):
+    pass
+
+
+class IVgT(IVg):
+    pass

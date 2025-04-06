@@ -1,13 +1,13 @@
-import time
 import logging
+import time
 
-from .. import config
+from ..instruments import TENMA, InstrumentManager, Keithley2450
 from ..utils import up_down_ramp
-from ..instruments import TENMA, Keithley2450, PendingInstrument
-from ..parameters import Parameters
-from .BaseProcedure import ChipProcedure
+from .ChipProcedure import ChipProcedure
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
 
 
 class ItVg(ChipProcedure):
@@ -16,48 +16,54 @@ class ItVg(ChipProcedure):
     fixed. The gate voltage is controlled by two TENMA sources. The laser is
     controlled by another TENMA source.
     """
-    meter: Keithley2450 = PendingInstrument(Keithley2450, config['Adapters']['keithley2450'])
-    tenma_neg: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_neg'])
-    tenma_pos: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_pos'])
-    tenma_laser: TENMA = PendingInstrument(TENMA, config['Adapters']['tenma_laser'])
+    name = 'I vs t (Vg)'
+
+    instruments = InstrumentManager()
+    meter: Keithley2450 = instruments.queue(**Instruments.Keithley2450)
+    tenma_neg: TENMA = instruments.queue(**Instruments.TENMANEG)
+    tenma_pos: TENMA = instruments.queue(**Instruments.TENMAPOS)
+    tenma_laser: TENMA = instruments.queue(**Instruments.TENMALASER)
 
     # Important Parameters
     vds = Parameters.Control.vds
 
     # Laser Parameters
     laser_toggle = Parameters.Laser.laser_toggle
-    group_by = {'laser_toggle': True}
-    laser_wl = Parameters.Laser.laser_wl; laser_wl.group_by = group_by
-    laser_v = Parameters.Laser.laser_v; laser_v.group_by = group_by
-    burn_in_t = Parameters.Laser.burn_in_t; burn_in_t.group_by = group_by; burn_in_t.value = 10*60
+    laser_wl = Parameters.Laser.laser_wl
+    laser_v = Parameters.Laser.laser_v
+    burn_in_t = Parameters.Laser.burn_in_t
 
     # Gate Voltage Array Parameters
-    vg_start = Parameters.Control.vg_start; vg_start.value = 0.
-    vg_end = Parameters.Control.vg_end; vg_end.value = 15.
-    vg_step = Parameters.Control.vg_step; vg_step.value = 0.
-    step_time = Parameters.Control.step_time; step_time.group_by = {}; step_time.value = 30*60.
+    vg_start = Parameters.Control.vg_start
+    vg_end = Parameters.Control.vg_end
+    vg_step = Parameters.Control.vg_step
+    step_time = Parameters.Control.step_time
 
     # Additional Parameters, preferably don't change
     sampling_t = Parameters.Control.sampling_t
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
-    INPUTS = ChipProcedure.INPUTS + ['vds', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'vg_start', 'vg_end', 'vg_step', 'step_time', 'sampling_t', 'Irange', 'NPLC']
+    INPUTS = ChipProcedure.INPUTS + [
+        'vds', 'Irange', 'laser_toggle', 'laser_wl', 'laser_v', 'burn_in_t', 'vg_start', 'vg_end',
+        'vg_step', 'step_time', 'sampling_t', 'NPLC'
+        ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'Vg (V)']
 
-    def startup(self):
+    def connect_instruments(self):
         self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
-        self.connect_instruments()
+        super().connect_instruments()
 
-        if self.chained_exec and self.__class__.startup_executed:
-            log.info("Skipping startup")
-            self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
-            return
+    def startup(self):
+        self.connect_instruments()
 
         # Keithley 2450 meter
         self.meter.reset()
         self.meter.make_buffer()
-        self.meter.measure_current(current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange))
+        self.meter.apply_voltage(compliance_current=self.Irange * 1.1 or 0.1)
+        self.meter.measure_current(
+            current=self.Irange, nplc=self.NPLC, auto_range=not bool(self.Irange)
+        )
 
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
@@ -74,8 +80,6 @@ class ItVg(ChipProcedure):
             self.tenma_laser.output = True
         time.sleep(1.)
 
-        self.__class__.startup_executed = True
-
     def execute(self):
         log.info("Starting the measurement")
         self.meter.clear_buffer()
@@ -89,7 +93,9 @@ class ItVg(ChipProcedure):
 
         if self.vg_ramp[0] > 0:
             self.tenma_pos.ramp_to_voltage(self.vg_ramp[0])
+            self.tenma_neg.ramp_to_voltage(0)
         elif self.vg_ramp[0] < 0:
+            self.tenma_pos.ramp_to_voltage(0)
             self.tenma_neg.ramp_to_voltage(-self.vg_ramp[0])
 
         def measuring_loop(t_end: float, vg: float):
@@ -109,18 +115,13 @@ class ItVg(ChipProcedure):
 
         if self.laser_toggle:
             self.tenma_laser.voltage = self.laser_v
-            log.info(f"Laser is ON. Sleeping for {self.burn_in_t} seconds to let the current stabilize.")
+            log.info(
+                f"Laser is ON. Sleeping for {self.burn_in_t} seconds to let the current stabilize."
+            )
             measuring_loop(self.burn_in_t, self.vg_ramp[0])
 
         for i, vg in enumerate(self.vg_ramp):
-            if vg >= 0:
-                self.tenma_neg.voltage = 0.
-                self.tenma_pos.voltage = vg
-            elif vg < 0:
-                self.tenma_pos.voltage = 0.
-                self.tenma_neg.voltage = -vg
+            self.tenma_neg.voltage = -vg * (vg < 0)
+            self.tenma_pos.voltage = vg * (vg >= 0)
 
             measuring_loop(self.step_time * (i + 1) + self.burn_in_t * self.laser_toggle, vg)
-
-        self.tenma_neg.ramp_to_voltage(0.)
-        self.tenma_pos.ramp_to_voltage(0.)

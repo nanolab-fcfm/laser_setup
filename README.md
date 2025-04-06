@@ -1,9 +1,9 @@
 # Laser Setup
-Experimental setup for Laser, I-V and Transfer Curve measurements.
 
+Experimental setup for Laser, I-V, and Transfer Curve measurements. This project utilizes [PyMeasure](https://pypi.org/project/PyMeasure/) under the hood and extends it with a YAML-based configuration system (via OmegaConf and Hydra) for flexible instrument and procedure management. It is strongly recommended to read the [PyMeasure documentation](https://pymeasure.readthedocs.io/en/latest/) to understand the underlying structure and classes.
 
-## Usage
-This project allows for the communication between the computer and the instruments used in the experimental setup, as well as the control of the instruments. So far, the following instruments are supported:
+This project allows for the communication between the computer and the instruments used in the experimental setup, as well as the control of the instruments. The following instruments are supported:
+
 - Keithley 2450 SourceMeter ([Reference Manual](https://download.tek.com/manual/2450-901-01_D_May_2015_Ref.pdf)) (Requires [NI-VISA](https://www.ni.com/en-us/support/downloads/drivers/download.ni-visa.html) installed)
 - Keithley 6517B Electrometer ([Reference Manual](https://download.tek.com/manual/6517B-901-01D_Feb_2016.pdf) (Also requires NI-VISA))
 - TENMA Power Supply
@@ -12,125 +12,119 @@ This project allows for the communication between the computer and the instrumen
 
 As well as all instruments available in the [PyMeasure library](https://pymeasure.readthedocs.io/en/latest/api/instruments/index.html).
 
-The main window of the program can be run by executing either of the following commands:
+## Features
+
+- Optional installation via uv for handling Python dependencies.
+- YAML configs [laser_setup/assets/templates/](laser_setup/assets/templates/) that leverage Hydra instantiation to dynamically load modules and objects.
+- A robust main GUI window (see [laser_setup.display.main_window.py](laser_setup/display/main_window.py)) that displays available procedures and scripts.
+- An experiment window (laser_setup.display.experiment_window.py) for running PyMeasure-based procedures with plots, logs, and parameter inputs.
+- Sequences: run multiple procedures in series using the SequenceWindow.
+- InstrumentManager (laser_setup.instruments.manager.py) for centralized instrument setup and teardown.
+
+### Running Specific Procedures
+
+If you have procedures defined in a Python script and in the YAML (see [Qt.yaml](laser_setup/assets/templates/Qt.yaml) for examples), you can invoke them directly:
 
 ```bash
-laser_setup
+laser_setup <procedure_name>
 ```
 
-```python
-python .
-```
+This will load the relevant procedure class from the Hydra-based configs, then open an ExperimentWindow.
 
-The main window will display all available procedures, and will allow you to run them.
-
-
-## Installation
-This project mainly uses [PyMeasure](https://pypi.org/project/PyMeasure/), although other packages such as NumPy and PyQT6 are used. To install this project, first clone the repository:
-
-```bash
-git clone https://github.com/nanolab-fcfm/laser_setup.git
-```
-Then, create a virtual environment and activate it:
-
-```bash
-python -m venv <venv_name>
-source <venv_name>/bin/activate
-```
-
-In Windows, use the following command to activate the virtual environment instead:
-
-```powershell
-<venv_name>/scripts/activate
-```
-
-Finally, upgrade pip and install this package and its required:
-```python
-python -m pip install --upgrade pip
-pip install .
-```
-
-Alternatively, you can install the package directly from the repository:
-
-```bash
-pip install git+https://github.com/nanolab-fcfm/laser_setup.git
-```
-
-This will create an entry point for the program, which can be run by executing:
-
-```bash
-laser_setup
-```
-
-
-## Configuration
-The configuration file `default_config.ini` contains the configuration for the instruments used in the setup. This file is used to set up the instruments and their respective addresses, as well as the default parameters for the procedures. The configuration file is divided into sections, each corresponding to a different instrument. This file, however, should not be edited directly. Any changes to the configuration should be done by first running the `setup_adapters` script, which will create a new configuration file `config/config.ini`. This file will be loaded after the default configuration, and will override any parameters set before.
-
+If you prefer to run procedures directly from Python, you can import the relevant classes and call them directly.
 
 ### Scripts
-If you prefer it, you can run the scripts directly from the command line. To start using a specific script, you should first set up the adapters needed to run a measurement. This is done by running
 
-```bash
-laser_setup setup_adapters
-```
-
-This interactive script will check all connected devices in your computer, and guide you to correctly setup every device in your configuration. A new config file will be created; `config/config.ini`. To add more instruments, simply add their name to the `Adapters` section of the new config file and run `setup_adapters.py`.
-
-If you want to run a measurement that uses a TENMA controlled laser, you should first run the following script to calibrate the laser's power:
-
-```bash
-laser_setup calibrate_laser
-```
-
-Each Script corresponds to a different procedure, and can be run independently. To run a script, use the following command:
+Scripts can be run similarly by name:
 
 ```bash
 laser_setup <script_name>
 ```
 
-If you cloned the repository, you can also run the scripts directly from the `Scripts` folder:
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/nanolab-fcfm/laser_setup.git
+```
+
+Optionally install using uv:
+
+```bash
+uv venv
+uv pip install https://github.com/nanolab-fcfm/laser_setup
+```
+
+or a virtual environment:
+
+```bash
+python -m venv <venv_name>
+source <venv_name>/bin/activate  # Linux/Mac
+<venv_name>/Scripts/activate     # Windows
+pip install --upgrade pip
+```
+
+Or, for direct installation from GitHub:
+
+```bash
+pip install git+https://github.com/nanolab-fcfm/laser_setup.git
+```
+
+If installed, the `laser_setup` entry point for the program wll be created.
+
+## Usage
+
+Once installed, run either of the following commands to start the main GUI:
+
+```bash
+laser_setup
+```
+
+or
 
 ```python
-python -m Scripts.<script_name>
+python -m laser_setup
 ```
 
-Additionally, there are two scripts to quickly analyze data.
+This launches the window defined in [MainWindow](laser_setup/display/main_window.py).
 
-If you want to find the Dirac Point of an IVg file:
+## Configuration
 
-```
-laser_setup find_dp_script
-```
+Most configuration is handled in YAML files and can be loaded or overridden at runtime. Hydra and OmegaConf merge these with defaults, enabling dynamic instantiation of procedures, sequences, instruments and parameters. The YAML templates are stored in [laser_setup/assets/templates/](laser_setup/assets/templates/).
 
-To calculate the desired powers of a LED calibration file you can use the following command, specifying the powers in uW (separated by a space):
+### Editing Configuration
 
-```
-python -m Scripts.find_calibration_voltage <desired powers>
-```
+You can edit YAML settings (e.g., Qt.yaml) to define:
 
+- Main window parameters (e.g., README file, window size, etc.).
+- Procedure lists, Script entries, and Sequences.
+- Instrument settings, pointing to classes that the InstrumentManager will initialize.
 
 ## Procedures
+
 A list of all available Procedures and their parameters. To maximize functionality, all user-written procedures should be subclasses of `BaseProcedure`, which is a subclass of `Procedure` from PyMeasure. Procedures inherit the following from their parent class:
+
 - Parameters (`pymeasure.experiment.Parameter` type)
 - INPUTS (Inputs to display in the GUI)
 - DATA_COLUMNS (Columns to display in the GUI and save to file)
 - `startup`, `execute` and `shutdown` methods
 
+## Creating New Procedures
 
-## Procedure Sequence
-A series of procedures can be run in sequence for a single chip by using the `MetaProcedure` class. This class allows for the execution of a series of procedures, and the saving of the data to the respective files. The `MetaProcedure` class is a subclass of `BaseProcedure`.
+Develop custom procedures by:
 
-To run a sequence of procedures, create a new class that inherits from `MetaProcedure`, and define the `procedures` attribute as a list of procedures to run. The `procedures` attribute should be a list of `BaseProcedure` subclasses, uninitialized. The parameters of each procedure are then set by running the `display_window` function.
+1. Subclassing `BaseProcedure`.
+2. Defining your `INPUTS` and `DATA_COLUMNS`.
+3. Setting up your parameters.
+4. Setting up your instruments.
+5. Overriding `startup`, `execute`, and `shutdown` as needed.
 
+## Sequences
 
-## Testing
-This project uses [PyTest](https://docs.pytest.org/en/stable/) for testing.
-To run the tests, use the following command:
-```
-python -m pytest
-```
-Tests are stored in the `tests` folder, and are named `test_<module_test>.py`. You can add more tests by creating a new file in the `tests` folder, and naming it `test_<any>.py`. You can also check each test individually by running
+Use the SequenceWindow to group multiple procedures in series. This allows chaining them together without manually rerunning each experiment. Edit or create new sequence entries in YAML to define the flow of procedures.
 
-```
-python -m tests.<test_name>
-```
+## Contributing
+
+- Code contributions should follow typical pull-request workflow on GitHub.
+- Documentation is currently WIP.
