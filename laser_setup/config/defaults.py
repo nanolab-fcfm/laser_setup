@@ -12,6 +12,7 @@ from .parser import CLIArguments
 
 class DefaultPaths:
     """Default paths for the configuration files."""
+    CONFIG_ENV_NAME = 'CONFIG'
     _parent = Path(__file__).parent
     assets: Path = _parent.parent / 'assets'
     new_config: Path = assets / 'new_config.yaml'
@@ -30,27 +31,27 @@ class DefaultPaths:
 @dataclass
 class DirConfig:
     global_config_file: str = field(
-        default=os.getenv('CONFIG') or DefaultPaths.user_config,
+        default=os.getenv(DefaultPaths.CONFIG_ENV_NAME) or str(DefaultPaths.user_config),
         metadata={'title': 'Global configuration file', 'readonly': True}
     )
     local_config_file: str = field(
-        default=DefaultPaths.user_config,
+        default=str(DefaultPaths.user_config),
         metadata={'title': 'Local configuration file', 'readonly': True}
     )
     parameters_file: str = field(
-        default=DefaultPaths.parameters,
+        default=str(DefaultPaths.parameters),
         metadata={'title': 'Parameters file', 'type': 'file'}
     )
     procedures_file: str = field(
-        default=DefaultPaths.procedures,
+        default=str(DefaultPaths.procedures),
         metadata={'title': 'Procedures file', 'type': 'file'}
     )
     sequences_file: str = field(
-        default=DefaultPaths.sequences,
+        default=str(DefaultPaths.sequences),
         metadata={'title': 'Sequences file', 'type': 'file'}
     )
     instruments_file: str = field(
-        default=DefaultPaths.instruments,
+        default=str(DefaultPaths.instruments),
         metadata={'title': 'Instruments file', 'type': 'file'}
     )
     data_dir: str = field(
@@ -167,7 +168,7 @@ class MainWindowConfig:
         metadata={'title': 'Widget size'}
     )
     icon: str = field(
-        default='',
+        default=str(DefaultPaths.splash),
         metadata={'title': 'Icon', 'type': 'file'}
     )
     scripts: ScriptsConfig = field(
