@@ -22,7 +22,10 @@ Dir:
   # Sequences configuration. Overrides the procedure defaults if given.
   sequences_file: ./config/sequences.yaml
 
-  # Data directory. Where the data will be saved
+  # Instruments configuration.
+  instruments_file: ./config/instruments.yaml
+
+  # Data directory. Where the data will be saved.
   data_dir: ./data
 
   # Database location, relative to the data directory
