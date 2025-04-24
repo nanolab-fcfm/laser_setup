@@ -23,15 +23,15 @@ As well as all instruments available in the [PyMeasure library](https://pymeasur
 
 ### Running Specific Procedures
 
-If you have procedures defined in a Python script and in the YAML (see [Qt.yaml](laser_setup/assets/templates/Qt.yaml) for examples), you can invoke them directly:
+If you have procedures defined in a Python script and in the YAML (see [procedures.yaml](laser_setup/assets/templates/procedures.yaml) for examples), you can invoke them directly:
 
 ```bash
 laser_setup <procedure_name>
 ```
 
-This will load the relevant procedure class from the Hydra-based configs, then open an ExperimentWindow.
+This will load the relevant procedure class from the OmegaConf-based configs, then open an ExperimentWindow.
 
-If you prefer to run procedures directly from Python, you can import the relevant classes and call them directly.
+If you prefer to run procedures directly from Python, you can import the relevant `Procedure` classes and call them directly.
 
 ### Scripts
 
@@ -47,6 +47,28 @@ Clone the repository:
 
 ```bash
 git clone https://github.com/nanolab-fcfm/laser_setup.git
+cd laser_setup
+```
+
+Create a virtual environment:
+
+```bash
+python -m venv <venv_name>
+source <venv_name>/bin/activate  # Linux/MacOS
+<venv_name>/Scripts/activate     # Windows
+pip install --upgrade pip
+```
+
+And install the dependencies:
+
+```bash
+pip install .
+```
+
+Or, for direct installation instead of cloning the repository:
+
+```bash
+pip install git+https://github.com/nanolab-fcfm/laser_setup.git
 ```
 
 Optionally install using uv:
@@ -56,26 +78,11 @@ uv venv
 uv pip install https://github.com/nanolab-fcfm/laser_setup
 ```
 
-or a virtual environment:
-
-```bash
-python -m venv <venv_name>
-source <venv_name>/bin/activate  # Linux/Mac
-<venv_name>/Scripts/activate     # Windows
-pip install --upgrade pip
-```
-
-Or, for direct installation from GitHub:
-
-```bash
-pip install git+https://github.com/nanolab-fcfm/laser_setup.git
-```
-
-If installed, the `laser_setup` entry point for the program wll be created.
+If installed, the `laser_setup` entry point for the program will be created.
 
 ## Usage
 
-Once installed, run either of the following commands to start the main GUI:
+Once installed, run either of the following commands to start the main window:
 
 ```bash
 laser_setup
@@ -87,28 +94,34 @@ or
 python -m laser_setup
 ```
 
-This launches the window defined in [MainWindow](laser_setup/display/main_window.py).
+This launches the window defined in [MainWindow](laser_setup/display/windows/main_window.py).
 
 ## Configuration
 
-Most configuration is handled in YAML files and can be loaded or overridden at runtime. Hydra and OmegaConf merge these with defaults, enabling dynamic instantiation of procedures, sequences, instruments and parameters. The YAML templates are stored in [laser_setup/assets/templates/](laser_setup/assets/templates/).
+Most configuration is handled in YAML files and can be loaded or overridden at runtime. OmegaConf merges these with defaults, enabling dynamic instantiation of procedures, sequences, instruments and parameters. The YAML templates are stored in [laser_setup/assets/templates](laser_setup/assets/templates).
 
 ### Editing Configuration
 
-You can edit YAML settings (e.g., Qt.yaml) to define:
+You can edit YAML settings to define:
 
-- Main window parameters (e.g., README file, window size, etc.).
-- Procedure lists, Script entries, and Sequences.
+- Main window parameters (e.g., README file, window size, icon, etc.).
+- Procedures, Scripts, and Sequences.
 - Instrument settings, pointing to classes that the InstrumentManager will initialize.
 
 ## Procedures
 
-A list of all available Procedures and their parameters. To maximize functionality, all user-written procedures should be subclasses of `BaseProcedure`, which is a subclass of `Procedure` from PyMeasure. Procedures inherit the following from their parent class:
+To maximize functionality, all user-written procedures should be subclasses of `BaseProcedure`, which is a subclass of `Procedure` from PyMeasure. These procedures inherit the following:
 
-- Parameters (`pymeasure.experiment.Parameter` type)
-- INPUTS (Inputs to display in the GUI)
-- DATA_COLUMNS (Columns to display in the GUI and save to file)
-- `startup`, `execute` and `shutdown` methods
+- The following parameters (`pymeasure.experiment.Parameter` type):
+  - `procedure_version` (version of the procedure)
+  - `show_more` (boolean to show more parameters in the GUI)
+  - `info` (information about the procedure)
+  - `skip_startup` (boolean to skip the startup method)
+  - `skip_shutdown` (boolean to skip the shutdown method)
+  - `start_time` (start time of the procedure, set with `time.time()`)
+- Their corresponding INPUTS (Inputs to display in the GUI)
+- Base `startup` and `shutdown` methods
+- `instruments`, an `InstrumentManager` object that handles the instruments used in the procedure
 
 ## Creating New Procedures
 
