@@ -91,7 +91,8 @@ class It(ChipProcedure):
         if self.vg:
             self.tenma_neg.apply_voltage(0.)
             self.tenma_pos.apply_voltage(0.)
-        self.tenma_laser.apply_voltage(0.)
+        if self.laser_v:
+            self.tenma_laser.apply_voltage(0.)
 
         # Turn on the outputs
         self.meter.enable_source()
@@ -99,7 +100,8 @@ class It(ChipProcedure):
         if self.vg:
             self.tenma_neg.output = True
             self.tenma_pos.output = True
-        self.tenma_laser.output = True
+        if self.laser_v:
+            self.tenma_laser.output = True
         time.sleep(1.)
 
     def execute(self):
@@ -143,9 +145,12 @@ class It(ChipProcedure):
                 )))
                 time.sleep(self.sampling_t)
 
-        self.tenma_laser.voltage = 0.
+        if self.laser_v:
+            self.tenma_laser.voltage = 0.
         measuring_loop(self.laser_T * 1/2, 0.)
-        self.tenma_laser.voltage = self.laser_v
+        if self.laser_v:
+            self.tenma_laser.voltage = self.laser_v
         measuring_loop(self.laser_T, self.laser_v)
-        self.tenma_laser.voltage = 0.
+        if self.laser_v:
+            self.tenma_laser.voltage = 0.
         measuring_loop(self.laser_T * 3/2, 0.)
