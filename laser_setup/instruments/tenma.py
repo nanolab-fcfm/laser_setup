@@ -80,6 +80,6 @@ class TENMA(SCPIMixin, Instrument):
         Safely shutdowns the TENMA, setting the voltage to 0 and turning off
         the output.
         """
-        self.ramp_to_voltage(0.)
+        self.ramp_to_voltage(0., vg_step=0.5)
         self.output = False
         super().shutdown()
