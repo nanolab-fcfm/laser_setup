@@ -45,13 +45,13 @@ class Pwl(BaseProcedure):
 
         # Turn on the light source and set initial wavelength
         self.light_source.lamp = True
-        time.sleep(1.)  # Allow the lamp to stabilize
+        time.sleep(5.)  # Allow the lamp to stabilize
 
         wl_range = np.arange(self.wl_start, self.wl_end + self.wl_step, self.wl_step)
         avg_array = np.zeros(self.N_avg)
 
         self.power_meter.wavelength = self.wl_start
-        self.light_source.goto = self.wl_start
+        self.light_source.set_wavelength(self.wl_start)
         log.info("Preparing light source...")
         time.sleep(2.)
         initial_time = time.time()
@@ -66,7 +66,8 @@ class Pwl(BaseProcedure):
             # Set the light source and power meter to the current wavelength
 
             self.power_meter.wavelength = wavelength
-            self.light_source.goto = wavelength
+            # self.light_source.goto = wavelength
+            self.light_source.set_wavelength(wavelength)
 
             time.sleep(self.sampling_t)  # Allow wavelength to stabilize
 
