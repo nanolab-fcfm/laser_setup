@@ -94,7 +94,7 @@ class Bentham(SCPIMixin, Instrument):
 
     resistance = Instrument.measurement(":RES?", """Reads the resistance in Ohms.""")
 
-    def __init__(self, adapter: str = None, name: str = None, includeSCPI=False, **kwargs):
+    def __init__(self, adapter: str = None, name: str = None, **kwargs):
         """Initializes the Bentham light source instrument.
 
         :param adapter: The adapter to use for the communication. If the adapter
@@ -107,11 +107,7 @@ class Bentham(SCPIMixin, Instrument):
         :param kwargs: Additional keyword arguments to pass to the Instrument class.
         """
         temp_adapter = None if isinstance(adapter, str) else adapter
-        super().__init__(
-            temp_adapter,
-            name or "Bentham TLS120Xe",
-            includeSCPI=includeSCPI, **kwargs
-        )
+        super().__init__(temp_adapter, name or "Bentham TLS120Xe", **kwargs)
 
         if isinstance(adapter, str) or adapter is None:
             try:
@@ -137,7 +133,6 @@ class Bentham(SCPIMixin, Instrument):
 
     def shutdown(self):
         self.lamp = False
-        self.reboot()
         self.adapter.close()
         super().shutdown()
 
