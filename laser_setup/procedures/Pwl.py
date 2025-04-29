@@ -31,7 +31,9 @@ class Pwl(BaseProcedure):
     # Metadata
     sensor = Parameters.Instrument.sensor
 
-    INPUTS = ['wl_start', 'wl_end', 'wl_step', 'N_avg', 'sampling_t']
+    INPUTS = BaseProcedure.INPUTS + [
+        'wl_start', 'wl_end', 'wl_step', 'N_avg', 'sampling_t'
+    ]
     DATA_COLUMNS = ['Wavelength (nm)', 'Power (W)', 'Time (s)']
     SEQUENCER_INPUTS = ['wl_start', 'wl_end', 'wl_step']
 

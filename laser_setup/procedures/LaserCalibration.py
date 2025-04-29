@@ -36,7 +36,9 @@ class LaserCalibration(BaseProcedure):
     # Metadata
     sensor = Parameters.Instrument.sensor
 
-    INPUTS = ['laser_wl', 'fiber', 'vl_start', 'vl_end', 'vl_step', 'step_time', 'N_avg']
+    INPUTS = BaseProcedure.INPUTS + [
+        'laser_wl', 'fiber', 'vl_start', 'vl_end', 'vl_step', 'step_time', 'N_avg'
+    ]
     DATA_COLUMNS = ['VL (V)', 'Power (W)']
 
     def startup(self):
