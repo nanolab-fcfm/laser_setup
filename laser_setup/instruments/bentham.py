@@ -121,7 +121,6 @@ class Bentham(SCPIMixin, Instrument):
     def set_wavelength(self, wavelength: float, timeout: float = 10.):
         """Sets the wavelength to the specified value."""
         self.mono = wavelength
-        self.move
         self.filt = wavelength
         self.move
 
@@ -137,7 +136,8 @@ class Bentham(SCPIMixin, Instrument):
         super().shutdown()
 
     def reboot(self):
-        self.adapter.write("SYSTEM:REBOOT")
+        self.write("SYSTEM:REBOOT")
 
     def reconnect(self):
         self.adapter.reconnect()
+        self.write("SYST:REM")
