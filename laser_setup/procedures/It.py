@@ -48,15 +48,18 @@ class It(ChipProcedure):
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
-    INPUTS = ChipProcedure.INPUTS + [
-        'vds', 'Irange', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'sense_T',
-        'initial_T', 'target_T', 'T_start_t', 'NPLC'
-    ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'VL (V)'] + PT100SerialSensor.DATA_COLUMNS
+    INPUTS = ChipProcedure.INPUTS + [
+        'vds', 'Irange', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t',
+        'sense_T', 'initial_T', 'target_T', 'T_start_t', 'NPLC'
+    ]
     EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
     SEQUENCER_INPUTS = ['laser_v', 'vg', 'target_T']
 
     def connect_instruments(self):
+        self.tenma_neg = None if self.vg == 0. else self.tenma_neg
+        self.tenma_pos = None if self.vg == 0. else self.tenma_pos
+        self.tenma_laser = None if self.laser_v == 0. else self.tenma_laser
         self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
         self.clicker = None if not self.sense_T else self.clicker
         super().connect_instruments()
@@ -85,15 +88,17 @@ class It(ChipProcedure):
         )
 
         # TENMA sources
-        self.tenma_neg.apply_voltage(0.)
-        self.tenma_pos.apply_voltage(0.)
+        if self.vg:
+            self.tenma_neg.apply_voltage(0.)
+            self.tenma_pos.apply_voltage(0.)
         self.tenma_laser.apply_voltage(0.)
 
         # Turn on the outputs
         self.meter.enable_source()
         time.sleep(0.5)
-        self.tenma_neg.output = True
-        self.tenma_pos.output = True
+        if self.vg:
+            self.tenma_neg.output = True
+            self.tenma_pos.output = True
         self.tenma_laser.output = True
         time.sleep(1.)
 
@@ -108,12 +113,13 @@ class It(ChipProcedure):
                 self.clicker.CT = self.initial_T
             self.clicker.set_target_temperature(self.target_T)
 
-        if self.vg >= 0:
-            self.tenma_pos.ramp_to_voltage(self.vg)
-            self.tenma_neg.ramp_to_voltage(0)
-        elif self.vg < 0:
-            self.tenma_pos.ramp_to_voltage(0)
-            self.tenma_neg.ramp_to_voltage(-self.vg)
+        if self.vg:
+            if self.vg > 0:
+                self.tenma_pos.ramp_to_voltage(self.vg)
+                self.tenma_neg.ramp_to_voltage(0)
+            elif self.vg < 0:
+                self.tenma_pos.ramp_to_voltage(0)
+                self.tenma_neg.ramp_to_voltage(-self.vg)
 
         def measuring_loop(t_end: float, laser_v: float):
             keithley_time = self.meter.get_time()
