@@ -24,7 +24,6 @@ class InstrumentProxy(Generic[T]):
         instrument_class: type[T],
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
-        includeSCPI: bool = False,
         **kwargs
     ):
         """Initializes the InstrumentProxy.
@@ -32,13 +31,11 @@ class InstrumentProxy(Generic[T]):
         :param instrument_class: The class of the instrument to be initialized.
         :param adapter: The adapter to be used for the instrument.
         :param name: The name of the instrument.
-        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param kwargs: Additional keyword arguments for instrument configuration.
         """
         self.instrument_class = instrument_class
         self.adapter = adapter
         self.name = name
-        self.includeSCPI = includeSCPI
         self.kwargs = kwargs
         self._instance_id = None
 
@@ -104,7 +101,6 @@ class InstrumentManager:
         target: type[T] | None = Instrument,
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
-        includeSCPI: bool = False,
         IDN: str | None = None,
         kwargs: Mapping[str, Any] | None = None
     ) -> T:
@@ -116,7 +112,6 @@ class InstrumentManager:
         :param target: The instrument class to set up.
         :param adapter: The adapter to use for the communication.
         :param name: The name of the instrument.
-        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param IDN: The IDN string of the instrument.
 
         :param kwargs: Additional keyword arguments to pass to the instrument class.
@@ -126,7 +121,6 @@ class InstrumentManager:
             instrument_class=target,
             adapter=adapter,
             name=name,
-            includeSCPI=includeSCPI,
             **(kwargs or {})
         )
 
@@ -180,7 +174,6 @@ class InstrumentManager:
                     instrument_class=attr.instrument_class,
                     adapter=attr.adapter,
                     name=attr.name,
-                    includeSCPI=attr.includeSCPI,
                     _instance_id=attr._instance_id,
                     debug=debug,
                     **attr.kwargs
@@ -192,7 +185,6 @@ class InstrumentManager:
         instrument_class: type[T],
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
-        includeSCPI: bool = False,
         _instance_id: str | None = None,
         debug: bool = False,
         **kwargs
@@ -205,7 +197,6 @@ class InstrumentManager:
         :param instrument_class: The instrument class to set up.
         :param adapter: The adapter to use for the communication.
         :param name: The name of the instrument.
-        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param _instance_id: A unique identifier. If not provided, it uses the class name
             and adapter.
         :param debug: Flag indicating whether to use debug mode if connection fails.
@@ -218,8 +209,6 @@ class InstrumentManager:
         if _instance_id not in self:
             if name is not None:
                 kwargs['name'] = name
-
-            kwargs['includeSCPI'] = includeSCPI
 
             try:
                 instance = self.setup_adapter(

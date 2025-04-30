@@ -37,7 +37,6 @@ class Clicker(SCPIMixin, Instrument):
         name: str = "ESP8266 Clicker",
         baudrate: int = 115200,
         timeout: float = 0.15,
-        includeSCPI=False,
         **kwargs
     ):
         adapter = SerialAdapter(port=adapter, baudrate=baudrate, timeout=timeout,
@@ -45,7 +44,6 @@ class Clicker(SCPIMixin, Instrument):
         super().__init__(
             adapter,
             name=name,
-            includeSCPI=includeSCPI,
             **kwargs
         )
         log.info(f"{self.name} initialized on port {adapter} at {baudrate} baud.")
@@ -85,7 +83,6 @@ class PT100SerialSensor(SCPIMixin, Instrument):
         name: str = "PT100 Sensor",
         baudrate: int = 115200,
         timeout: float = 0.15,
-        includeSCPI=False,
         **kwargs
     ):
         """Initializes the PT100 sensor connected via serial communication.
@@ -95,14 +92,12 @@ class PT100SerialSensor(SCPIMixin, Instrument):
         :param name: The name of the instrument.
         :param baudrate: The baud rate for serial communication
         :param timeout: Read timeout in seconds
-        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param kwargs: Additional keyword arguments.
         """
         adapter = SerialAdapter(port=adapter, baudrate=baudrate, timeout=timeout)
         super().__init__(
             adapter,
             name=name,
-            includeSCPI=includeSCPI,
             **kwargs
         )
         log.info(f"{self.name} initialized on port {adapter} at {baudrate} baud.")
