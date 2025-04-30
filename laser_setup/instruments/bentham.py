@@ -102,7 +102,6 @@ class Bentham(SCPIMixin, Instrument):
             Other instruments can use a self.adapter = None. However, this
             class will first try to connect to an available USB device.
         :param name: The name of the instrument.
-        :param includeSCPI: Whether to include the SCPI commands in the help.
             Pymeasure instruments should have a default value of False.
         :param kwargs: Additional keyword arguments to pass to the Instrument class.
         """
