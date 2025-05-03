@@ -1,6 +1,7 @@
 import logging
 import time
 
+from pymeasure.display.curves import ResultsCurve
 from pymeasure.display.widgets import PlotFrame, PlotWidget
 from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
@@ -143,6 +144,34 @@ class ExperimentWindow(ManagedWindowBase):
             del self.estimator.update_thread
 
         super().closeEvent(event)
+
+    def new_curve(self, *args, **kwargs) -> ResultsCurve | list[ResultsCurve] | None:
+        curves = super().new_curve(*args, **kwargs)
+        if isinstance(curves, list):
+            for curve in curves:
+                self.update_curve(curve)
+
+        elif curves is not None:
+            self.update_curve(curves)
+
+        return curves
+
+    def update_curve(self, curve: ResultsCurve) -> None:
+        """Configure the curve style. This is called for each curve in the window.
+        Override this method to customize the curve style. The default implementation
+        does nothing.
+
+        Example:
+            def update_curve(self, curve: ResultsCurve) -> None:
+                curve.setSymbol('o')
+                curve.setPen(None)  # Disable connecting line
+                curve.setSymbolBrush(curve.color)  # filling
+                curve.setSymbolPen(curve.pen)  # outline
+
+        :param curve: The curve to update.
+        :type curve: pymeasure.display.curves.ResultsCurve
+        """
+        pass
 
 
 class ProgressBar(QtWidgets.QDialog):
