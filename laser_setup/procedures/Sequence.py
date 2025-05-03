@@ -82,7 +82,7 @@ class Sequence:
         """
         if isinstance(procedure, str):
             if procedure not in types_dict:
-                log.warning(f"Procedure {procedure} not found in types dict. Skipping.")
+                log.warning(f"Procedure '{procedure}' not found in types dict. Skipping.")
                 return
 
             procedure_class = types_dict[procedure]
