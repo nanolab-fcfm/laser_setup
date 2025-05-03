@@ -123,7 +123,7 @@ class ExperimentWindowConfig:
         metadata={'title': 'Info file', 'type': 'file'}
     )
     icon: str = field(
-        default='',
+        default=str(DefaultPaths.splash),
         metadata={'title': 'Icon', 'type': 'file'}
     )
 
