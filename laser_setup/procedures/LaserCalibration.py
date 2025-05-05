@@ -17,9 +17,6 @@ class LaserCalibration(BaseProcedure):
     """
     name = 'Laser Calibration'
 
-    show_more = None
-    info = None
-
     instruments = InstrumentManager()
     power_meter: ThorlabsPM100USB = instruments.queue(**Instruments.ThorlabsPM100USB)
     tenma_laser: TENMA = instruments.queue(**Instruments.TENMALASER)
