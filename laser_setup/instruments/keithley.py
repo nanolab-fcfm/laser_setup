@@ -51,10 +51,11 @@ class Keithley2450(_Keithley2450):
             name = self.buffer_name
         self.write(f':TRACe:CLEar "{name}"')
 
-    def get_data(self):
+    def get_data(self) -> list[float]:
         """Returns the latest timestamp and data from the buffer."""
-        data = self.ask(f':READ? "{self.buffer_name}", REL, READ')
-        return data
+        res = str(self.ask(f':READ? "{self.buffer_name}", REL, READ'))
+        data_list = res.removesuffix('\n').split(',')
+        return list(map(float, data_list))
 
     def get_time(self) -> float:
         """Returns the latest timestamp from the buffer."""
