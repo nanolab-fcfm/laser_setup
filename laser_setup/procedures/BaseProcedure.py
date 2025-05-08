@@ -7,7 +7,7 @@ from typing import Any
 from pymeasure.experiment import (BooleanParameter, Metadata, Parameter,
                                   Procedure)
 
-from ..config import CONFIG, configurable
+from ..config import configurable
 from ..instruments import InstrumentManager
 
 log = logging.getLogger(__name__)
@@ -62,7 +62,7 @@ class BaseProcedure(Procedure):
 
         Override this method to handle instrument connections differently.
         """
-        self.instruments.connect_all(self, debug=CONFIG._session.args.debug)
+        self.instruments.connect_all(self)
 
     def startup(self):
         """Startup method that handles the initialization of instruments and

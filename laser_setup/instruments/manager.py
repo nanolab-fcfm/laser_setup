@@ -102,7 +102,8 @@ class InstrumentManager:
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
         IDN: str | None = None,
-        kwargs: Mapping[str, Any] | None = None
+        kwargs: Mapping[str, Any] | None = None,
+        **kwargs_extra
     ) -> T:
         """Queue an instrument for later connection.
 
@@ -115,13 +116,15 @@ class InstrumentManager:
         :param IDN: The IDN string of the instrument.
 
         :param kwargs: Additional keyword arguments to pass to the instrument class.
+        :param kwargs_extra: Extra keyword arguments to pass to the instrument class.
         :return: A proxy object that represents the queued instrument.
         """
         proxy = InstrumentProxy(
             instrument_class=target,
             adapter=adapter,
             name=name,
-            **(kwargs or {})
+            **(kwargs or {}),
+            **kwargs_extra
         )
 
         proxy._instance_id = IDN or self.id_template.format(instrument=target, adapter=adapter)
@@ -146,26 +149,22 @@ class InstrumentManager:
         :return: The instrument object or a DebugInstrument if debug=True and connection fails.
         """
         try:
-            instance = instrument_class(adapter=adapter, **kwargs)
+            return instrument_class(adapter=adapter, **kwargs)
         except Exception as e:
             if debug:
                 log.warning(
                     f"Could not connect to {instrument_class.__name__}: {e} Using DebugInstrument."
                 )
-                instance = DebugInstrument(**kwargs)
-            else:
-                raise
+                return DebugInstrument(**kwargs)
+            raise e
 
-        return instance
-
-    def connect_all(self, obj: any, debug: bool = False) -> None:
+    def connect_all(self, obj: Any) -> None:
         """Connects all InstrumentProxy instances in the given object.
 
         Searches for all InstrumentProxy attributes in the object and connects them,
         replacing the proxy with the actual instrument instance.
 
         :param obj: The object to search for InstrumentProxy instances.
-        :param debug: Flag indicating whether to use debug mode for connection errors.
         """
         all_attrs: dict = vars(type(obj)) | vars(obj)
         for key, attr in all_attrs.items():
@@ -175,7 +174,6 @@ class InstrumentManager:
                     adapter=attr.adapter,
                     name=attr.name,
                     _instance_id=attr._instance_id,
-                    debug=debug,
                     **attr.kwargs
                 )
                 setattr(obj, key, instrument)
@@ -186,7 +184,6 @@ class InstrumentManager:
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
         _instance_id: str | None = None,
-        debug: bool = False,
         **kwargs
     ) -> T | 'DebugInstrument':
         """Connects to an instrument and saves it in the dictionary.
@@ -199,7 +196,6 @@ class InstrumentManager:
         :param name: The name of the instrument.
         :param _instance_id: A unique identifier. If not provided, it uses the class name
             and adapter.
-        :param debug: Flag indicating whether to use debug mode if connection fails.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         :return: The instrument instance or DebugInstrument if debug=True and connection fails.
         """
@@ -212,7 +208,7 @@ class InstrumentManager:
 
             try:
                 instance = self.setup_adapter(
-                    instrument_class, adapter=adapter, debug=debug, **kwargs
+                    instrument_class, adapter=adapter, **kwargs
                 )
                 self[_instance_id] = instance
                 log.debug(

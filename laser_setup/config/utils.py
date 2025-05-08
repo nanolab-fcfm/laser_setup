@@ -91,6 +91,24 @@ def instantiate(
     return config
 
 
+def load_and_merge(
+    file_path: str | Path,
+    config: T,
+    section: str,
+    **kwargs,
+) -> None:
+    """Load a YAML file and merge it with an existing configuration.
+
+    :param file_path: Path to the YAML file.
+    :param config: Existing configuration to merge with.
+    :param section: Section to merge the configuration into.
+    :param kwargs: Additional arguments for `load_yaml`.
+    :return: Merged configuration.
+    """
+    loaded_config = load_yaml(file_path, **kwargs)
+    config[section] = OmegaConf.merge(config[section], loaded_config)
+
+
 def get_type(
     name: str,
     bases: tuple[type[T], ...],
