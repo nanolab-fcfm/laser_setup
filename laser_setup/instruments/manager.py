@@ -250,6 +250,24 @@ class InstrumentManager:
         for instance_id in list(self):
             self.shutdown(instance_id)
 
+    def disable(self, obj, attr: str) -> None:
+        """Replaces the given attribute with a DisabledInstrument. Deletes the original
+        attribute from the object.
+
+        :param obj: The object containing the attribute to disable.
+        :param attr: The name of the attribute to disable.
+        """
+        if not hasattr(obj, attr):
+            raise AttributeError(f"Attribute '{attr}' not found in {type(obj).__name__}")
+
+        attr_obj = getattr(obj, attr)
+        if not isinstance(attr_obj, (Instrument, InstrumentProxy)):
+            raise TypeError(f"Attribute '{attr}' is not an Instrument or InstrumentProxy.")
+
+        disabled_instrument = DisabledInstrument(name=attr_obj.name)
+        setattr(obj, attr, disabled_instrument)
+        log.debug(f"Disabled instrument '{attr}' in {type(obj).__name__}.")
+
     @staticmethod
     def _get_property_help(attr: property, name: str) -> str:
         """Returns the help string for a property."""
@@ -314,6 +332,76 @@ class InstrumentManager:
         return f"InstrumentManager({self.instrument_dict})"
 
 
+class NoOp:
+    """Class representing the output of a no-operation command. It is
+    used as a universal 'do nothing' placeholder.
+    """
+    def __call__(self, *args, **kwargs) -> None:
+        pass
+
+    def __bool__(self) -> bool:
+        return False
+
+    def __iter__(self) -> Iterator:
+        return iter([])
+
+    def __getattr__(self, item: str) -> None:
+        return None
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        pass
+
+    def __delattr__(self, item: str) -> None:
+        pass
+
+    def __len__(self) -> int:
+        return 0
+
+    def __contains__(self, item: str) -> bool:
+        return False
+
+    def __getitem__(self, item: str) -> None:
+        return None
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        pass
+
+    def __delitem__(self, key: str) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        return "<NoOp>"
+
+    def __str__(self) -> str:
+        return ""
+
+
+NO_OP = NoOp()
+
+
+class DisabledInstrument(FakeInstrument):
+    """Instrument class that does nothing. Useful when you want to disable an instrument
+    without removing it from the Procedure. It will not raise any exceptions when
+    trying to access its properties or methods, but will return a `NoOp` object instead.
+    """
+    _special_names = []
+
+    def __getattr__(self, item: str) -> None:
+        try:
+            return super().__getattr__(item)
+        except AttributeError:
+            return NO_OP
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        try:
+            super().__setattr__(key, value)
+        except AttributeError:
+            pass
+
+    def __repr__(self) -> str:
+        return f"<DisabledInstrument ({self.name})>"
+
+
 class DebugInstrument(FakeInstrument):
     """Debug instrument class useful for testing.
 
@@ -326,6 +414,7 @@ class DebugInstrument(FakeInstrument):
     source_voltage: float = 0.
     _func = lambda *args, **kwargs: None  # noqa: E731
     measure_current = _func
+    measure_voltage = _func
     make_buffer = _func
     reset = _func
     enable_source = _func
@@ -356,6 +445,10 @@ class DebugInstrument(FakeInstrument):
     def get_time(self):
         """Return the time since the instrument was instantiated."""
         return time.time() - self._tstart
+
+    def get_data(self) -> tuple[float, float]:
+        """Return the time and current."""
+        return self.get_time(), self.current
 
     @property
     def voltage(self):
