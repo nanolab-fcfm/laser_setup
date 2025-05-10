@@ -26,4 +26,4 @@ Instruments = instantiate(CONFIG.instruments)
 if CONFIG._session.args.debug:
     for key in Instruments:
         Instruments[key].kwargs.debug = True
-Parameters = DeepCopyDictConfig(instantiate(CONFIG.parameters))
+Parameters = instantiate(CONFIG.parameters)
