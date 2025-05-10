@@ -5,7 +5,7 @@ import numpy as np
 
 from ..instruments import Bentham, InstrumentManager, ThorlabsPM100USB
 from ..procedures import BaseProcedure
-from .utils import Parameters, Instruments
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -31,16 +31,13 @@ class Pwl(BaseProcedure):
     # Metadata
     sensor = Parameters.Instrument.sensor
 
+    DATA_COLUMNS = ['Wavelength (nm)', 'Power (W)', 'Time (s)']
     INPUTS = BaseProcedure.INPUTS + [
         'wl_start', 'wl_end', 'wl_step', 'N_avg', 'sampling_t'
     ]
-    DATA_COLUMNS = ['Wavelength (nm)', 'Power (W)', 'Time (s)']
     SEQUENCER_INPUTS = ['wl_start', 'wl_end', 'wl_step']
 
     def execute(self):
-        """
-        Performs the wavelength sweep and records power measurements.
-        """
         log.info("Starting the measurement")
 
         # Turn on the light source and set initial wavelength

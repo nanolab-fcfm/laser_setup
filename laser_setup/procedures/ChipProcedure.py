@@ -1,8 +1,8 @@
 import logging
 
+from ..utils import get_latest_DP, send_telegram_alert
 from .BaseProcedure import BaseProcedure
 from .utils import Parameters
-from ..utils import send_telegram_alert
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -27,3 +27,35 @@ class ChipProcedure(BaseProcedure):
             )
 
         super().shutdown()
+
+
+class LaserMixin:
+    """Mixin class for procedures that use the laser_v parameter.
+    """
+    def patch_parameters(self) -> None:
+        if not getattr(self, 'laser_toggle', True):
+            self._parameters['laser_v'].value = 0.
+            self.laser_v = 0.
+        super().patch_parameters()
+
+
+class VgMixin:
+    """Mixin class for procedures that use the vg_dynamic parameter.
+    """
+    def patch_parameters(self) -> None:
+        if getattr(self, 'vg_toggle', True):
+            vg = str(self.vg).removesuffix('V')
+            if 'DP' in vg:
+                latest_DP = get_latest_DP(
+                    self.chip_group, self.chip_number, self.sample, max_files=20
+                )
+                vg = vg.replace('DP', f"{latest_DP:.2f}")
+
+            new_vg = float(eval(vg))
+        else:
+            new_vg = 0.
+
+        self._parameters['vg'] = Parameters.Control.vg
+        self._parameters['vg'].value = new_vg
+        self.vg = new_vg
+        super().patch_parameters()

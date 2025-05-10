@@ -57,12 +57,14 @@ Laser:
     name: Laser wavelength
     units: nm
     choices: [0, 280, 300, 325, 365, 385, 405, 455, 470, 505, 565, 590, 625, 680, 700, 850, 1050, 1450]
+    group_by: laser_toggle
 
   laser_v:
     _target_: *FloatParameter
     default: 0.
     name: Laser voltage
     units: V
+    group_by: laser_toggle
 
   laser_T:
     _target_: *FloatParameter
@@ -70,6 +72,7 @@ Laser:
     name: Laser ON+OFF period
     description: One period of the laser ON+OFF cycle
     units: s
+    group_by: laser_toggle
 
   burn_in_t:
     _target_: *FloatParameter
@@ -77,6 +80,7 @@ Laser:
     name: Burn-in time
     description: Time to wait before starting the measurement
     units: s
+    group_by: laser_toggle
 
   fiber:
     _target_: *ListParameter
@@ -189,6 +193,7 @@ Control:
     units: V
     minimum: -100.
     maximum: 100.
+    group_by: vg_toggle
 
   vg_dynamic:
     _target_: *Parameter
@@ -198,6 +203,7 @@ Control:
       Dynamically evaluated VG value.
       Use 'DP' for the sample's previously measured Dirac Point.
       If no DP is found, the value will be 0. V
+    group_by: vg_toggle
 
   vg_toggle:
     _target_: *BooleanParameter
@@ -292,9 +298,9 @@ Control:
     _target_: *IntegerParameter
     default: 25
     name: Target T
-    description: Target temperature
+    description: Target temperature. If set to 0, the Clicker will be disabled.
     units: C
-    minimum: 10
+    minimum: 0
     maximum: 350
     group_by: sense_T
 
@@ -304,6 +310,7 @@ Control:
     name: T step start time
     description: Time at which the temperature target is set
     units: s
+    minimum: 0.
     group_by: sense_T
 
   T_start:
@@ -313,6 +320,7 @@ Control:
     units: C
     minimum: 10
     maximum: 350
+    group_by: sense_T
 
   T_end:
     _target_: *IntegerParameter
@@ -321,9 +329,12 @@ Control:
     units: C
     minimum: 10
     maximum: 350
+    group_by: sense_T
 
   T_step:
     _target_: *IntegerParameter
     default: 5
     name: T step
     units: C
+    minimum: 1
+    group_by: sense_T

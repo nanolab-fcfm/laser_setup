@@ -103,18 +103,19 @@ class ExperimentWindow(ManagedWindowBase):
         self.log.addHandler(self.log_widget.handler)
         self.log.debug(f"{type(self).__name__} connected to logging")
 
-    def queue(self, procedure: type[Procedure] | None = None):
+    def queue(self, procedure: Procedure | None = None):
         if procedure is None:
             procedure = self.make_procedure()
 
-        filename_kwargs: dict = dict(CONFIG.Filename).copy()
+        filename_kwargs = dict(CONFIG.Filename).copy()
         prefix = filename_kwargs.pop('prefix', '') or type(procedure).__name__
         filename = unique_filename(CONFIG.Dir.data_dir,
                                    prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")
 
-        if hasattr(procedure, 'pre_startup') and callable(procedure.pre_startup):
-            procedure.pre_startup()
+        if hasattr(procedure, 'patch_parameters') and callable(procedure.patch_parameters):
+            # Edits procedure parameters after init but before startup
+            procedure.patch_parameters()
 
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)

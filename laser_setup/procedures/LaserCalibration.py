@@ -5,7 +5,7 @@ import numpy as np
 
 from ..instruments import TENMA, InstrumentManager, ThorlabsPM100USB
 from .BaseProcedure import BaseProcedure
-from .utils import Parameters, Instruments
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -26,7 +26,6 @@ class LaserCalibration(BaseProcedure):
     vl_start = Parameters.Control.vl_start
     vl_end = Parameters.Control.vl_end
     vl_step = Parameters.Control.vl_step
-    # beam_area = algo
     step_time = Parameters.Control.step_time
     N_avg = Parameters.Instrument.N_avg
 
@@ -55,6 +54,7 @@ class LaserCalibration(BaseProcedure):
 
         for i, vl in enumerate(self.vl_ramp):
             if self.should_stop():
+                log.warning('Measurement aborted')
                 break
 
             self.emit('progress', 100 * i / len(self.vl_ramp))
