@@ -3,8 +3,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from omegaconf import MISSING
-
 from ..display.Qt import QtWidgets
 from .log import default_log_config
 from .parser import CLIArguments
@@ -65,18 +63,6 @@ class DirConfig:
 
 
 @dataclass
-class AdapterConfig:
-    keithley2450: str = ''
-    tenma_neg: str = ''
-    tenma_pos: str = ''
-    tenma_laser: str = ''
-    power_meter: str = ''
-    pt100_port: str = ''
-    clicker: str = ''
-    light_source: str = ''
-
-
-@dataclass
 class GUIConfig:
     style: str = field(
         default='Fusion',
@@ -123,7 +109,7 @@ class ExperimentWindowConfig:
         metadata={'title': 'Info file', 'type': 'file'}
     )
     icon: str = field(
-        default='',
+        default=str(DefaultPaths.splash),
         metadata={'title': 'Icon', 'type': 'file'}
     )
 
@@ -142,7 +128,7 @@ SequencesConfig = dict[str, Any]
 
 @dataclass
 class InstrumentConfig:
-    adapter: str
+    adapter: Any
     target: Any | None = None
     name: str | None = None
     IDN: str | None = None
@@ -255,7 +241,6 @@ class SessionConfig:
 @dataclass
 class AppConfig:
     Dir: DirConfig = field(default_factory=DirConfig, metadata={'title': 'Directories'})
-    Adapters: AdapterConfig = field(default_factory=AdapterConfig, metadata={'expanded': False})
     Qt: QtConfig = field(default_factory=QtConfig)
     Filename: FilenameConfig = field(default_factory=FilenameConfig)
     Logging: dict[str, Any] = field(
@@ -269,7 +254,7 @@ class AppConfig:
     Telegram: TelegramConfig = field(default_factory=TelegramConfig, metadata={'expanded': False})
 
     parameters: dict[str, Any] = field(
-        default=MISSING,
+        default_factory=dict,
         metadata={'title': 'Parameters', 'readonly': True}
     )
 
@@ -287,14 +272,6 @@ class AppConfig:
                 name="Get updates",
                 target='${function:laser_setup.cli.get_updates.main}'
             ),
-            'parameters_to_db': MenuItemConfig(
-                name="Parameters to Database",
-                target='${function:laser_setup.cli.parameters_to_db.main}'
-            ),
-            'find_calibration_voltage': MenuItemConfig(
-                name="Find calibration voltage",
-                target='${function:laser_setup.cli.find_calibration_voltage.main}'
-            ),
         },
         metadata={'title': 'Scripts', 'readonly': True}
     )
@@ -306,6 +283,8 @@ class AppConfig:
         default_factory=lambda: {'_types': {}},
         metadata={'title': 'Sequences', 'readonly': True}
     )
+    # OmegaConf does not support dict[str, dataclass] as default factory.
+    # Elements of instruments won't have the InstrumentConfig structure.
     instruments: dict[str, InstrumentConfig] = field(
         default_factory=dict,
         metadata={'title': 'Instruments', 'readonly': True}

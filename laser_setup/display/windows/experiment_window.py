@@ -1,6 +1,7 @@
 import logging
 import time
 
+from pymeasure.display.curves import ResultsCurve
 from pymeasure.display.widgets import PlotFrame, PlotWidget
 from pymeasure.display.widgets.dock_widget import DockWidget
 from pymeasure.display.windows import ManagedWindowBase
@@ -102,18 +103,19 @@ class ExperimentWindow(ManagedWindowBase):
         self.log.addHandler(self.log_widget.handler)
         self.log.debug(f"{type(self).__name__} connected to logging")
 
-    def queue(self, procedure: type[Procedure] | None = None):
+    def queue(self, procedure: Procedure | None = None):
         if procedure is None:
             procedure = self.make_procedure()
 
-        filename_kwargs: dict = dict(CONFIG.Filename).copy()
+        filename_kwargs = dict(CONFIG.Filename).copy()
         prefix = filename_kwargs.pop('prefix', '') or type(procedure).__name__
         filename = unique_filename(CONFIG.Dir.data_dir,
                                    prefix=prefix, **filename_kwargs)
         log.info(f"Saving data to {filename}.")
 
-        if hasattr(procedure, 'pre_startup') and callable(procedure.pre_startup):
-            procedure.pre_startup()
+        if hasattr(procedure, 'patch_parameters') and callable(procedure.patch_parameters):
+            # Edits procedure parameters after init but before startup
+            procedure.patch_parameters()
 
         results = Results(procedure, filename)
         experiment = self.new_experiment(results)
@@ -143,6 +145,34 @@ class ExperimentWindow(ManagedWindowBase):
             del self.estimator.update_thread
 
         super().closeEvent(event)
+
+    def new_curve(self, *args, **kwargs) -> ResultsCurve | list[ResultsCurve] | None:
+        curves = super().new_curve(*args, **kwargs)
+        if isinstance(curves, list):
+            for curve in curves:
+                self.update_curve(curve)
+
+        elif curves is not None:
+            self.update_curve(curves)
+
+        return curves
+
+    def update_curve(self, curve: ResultsCurve) -> None:
+        """Configure the curve style. This is called for each curve in the window.
+        Override this method to customize the curve style. The default implementation
+        does nothing.
+
+        Example:
+            def update_curve(self, curve: ResultsCurve) -> None:
+                curve.setSymbol('o')
+                curve.setPen(None)  # Disable connecting line
+                curve.setSymbolBrush(curve.color)  # filling
+                curve.setSymbolPen(curve.pen)  # outline
+
+        :param curve: The curve to update.
+        :type curve: pymeasure.display.curves.ResultsCurve
+        """
+        pass
 
 
 class ProgressBar(QtWidgets.QDialog):

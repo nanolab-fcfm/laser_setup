@@ -24,7 +24,6 @@ class InstrumentProxy(Generic[T]):
         instrument_class: type[T],
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
-        includeSCPI: bool = False,
         **kwargs
     ):
         """Initializes the InstrumentProxy.
@@ -32,15 +31,13 @@ class InstrumentProxy(Generic[T]):
         :param instrument_class: The class of the instrument to be initialized.
         :param adapter: The adapter to be used for the instrument.
         :param name: The name of the instrument.
-        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param kwargs: Additional keyword arguments for instrument configuration.
         """
         self.instrument_class = instrument_class
         self.adapter = adapter
         self.name = name
-        self.includeSCPI = includeSCPI
         self.kwargs = kwargs
-        self._instance_id = None
+        self._instance_id: str | None = None
 
     def __repr__(self) -> str:
         return f"InstrumentProxy({self.instrument_class.__name__}, {self.adapter})"
@@ -101,12 +98,12 @@ class InstrumentManager:
 
     def queue(
         self,
-        target: type[T] | None = Instrument,
+        target: type[T] = Instrument,
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
-        includeSCPI: bool = False,
         IDN: str | None = None,
-        kwargs: Mapping[str, Any] | None = None
+        kwargs: Mapping[str, Any] | None = None,
+        **kwargs_extra
     ) -> T:
         """Queue an instrument for later connection.
 
@@ -116,18 +113,18 @@ class InstrumentManager:
         :param target: The instrument class to set up.
         :param adapter: The adapter to use for the communication.
         :param name: The name of the instrument.
-        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param IDN: The IDN string of the instrument.
 
         :param kwargs: Additional keyword arguments to pass to the instrument class.
+        :param kwargs_extra: Extra keyword arguments to pass to the instrument class.
         :return: A proxy object that represents the queued instrument.
         """
         proxy = InstrumentProxy(
             instrument_class=target,
             adapter=adapter,
             name=name,
-            includeSCPI=includeSCPI,
-            **(kwargs or {})
+            **(kwargs or {}),
+            **kwargs_extra
         )
 
         proxy._instance_id = IDN or self.id_template.format(instrument=target, adapter=adapter)
@@ -152,26 +149,22 @@ class InstrumentManager:
         :return: The instrument object or a DebugInstrument if debug=True and connection fails.
         """
         try:
-            instance = instrument_class(adapter=adapter, **kwargs)
+            return instrument_class(adapter=adapter, **kwargs)
         except Exception as e:
             if debug:
                 log.warning(
                     f"Could not connect to {instrument_class.__name__}: {e} Using DebugInstrument."
                 )
-                instance = DebugInstrument(**kwargs)
-            else:
-                raise
+                return DebugInstrument(**kwargs)
+            raise e
 
-        return instance
-
-    def connect_all(self, obj: any, debug: bool = False) -> None:
+    def connect_all(self, obj: Any) -> None:
         """Connects all InstrumentProxy instances in the given object.
 
         Searches for all InstrumentProxy attributes in the object and connects them,
         replacing the proxy with the actual instrument instance.
 
         :param obj: The object to search for InstrumentProxy instances.
-        :param debug: Flag indicating whether to use debug mode for connection errors.
         """
         all_attrs: dict = vars(type(obj)) | vars(obj)
         for key, attr in all_attrs.items():
@@ -180,9 +173,7 @@ class InstrumentManager:
                     instrument_class=attr.instrument_class,
                     adapter=attr.adapter,
                     name=attr.name,
-                    includeSCPI=attr.includeSCPI,
                     _instance_id=attr._instance_id,
-                    debug=debug,
                     **attr.kwargs
                 )
                 setattr(obj, key, instrument)
@@ -192,9 +183,7 @@ class InstrumentManager:
         instrument_class: type[T],
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
-        includeSCPI: bool = False,
         _instance_id: str | None = None,
-        debug: bool = False,
         **kwargs
     ) -> T | 'DebugInstrument':
         """Connects to an instrument and saves it in the dictionary.
@@ -205,10 +194,8 @@ class InstrumentManager:
         :param instrument_class: The instrument class to set up.
         :param adapter: The adapter to use for the communication.
         :param name: The name of the instrument.
-        :param includeSCPI: Flag indicating whether to include SCPI commands.
         :param _instance_id: A unique identifier. If not provided, it uses the class name
             and adapter.
-        :param debug: Flag indicating whether to use debug mode if connection fails.
         :param kwargs: Additional keyword arguments to pass to the instrument class.
         :return: The instrument instance or DebugInstrument if debug=True and connection fails.
         """
@@ -219,11 +206,9 @@ class InstrumentManager:
             if name is not None:
                 kwargs['name'] = name
 
-            kwargs['includeSCPI'] = includeSCPI
-
             try:
                 instance = self.setup_adapter(
-                    instrument_class, adapter=adapter, debug=debug, **kwargs
+                    instrument_class, adapter=adapter, **kwargs
                 )
                 self[_instance_id] = instance
                 log.debug(
@@ -265,10 +250,31 @@ class InstrumentManager:
         for instance_id in list(self):
             self.shutdown(instance_id)
 
+    def disable(self, obj, attr: str) -> None:
+        """Replaces the given attribute with a DisabledInstrument. Deletes the original
+        attribute from the object.
+
+        :param obj: The object containing the attribute to disable.
+        :param attr: The name of the attribute to disable.
+        """
+        if not hasattr(obj, attr):
+            raise AttributeError(f"Attribute '{attr}' not found in {type(obj).__name__}")
+
+        attr_obj = getattr(obj, attr)
+        if not isinstance(attr_obj, (Instrument, InstrumentProxy)):
+            raise TypeError(f"Attribute '{attr}' is not an Instrument or InstrumentProxy.")
+
+        disabled_instrument = DisabledInstrument(name=str(attr_obj.name))
+        setattr(obj, attr, disabled_instrument)
+        log.debug(f"Disabled instrument '{attr}' in {type(obj).__name__}.")
+
     @staticmethod
     def _get_property_help(attr: property, name: str) -> str:
         """Returns the help string for a property."""
         # property_types = ("property", "control", "measurement", "setting")
+        if attr.fset is None or attr.fget is None or \
+                attr.fset.__defaults__ is None or attr.fget.__defaults__ is None:
+            return "\n\n"
 
         if not attr.fget.__qualname__.startswith("CommonBase.control.<locals>"):
             prop_type = "property"
@@ -298,7 +304,7 @@ class InstrumentManager:
         help_str += "\n\n"
         return help_str
 
-    def items(self) -> Iterator[tuple[str, Instrument]]:
+    def items(self):
         return self.instrument_dict.items()
 
     def __getitem__(self, key: str) -> Instrument:
@@ -329,18 +335,89 @@ class InstrumentManager:
         return f"InstrumentManager({self.instrument_dict})"
 
 
+class NoOp:
+    """Class representing the output of a no-operation command. It is
+    used as a universal 'do nothing' placeholder.
+    """
+    def __call__(self, *args, **kwargs) -> None:
+        pass
+
+    def __bool__(self) -> bool:
+        return False
+
+    def __iter__(self) -> Iterator:
+        return iter([])
+
+    def __getattr__(self, item: str) -> None:
+        return None
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        pass
+
+    def __delattr__(self, item: str) -> None:
+        pass
+
+    def __len__(self) -> int:
+        return 0
+
+    def __contains__(self, item: str) -> bool:
+        return False
+
+    def __getitem__(self, item: str) -> None:
+        return None
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        pass
+
+    def __delitem__(self, key: str) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        return "<NoOp>"
+
+    def __str__(self) -> str:
+        return ""
+
+
+NO_OP = NoOp()
+
+
+class DisabledInstrument(FakeInstrument):
+    """Instrument class that does nothing. Useful when you want to disable an instrument
+    without removing it from the Procedure. It will not raise any exceptions when
+    trying to access its properties or methods, but will return a `NoOp` object instead.
+    """
+    _special_names = []
+
+    def __getattr__(self, item: str):
+        try:
+            return super().__getattr__(item)
+        except AttributeError:
+            return NO_OP
+
+    def __setattr__(self, key: str, value: Any) -> None:
+        try:
+            super().__setattr__(key, value)
+        except AttributeError:
+            pass
+
+    def __repr__(self) -> str:
+        return f"<DisabledInstrument ({self.name})>"
+
+
 class DebugInstrument(FakeInstrument):
     """Debug instrument class useful for testing.
 
     Overrides properties and methods for multiple instrument types, returning
     random data.
     """
-    wait_for: float = 0.01
+    _wait_for: float = 0.01
 
     # meter
     source_voltage: float = 0.
     _func = lambda *args, **kwargs: None  # noqa: E731
     measure_current = _func
+    measure_voltage = _func
     make_buffer = _func
     reset = _func
     enable_source = _func
@@ -372,10 +449,14 @@ class DebugInstrument(FakeInstrument):
         """Return the time since the instrument was instantiated."""
         return time.time() - self._tstart
 
+    def get_data(self) -> tuple[float, float]:
+        """Return the time and current."""
+        return self.get_time(), self.current
+
     @property
     def voltage(self):
         """Measure the voltage."""
-        time.sleep(self.wait_for)
+        time.sleep(self._wait_for)
         return random.uniform(1e-3, 1e-1)
 
     @voltage.setter
@@ -386,7 +467,7 @@ class DebugInstrument(FakeInstrument):
     @property
     def current(self):
         """Measure the current."""
-        time.sleep(self.wait_for)
+        time.sleep(self._wait_for)
         return random.uniform(1e-9, 1e-6)
 
     @current.setter
@@ -397,7 +478,7 @@ class DebugInstrument(FakeInstrument):
     @property
     def power(self):
         """Measure the power."""
-        time.sleep(self.wait_for)
+        time.sleep(self._wait_for)
         return random.uniform(1e-9, 1e-6)
 
     def apply_voltage(self, value=0., **kwargs):

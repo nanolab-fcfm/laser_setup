@@ -1,11 +1,11 @@
-import time
 import logging
+import time
 
 import numpy as np
 
-from ..instruments import TENMA, ThorlabsPM100USB, InstrumentManager
+from ..instruments import TENMA, InstrumentManager, ThorlabsPM100USB
 from ..procedures import BaseProcedure
-from .utils import Parameters, Instruments
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -54,15 +54,18 @@ class Pt(BaseProcedure):
 
     def execute(self):
         log.info("Starting the measurement")
+        total_time = self.laser_T * 3/2
+        initial_time = time.time()
 
-        def measuring_loop(initial_time: float, t_end: float, laser_v: float):
+        def measuring_loop(t_end: float, laser_v: float):
             avg_array = np.zeros(self.N_avg)
-            while (time.time() - initial_time) < t_end:
+            current_time = 0.
+            while current_time < t_end:
                 if self.should_stop():
                     log.warning('Measurement aborted')
                     break
 
-                self.emit('progress', 100 * (time.time() - initial_time) / (self.laser_T * 3/2))
+                self.emit('progress', 100 * current_time / total_time)
 
                 # Take the average of N_avg measurements
                 for j in range(self.N_avg):
@@ -76,9 +79,8 @@ class Pt(BaseProcedure):
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
-        initial_time = time.time()
-        measuring_loop(initial_time, self.laser_T * 1/2, 0.)
+        measuring_loop(total_time / 3, 0.)
         self.tenma_laser.voltage = self.laser_v
-        measuring_loop(initial_time, self.laser_T, self.laser_v)
+        measuring_loop(total_time * 2/3, self.laser_v)
         self.tenma_laser.voltage = 0.
-        measuring_loop(initial_time, self.laser_T * 3/2, 0.)
+        measuring_loop(total_time, 0.)

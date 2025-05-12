@@ -1,17 +1,16 @@
 import logging
 import time
 
-from ..instruments import (TENMA, Clicker, Keithley2450, PT100SerialSensor,
-                           InstrumentManager)
-from ..utils import get_latest_DP
-from .ChipProcedure import ChipProcedure
-from .utils import Parameters, Instruments
+from ..instruments import (TENMA, Clicker, InstrumentManager, Keithley2450,
+                           PT100SerialSensor)
+from .ChipProcedure import ChipProcedure, LaserMixin, VgMixin
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
-class Vt(ChipProcedure):
+class Vt(VgMixin, LaserMixin, ChipProcedure):
     """Measures a time-dependant drain-source voltage with a Keithley 2450. The gate voltage
     is controlled by two TENMA sources. The laser is controlled by another
     TENMA source. The plate and ambient temperatures are measured using a
@@ -30,9 +29,13 @@ class Vt(ChipProcedure):
     )
     clicker: Clicker = instruments.queue(**Instruments.Clicker)
 
-    # Important Parameters
-    ids = Parameters.Control.ids
+    # Voltage Parameters
+    vg_toggle = Parameters.Control.vg_toggle
     vg = Parameters.Control.vg_dynamic
+    ids = Parameters.Control.ids
+
+    # Laser Parameters
+    laser_toggle = Parameters.Laser.laser_toggle
     laser_wl = Parameters.Laser.laser_wl
     laser_v = Parameters.Laser.laser_v
     laser_T = Parameters.Laser.laser_T  # Sampling period, NOT temperature
@@ -48,30 +51,26 @@ class Vt(ChipProcedure):
     Vrange = Parameters.Instrument.Vrange
     NPLC = Parameters.Instrument.NPLC
 
-    INPUTS = ChipProcedure.INPUTS + [
-        'ids', 'Vrange', 'vg', 'laser_wl', 'laser_v', 'laser_T', 'sampling_t', 'sense_T',
-        'initial_T', 'target_T', 'T_start_t', 'NPLC'
-    ]
     DATA_COLUMNS = ['t (s)', 'VDS (V)', 'VL (V)'] + PT100SerialSensor.DATA_COLUMNS
-    EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
+    INPUTS = ChipProcedure.INPUTS + [
+        'ids', 'Vrange', 'vg_toggle', 'vg', 'laser_toggle', 'laser_wl', 'laser_v', 'laser_T',
+        'sampling_t', 'sense_T', 'initial_T', 'target_T', 'T_start_t', 'NPLC'
+    ]
+    EXCLUDE = ChipProcedure.EXCLUDE + ['vg_toggle', 'laser_toggle', 'sense_T']
     SEQUENCER_INPUTS = ['ids', 'laser_v', 'vg', 'target_T']
 
     def connect_instruments(self):
-        self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
-        self.clicker = None if not self.sense_T else self.clicker
+        if not self.vg_toggle:
+            self.instruments.disable(self, 'tenma_neg')
+            self.instruments.disable(self, 'tenma_pos')
+        if not self.laser_toggle:
+            self.instruments.disable(self, 'tenma_laser')
+        if not self.sense_T:
+            self.instruments.disable(self, 'temperature_sensor')
+            self.instruments.disable(self, 'clicker')
+        if self.target_T == 0:
+            self.instruments.disable(self, 'clicker')
         super().connect_instruments()
-
-    def pre_startup(self):
-        vg = str(self.vg)
-        if vg.endswith(' V'):
-            vg = vg[:-2]
-        if 'DP' in vg:
-            latest_DP = get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20)
-            vg = vg.replace('DP', f"{latest_DP:.2f}")
-
-        self._parameters['vg'] = Parameters.Control.vg
-        self._parameters['vg'].value = float(eval(vg))
-        self.vg = self._parameters['vg'].value
 
     def startup(self):
         self.connect_instruments()
@@ -99,38 +98,38 @@ class Vt(ChipProcedure):
 
     def execute(self):
         log.info("Starting the measurement")
+        total_time = self.laser_T * 3/2
         self.meter.clear_buffer()
 
         self.meter.source_current = self.ids
 
-        if self.sense_T:
-            if bool(self.initial_T):
-                self.clicker.CT = self.initial_T
-            self.clicker.set_target_temperature(self.target_T)
+        if bool(self.initial_T):
+            self.clicker.CT = self.initial_T
+        self.clicker.set_target_temperature(self.target_T)
 
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)
             self.tenma_neg.ramp_to_voltage(0)
-        elif self.vg < 0:
+        else:
             self.tenma_pos.ramp_to_voltage(0)
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
         def measuring_loop(t_end: float, laser_v: float):
-            keithley_time = self.meter.get_time()
-            temperature_data = ()
+            keithley_time = 0.
             while keithley_time < t_end:
                 if self.should_stop():
-                    log.warning('Measurement aborted')
-                    return
+                    if not getattr(self, 'abort_warned', False):
+                        log.warning('Measurement aborted')
+                        self.abort_warned = True
+                    break
 
-                self.emit('progress', 100 * keithley_time / (self.laser_T * 3/2))
+                self.emit('progress', 100 * keithley_time / total_time)
 
-                keithley_time = self.meter.get_time()
-                voltage = self.meter.voltage
-                if self.sense_T:
-                    temperature_data = self.temperature_sensor.data
-                    if keithley_time > self.T_start_t:
-                        self.clicker.go()
+                keithley_time, voltage = self.meter.get_data()
+
+                temperature_data = self.temperature_sensor.data
+                if keithley_time > self.T_start_t:
+                    self.clicker.go()
 
                 self.emit('results', dict(zip(
                     self.DATA_COLUMNS, [keithley_time, voltage, laser_v, *temperature_data]
@@ -138,8 +137,8 @@ class Vt(ChipProcedure):
                 time.sleep(self.sampling_t)
 
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T * 1/2, 0.)
+        measuring_loop(total_time / 3, 0.)
         self.tenma_laser.voltage = self.laser_v
-        measuring_loop(self.laser_T, self.laser_v)
+        measuring_loop(total_time * 2/3, self.laser_v)
         self.tenma_laser.voltage = 0.
-        measuring_loop(self.laser_T * 3/2, 0.)
+        measuring_loop(total_time, 0.)

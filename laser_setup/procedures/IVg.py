@@ -7,14 +7,14 @@ from scipy.signal import find_peaks
 from ..instruments import (TENMA, InstrumentManager, Keithley2450,
                            PT100SerialSensor)
 from ..utils import voltage_sweep_ramp
-from .ChipProcedure import ChipProcedure
-from .utils import Parameters, Instruments
+from .ChipProcedure import ChipProcedure, LaserMixin
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
-class IVg(ChipProcedure):
+class IVg(LaserMixin, ChipProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
     controlled by two TENMA sources. The plate and ambient temperatures are
     measured using a PT100 sensor.
@@ -48,19 +48,21 @@ class IVg(ChipProcedure):
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
+    DATA_COLUMNS = ['Vg (V)', 'I (A)'] + PT100SerialSensor.DATA_COLUMNS
     INPUTS = ChipProcedure.INPUTS + [
         'vds', 'vg_start', 'vg_end', 'vg_step', 'Irange', 'step_time', 'laser_toggle', 'laser_wl',
         'laser_v', 'burn_in_t', 'sense_T', 'NPLC'
     ]
-    DATA_COLUMNS = ['Vg (V)', 'I (A)'] + PT100SerialSensor.DATA_COLUMNS
+    EXCLUDE = ChipProcedure.EXCLUDE + ['laser_toggle', 'sense_T']
     # SEQUENCER_INPUTS = ['vds']
-    EXCLUDE = ChipProcedure.EXCLUDE + ['sense_T']
 
     DATA = [[], []]
 
     def connect_instruments(self):
-        self.tenma_laser = None if not self.laser_toggle else self.tenma_laser
-        self.temperature_sensor = None if not self.sense_T else self.temperature_sensor
+        if not self.laser_toggle:
+            self.instruments.disable(self, 'tenma_laser')
+        if not self.sense_T:
+            self.instruments.disable(self, 'temperature_sensor')
         super().connect_instruments()
 
     def startup(self):
@@ -76,16 +78,14 @@ class IVg(ChipProcedure):
         # TENMA sources
         self.tenma_neg.apply_voltage(0.)
         self.tenma_pos.apply_voltage(0.)
-        if self.laser_toggle:
-            self.tenma_laser.apply_voltage(0.)
+        self.tenma_laser.apply_voltage(0.)
 
         # Turn on the outputs
         self.meter.enable_source()
         time.sleep(0.5)
         self.tenma_neg.output = True
         self.tenma_pos.output = True
-        if self.laser_toggle:
-            self.tenma_laser.output = True
+        self.tenma_laser.output = True
         time.sleep(1.)
 
     def execute(self):
@@ -103,9 +103,6 @@ class IVg(ChipProcedure):
             )
             time.sleep(self.burn_in_t)
 
-        temperature_data = ()
-
-        # Set the Vg ramp and the measuring loop
         self.vg_ramp = voltage_sweep_ramp(self.vg_start, self.vg_end, self.vg_step)
         type(self).DATA[0] = list(self.vg_ramp)
         for i, vg in enumerate(self.vg_ramp):
@@ -121,8 +118,7 @@ class IVg(ChipProcedure):
             time.sleep(self.step_time)
 
             current = self.meter.current
-            if self.sense_T:
-                temperature_data = self.temperature_sensor.data
+            temperature_data = self.temperature_sensor.data
 
             type(self).DATA[1].append(current)
             self.emit('results', dict(zip(

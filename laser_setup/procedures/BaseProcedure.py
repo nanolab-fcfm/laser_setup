@@ -1,13 +1,15 @@
+import inspect
 import logging
 import time
 from collections.abc import Mapping, MutableMapping
+from copy import deepcopy
 from functools import wraps
 from typing import Any
 
 from pymeasure.experiment import (BooleanParameter, Metadata, Parameter,
                                   Procedure)
 
-from ..config import CONFIG, configurable
+from ..config import configurable
 from ..instruments import InstrumentManager
 
 log = logging.getLogger(__name__)
@@ -62,7 +64,13 @@ class BaseProcedure(Procedure):
 
         Override this method to handle instrument connections differently.
         """
-        self.instruments.connect_all(self, debug=CONFIG._session.args.debug)
+        self.instruments.connect_all(self)
+
+    def patch_parameters(self) -> None:
+        """Patch parameters to update their values. This method is called
+        before the measurement starts. Override this method in a subclass.
+        """
+        pass
 
     def startup(self):
         """Startup method that handles the initialization of instruments and
@@ -149,6 +157,10 @@ class BaseProcedure(Procedure):
 
         :param config_dict: Dictionary with the configuration
         """
+        # Copy parameters from parent classes to avoid sharing the same instance
+        for name, value in inspect.getmembers(cls, lambda x: isinstance(x, Parameter)):
+            setattr(cls, name, deepcopy(value))
+
         parameters: dict = config_dict.pop('parameters', {})
         cls._apply_parameter_config(cls, parameters)
 

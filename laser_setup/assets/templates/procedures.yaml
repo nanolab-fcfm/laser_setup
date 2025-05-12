@@ -2,61 +2,41 @@
 # Make sure that key names match the type(procedure).__name__ attribute.
 
 It:
-  name: I vs t
   parameters:
     procedure_version:
-      value: 2.1.0
+      value: 2.2.0
     laser_T:
       value: 120.
+      group_by: {}
     initial_T:
       value: 0.
     vg:
       value: DP + 0. V
 
 IVg:
-  name: I vs Vg
   parameters:
     procedure_version:
-      value: 2.0.0
-    laser_wl:
-      group_by: &laser_toggle {laser_toggle: true}
-    laser_v:
-      group_by: *laser_toggle
-    burn_in_t:
-      group_by: *laser_toggle
+      value: 2.1.0
 
 Vt:
-  name: V vs t
   parameters:
     procedure_version:
-      value: 1.0.0
-    laser_wl:
-      group_by: *laser_toggle
-    laser_v:
-      group_by: *laser_toggle
-    burn_in_t:
-      group_by: *laser_toggle
+      value: 1.1.0
+    laser_T:
+      value: 120.
+      group_by: {}
 
 IV:
-  name: I vs V
   parameters:
     procedure_version:
-      value: 2.0.0
-    vg:
-      group_by: {vg_toggle: true}
-    laser_wl:
-      group_by: *laser_toggle
-    laser_v:
-      group_by: *laser_toggle
+      value: 2.0.1
     burn_in_t:
-      group_by: *laser_toggle
       value: 600
 
 ItWl:
-  name: I vs t (Wl)
   parameters:
     procedure_version:
-      value: 1.0.0
+      value: 1.1.0
     wl:
       value: 530.
     step_time:
@@ -65,7 +45,6 @@ ItWl:
       value: 60
 
 Pt:
-  name: P vs t
   parameters:
     procedure_version:
       value: 0.1.1
@@ -74,21 +53,16 @@ Pt:
 
 
 Pwl:
-  name: P vs wl
   parameters:
     procedure_version:
       value: 1.2.0
 
 
 ItVg:
-  name: I vs t (Vg)
   parameters:
-    laser_wl:
-      group_by: *laser_toggle
-    laser_v:
-      group_by: *laser_toggle
+    procedure_version:
+      value: 1.0.1
     burn_in_t:
-      group_by: *laser_toggle
       value: 600
     vg_start:
       value: 0.
@@ -96,15 +70,16 @@ ItVg:
       value: 15.
     vg_step:
       value: 0.
+    laser_toggle:
+      value: true
     step_time:
       group_by: {}
       value: 1800
 
 Tt:
-  name: T vs t
   parameters:
     procedure_version:
-      value: 2.0.0
+      value: 2.0.1
     sampling_t:
       value: 0.15
     step_time:
@@ -112,21 +87,11 @@ Tt:
       value: 1800
 
 LaserCalibration:
-  name: Laser Calibration
   parameters:
     procedure_version:
       value: 1.1.1
     step_time:
       value: 2.
-
-FakeIVg:
-  parameters:
-    laser_wl:
-      group_by: *laser_toggle
-    laser_v:
-      group_by: *laser_toggle
-    burn_in_t:
-      group_by: *laser_toggle
 
 _types:
   Wait: ${class:laser_setup.procedures.Wait}
@@ -140,5 +105,4 @@ _types:
   ItVg: ${class:laser_setup.procedures.ItVg}
   Tt: ${class:laser_setup.procedures.Tt}
   LaserCalibration: ${class:laser_setup.procedures.LaserCalibration}
-  FakeIVg: ${class:laser_setup.procedures.FakeProcedure.FakeIVg}
   FakeProcedure: ${class:laser_setup.procedures.FakeProcedure.FakeProcedure}

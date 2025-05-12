@@ -1,5 +1,5 @@
 from .handler import ConfigHandler
-from .utils import load_yaml
+from .utils import load_and_merge
 
 from omegaconf import OmegaConf
 
@@ -22,7 +22,16 @@ OmegaConf.register_new_resolver(
 )
 
 CONFIG = ConfigHandler.load_config()
-CONFIG.parameters = load_yaml(CONFIG.Dir.parameters_file, flags={'allow_objects': True})
-CONFIG.procedures = load_yaml(CONFIG.Dir.procedures_file, flags={'allow_objects': True})
-CONFIG.sequences = load_yaml(CONFIG.Dir.sequences_file, flags={'allow_objects': True})
-CONFIG.instruments = load_yaml(CONFIG.Dir.instruments_file, flags={'allow_objects': True})
+flags = {'allow_objects': True}
+load_and_merge(
+    CONFIG.Dir.parameters_file, CONFIG, 'parameters', flags=flags
+)
+load_and_merge(
+    CONFIG.Dir.procedures_file, CONFIG, 'procedures', flags=flags
+)
+load_and_merge(
+    CONFIG.Dir.sequences_file, CONFIG, 'sequences', flags=flags
+)
+load_and_merge(
+    CONFIG.Dir.instruments_file, CONFIG, 'instruments', flags=flags
+)

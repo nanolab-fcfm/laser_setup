@@ -94,7 +94,7 @@ class Bentham(SCPIMixin, Instrument):
 
     resistance = Instrument.measurement(":RES?", """Reads the resistance in Ohms.""")
 
-    def __init__(self, adapter: str = None, name: str = None, includeSCPI=False, **kwargs):
+    def __init__(self, adapter: str = None, name: str = None, **kwargs):
         """Initializes the Bentham light source instrument.
 
         :param adapter: The adapter to use for the communication. If the adapter
@@ -102,16 +102,11 @@ class Bentham(SCPIMixin, Instrument):
             Other instruments can use a self.adapter = None. However, this
             class will first try to connect to an available USB device.
         :param name: The name of the instrument.
-        :param includeSCPI: Whether to include the SCPI commands in the help.
             Pymeasure instruments should have a default value of False.
         :param kwargs: Additional keyword arguments to pass to the Instrument class.
         """
         temp_adapter = None if isinstance(adapter, str) else adapter
-        super().__init__(
-            temp_adapter,
-            name or "Bentham TLS120Xe",
-            includeSCPI=includeSCPI, **kwargs
-        )
+        super().__init__(temp_adapter, name or "Bentham TLS120Xe", **kwargs)
 
         if isinstance(adapter, str) or adapter is None:
             try:
@@ -125,7 +120,6 @@ class Bentham(SCPIMixin, Instrument):
     def set_wavelength(self, wavelength: float, timeout: float = 10.):
         """Sets the wavelength to the specified value."""
         self.mono = wavelength
-        self.move
         self.filt = wavelength
         self.move
 
@@ -137,12 +131,12 @@ class Bentham(SCPIMixin, Instrument):
 
     def shutdown(self):
         self.lamp = False
-        self.reboot()
         self.adapter.close()
         super().shutdown()
 
     def reboot(self):
-        self.adapter.write("SYSTEM:REBOOT")
+        self.write("SYSTEM:REBOOT")
 
     def reconnect(self):
         self.adapter.reconnect()
+        self.write("SYST:REM")

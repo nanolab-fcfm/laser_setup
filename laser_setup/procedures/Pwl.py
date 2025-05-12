@@ -5,7 +5,7 @@ import numpy as np
 
 from ..instruments import Bentham, InstrumentManager, ThorlabsPM100USB
 from ..procedures import BaseProcedure
-from .utils import Parameters, Instruments
+from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -31,28 +31,27 @@ class Pwl(BaseProcedure):
     # Metadata
     sensor = Parameters.Instrument.sensor
 
+    DATA_COLUMNS = ['Wavelength (nm)', 'Power (W)', 'Time (s)']
     INPUTS = BaseProcedure.INPUTS + [
         'wl_start', 'wl_end', 'wl_step', 'N_avg', 'sampling_t'
     ]
-    DATA_COLUMNS = ['Wavelength (nm)', 'Power (W)', 'Time (s)']
     SEQUENCER_INPUTS = ['wl_start', 'wl_end', 'wl_step']
 
     def execute(self):
-        """
-        Performs the wavelength sweep and records power measurements.
-        """
-        log.info("Starting the wavelength sweep")
+        log.info("Starting the measurement")
 
         # Turn on the light source and set initial wavelength
         self.light_source.lamp = True
-        time.sleep(1.0)  # Allow the lamp to stabilize
+        time.sleep(5.)  # Allow the lamp to stabilize
 
         wl_range = np.arange(self.wl_start, self.wl_end + self.wl_step, self.wl_step)
         avg_array = np.zeros(self.N_avg)
-        initial_time = time.time()
+
         self.power_meter.wavelength = self.wl_start
-        time.sleep(0.5)
-        self.light_source.goto = self.wl_start
+        self.light_source.set_wavelength(self.wl_start)
+        log.info("Preparing light source...")
+        time.sleep(2.)
+        initial_time = time.time()
 
         for i, wavelength in enumerate(wl_range):
             if self.should_stop():
@@ -64,8 +63,8 @@ class Pwl(BaseProcedure):
             # Set the light source and power meter to the current wavelength
 
             self.power_meter.wavelength = wavelength
-            time.sleep(0.5)
-            self.light_source.goto = wavelength
+            # self.light_source.goto = wavelength
+            self.light_source.set_wavelength(wavelength)
 
             time.sleep(self.sampling_t)  # Allow wavelength to stabilize
 
@@ -80,7 +79,3 @@ class Pwl(BaseProcedure):
                 self.DATA_COLUMNS, [wavelength, power_avg, elapsed_time]
             )))
             avg_array[:] = 0
-
-    def shutdown(self):
-        self.light_source.lamp = False
-        super().shutdown()
