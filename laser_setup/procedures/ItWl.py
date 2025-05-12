@@ -1,16 +1,15 @@
 import logging
 import time
 
-from ..instruments import TENMA, Bentham, Keithley2450, InstrumentManager
-from ..utils import get_latest_DP
-from .ChipProcedure import ChipProcedure
+from ..instruments import TENMA, Bentham, InstrumentManager, Keithley2450
+from .ChipProcedure import ChipProcedure, VgMixin
 from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
 
-class ItWl(ChipProcedure):
+class ItWl(VgMixin, ChipProcedure):
     """Measures a time-dependant current with a Keithley 2450, while
     turning on the light source with a specific wavelength. The drain-source voltage is
     fixed. The gate voltage is controlled by two TENMA sources. The light source is
@@ -26,6 +25,7 @@ class ItWl(ChipProcedure):
 
     # Important Parameters
     vds = Parameters.Control.vds
+    vg_toggle = Parameters.Control.vg_toggle
     vg = Parameters.Control.vg_dynamic
     burn_in_t = Parameters.Laser.burn_in_t
 
@@ -38,11 +38,19 @@ class ItWl(ChipProcedure):
     Irange = Parameters.Instrument.Irange
     NPLC = Parameters.Instrument.NPLC
 
-    INPUTS = ChipProcedure.INPUTS + [
-        'vds', 'Irange', 'vg', 'wl', 'burn_in_t', 'step_time', 'sampling_t', 'NPLC'
-        ]
     DATA_COLUMNS = ['t (s)', 'I (A)', 'wl (nm)']
+    INPUTS = ChipProcedure.INPUTS + [
+        'vds', 'Irange', 'vg_toggle', 'vg', 'wl', 'burn_in_t', 'step_time',
+        'sampling_t', 'NPLC'
+        ]
+    EXCLUDE = ChipProcedure.EXCLUDE + ['vg_toggle']
     SEQUENCER_INPUTS = ['vg', 'wl']
+
+    def connect_instruments(self):
+        if not self.vg_toggle:
+            self.instruments.disable(self, 'tenma_neg')
+            self.instruments.disable(self, 'tenma_pos')
+        super().connect_instruments()
 
     def startup(self):
         self.connect_instruments()
@@ -67,51 +75,41 @@ class ItWl(ChipProcedure):
         self.light_source.lamp = True
         time.sleep(1.)
 
-    def pre_startup(self):
-        vg = str(self.vg)
-        if vg.endswith(' V'):
-            vg = vg[:-2]
-        if 'DP' in vg:
-            latest_DP = get_latest_DP(self.chip_group, self.chip_number, self.sample, max_files=20)
-            vg = vg.replace('DP', f"{latest_DP:.2f}")
-
-        self._parameters['vg'] = Parameters.Control.vg
-        self._parameters['vg'].value = float(eval(vg))
-        self.vg = self._parameters['vg'].value
-
     def execute(self):
         log.info("Starting the measurement")
+        total_time = self.burn_in_t + self.step_time
         self.meter.clear_buffer()
 
         self.meter.source_voltage = self.vds
 
-        # Turn off the light source
-        self.light_source.filt = 1
-        self.light_source.move
-
         if self.vg >= 0:
             self.tenma_pos.ramp_to_voltage(self.vg)
             self.tenma_neg.ramp_to_voltage(0)
-        elif self.vg < 0:
+        else:
             self.tenma_pos.ramp_to_voltage(0)
             self.tenma_neg.ramp_to_voltage(-self.vg)
 
         def measuring_loop(t_end: float, wl: float):
-            keithley_time = self.meter.get_time()
+            keithley_time = 0.
             while keithley_time < t_end:
                 if self.should_stop():
-                    log.warning('Measurement aborted')
-                    return
+                    if not getattr(self, 'abort_warned', False):
+                        log.warning('Measurement aborted')
+                        self.abort_warned = True
+                    break
 
-                self.emit('progress', 100 * keithley_time / (self.burn_in_t + self.step_time))
+                self.emit('progress', 100 * keithley_time / total_time)
 
-                keithley_time = self.meter.get_time()
-                current = self.meter.current
+                keithley_time, current = self.meter.get_data()
 
                 self.emit('results', dict(zip(
                     self.DATA_COLUMNS, [keithley_time, current, wl]
                 )))
                 time.sleep(self.sampling_t)
+
+        # Turn off the light source
+        self.light_source.filt = 1
+        self.light_source.move
 
         log.info(
             f"Sleeping for {self.burn_in_t} seconds to let the current stabilize."
@@ -119,4 +117,4 @@ class ItWl(ChipProcedure):
         measuring_loop(self.burn_in_t, 0.)
         log.info('Turning on the light source')
         self.light_source.set_wavelength(self.wl)
-        measuring_loop(self.step_time, self.wl)
+        measuring_loop(total_time, self.wl)

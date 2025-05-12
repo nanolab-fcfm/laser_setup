@@ -35,16 +35,15 @@ class TENMA(SCPIMixin, Instrument):
         "Timeout?", "Timeout %d", """Sets the timeout in seconds."""
     )
 
-    def __init__(self, adapter: str, name: str = None, includeSCPI=False, **kwargs):
+    def __init__(self, adapter: str, name: str = None, **kwargs):
         """Initializes the TENMA power supply instrument.
 
         :param adapter: The adapter to use for the communication.
         :param name: The name of the instrument.
-        :param includeSCPI: Whether to include the SCPI commands in the help.
         :param kwargs: Additional keyword arguments to pass to the Instrument class
         """
         super().__init__(
-            adapter, name or "TENMA Power Supply", includeSCPI=includeSCPI, **kwargs
+            adapter, name or "TENMA Power Supply", **kwargs
         )
 
     def ramp_to_voltage(self, vg_end: float, vg_step=0.1, step_time=0.05):
@@ -80,6 +79,6 @@ class TENMA(SCPIMixin, Instrument):
         Safely shutdowns the TENMA, setting the voltage to 0 and turning off
         the output.
         """
-        self.ramp_to_voltage(0.)
+        self.ramp_to_voltage(0., vg_step=0.5)
         self.output = False
         super().shutdown()

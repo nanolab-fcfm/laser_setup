@@ -106,10 +106,15 @@ def configurable(
 
         if subclasses:
             original_init_subclass = cls.__init_subclass__
+            if (init_subclass_exists := hasattr(original_init_subclass, '__func__')):
+                original_init_subclass = original_init_subclass.__func__
 
             @classmethod
             def configurable_init_subclass(klass: type[C], **kwargs):
-                original_init_subclass(**kwargs)
+                if init_subclass_exists:
+                    original_init_subclass(klass, **kwargs)
+                else:
+                    original_init_subclass(**kwargs)
                 key: str = getattr(klass, '_CONFIG_KEY', None) or \
                     f'{config_key}.{klass.__name__}'
 
