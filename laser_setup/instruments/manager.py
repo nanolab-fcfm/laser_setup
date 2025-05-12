@@ -37,7 +37,7 @@ class InstrumentProxy(Generic[T]):
         self.adapter = adapter
         self.name = name
         self.kwargs = kwargs
-        self._instance_id = None
+        self._instance_id: str | None = None
 
     def __repr__(self) -> str:
         return f"InstrumentProxy({self.instrument_class.__name__}, {self.adapter})"
@@ -98,7 +98,7 @@ class InstrumentManager:
 
     def queue(
         self,
-        target: type[T] | None = Instrument,
+        target: type[T] = Instrument,
         adapter: str | int | Adapter | None = None,
         name: str | None = None,
         IDN: str | None = None,
@@ -264,7 +264,7 @@ class InstrumentManager:
         if not isinstance(attr_obj, (Instrument, InstrumentProxy)):
             raise TypeError(f"Attribute '{attr}' is not an Instrument or InstrumentProxy.")
 
-        disabled_instrument = DisabledInstrument(name=attr_obj.name)
+        disabled_instrument = DisabledInstrument(name=str(attr_obj.name))
         setattr(obj, attr, disabled_instrument)
         log.debug(f"Disabled instrument '{attr}' in {type(obj).__name__}.")
 
@@ -272,6 +272,9 @@ class InstrumentManager:
     def _get_property_help(attr: property, name: str) -> str:
         """Returns the help string for a property."""
         # property_types = ("property", "control", "measurement", "setting")
+        if attr.fset is None or attr.fget is None or \
+                attr.fset.__defaults__ is None or attr.fget.__defaults__ is None:
+            return "\n\n"
 
         if not attr.fget.__qualname__.startswith("CommonBase.control.<locals>"):
             prop_type = "property"
@@ -301,7 +304,7 @@ class InstrumentManager:
         help_str += "\n\n"
         return help_str
 
-    def items(self) -> Iterator[tuple[str, Instrument]]:
+    def items(self):
         return self.instrument_dict.items()
 
     def __getitem__(self, key: str) -> Instrument:
@@ -386,7 +389,7 @@ class DisabledInstrument(FakeInstrument):
     """
     _special_names = []
 
-    def __getattr__(self, item: str) -> None:
+    def __getattr__(self, item: str):
         try:
             return super().__getattr__(item)
         except AttributeError:
@@ -408,7 +411,7 @@ class DebugInstrument(FakeInstrument):
     Overrides properties and methods for multiple instrument types, returning
     random data.
     """
-    wait_for: float = 0.01
+    _wait_for: float = 0.01
 
     # meter
     source_voltage: float = 0.
@@ -453,7 +456,7 @@ class DebugInstrument(FakeInstrument):
     @property
     def voltage(self):
         """Measure the voltage."""
-        time.sleep(self.wait_for)
+        time.sleep(self._wait_for)
         return random.uniform(1e-3, 1e-1)
 
     @voltage.setter
@@ -464,7 +467,7 @@ class DebugInstrument(FakeInstrument):
     @property
     def current(self):
         """Measure the current."""
-        time.sleep(self.wait_for)
+        time.sleep(self._wait_for)
         return random.uniform(1e-9, 1e-6)
 
     @current.setter
@@ -475,7 +478,7 @@ class DebugInstrument(FakeInstrument):
     @property
     def power(self):
         """Measure the power."""
-        time.sleep(self.wait_for)
+        time.sleep(self._wait_for)
         return random.uniform(1e-9, 1e-6)
 
     def apply_voltage(self, value=0., **kwargs):

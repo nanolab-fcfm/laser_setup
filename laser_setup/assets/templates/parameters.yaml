@@ -161,7 +161,7 @@ Instrument:
 
   sense_T:
     _target_: *BooleanParameter
-    default: true
+    default: false
     name: Use temperature sensor
     description: Connects to the temperature sensor
 
