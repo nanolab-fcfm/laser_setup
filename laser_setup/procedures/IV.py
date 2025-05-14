@@ -62,7 +62,6 @@ class IV(VgMixin, LaserMixin, ChipProcedure):
             self.instruments.disable(self, 'tenma_laser')
         if not self.sense_T:
             self.instruments.disable(self, 'temperature_sensor')
-            self.instruments.disable(self, 'clicker')
         super().connect_instruments()
 
     def startup(self):
