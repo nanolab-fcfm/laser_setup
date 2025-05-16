@@ -166,8 +166,7 @@ class InstrumentManager:
 
         :param obj: The object to search for InstrumentProxy instances.
         """
-        all_attrs: dict = vars(type(obj)) | vars(obj)
-        for key, attr in all_attrs.items():
+        for key, attr in inspect.getmembers(obj):
             if isinstance(attr, InstrumentProxy):
                 instrument = self.connect(
                     instrument_class=attr.instrument_class,

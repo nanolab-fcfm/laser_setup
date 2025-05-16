@@ -1,3 +1,4 @@
+import inspect
 import logging
 from collections import ChainMap
 from collections.abc import Mapping, MutableMapping
@@ -5,7 +6,7 @@ from copy import deepcopy
 from io import StringIO
 from typing import Any, ClassVar
 
-from pymeasure.experiment import Metadata, Parameter, Procedure
+from pymeasure.experiment import Parameter, Procedure
 from pymeasure.experiment.sequencer import SequenceHandler
 
 from ..config import CONFIG, instantiate, configurable
@@ -158,13 +159,13 @@ class Sequence:
         :param procedure_class: The procedure class to get the inputs for.
         :return: A list of input names.
         """
-        if getattr(procedure_class, 'INPUTS', None) is not None:
-            inputs = procedure_class.INPUTS
+        if hasattr(procedure_class, 'INPUTS'):
+            inputs = list(procedure_class.INPUTS)
 
         else:
             inputs = [
-                p for p in vars(procedure_class)
-                if isinstance(getattr(procedure_class, p), (Parameter, Metadata))
+                attr for _, attr in inspect.getmembers(procedure_class)
+                if isinstance(attr, Parameter)
             ]
 
         return inputs
