@@ -131,4 +131,6 @@ def get_type(
 
     namespace['__module__'] = module
     namespace['__doc__'] = namespace.get('__doc__', '')
-    return type(name, tuple(bases), namespace or {}, **kwargs)
+    NewType = type(name, tuple(bases), namespace or {}, **kwargs)
+    sys.modules[module].__dict__[name] = NewType
+    return NewType

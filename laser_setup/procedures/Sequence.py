@@ -36,8 +36,7 @@ class Sequence:
     common_procedure: ClassVar[type[Procedure]] = Procedure
     inputs_ignored: ClassVar[list[str]] = []
     procedures: ClassVar[list[type[Procedure]]] = []
-    procedures_config: ClassVar[list[MutableMapping[str, Any]]] = []
-    queue: list[Procedure] = []
+    procedures_config: ClassVar[list[Mapping[str, Any]]] = []
 
     def __init__(self, **kwargs):
         """Initialize a sequence instance.
@@ -46,17 +45,17 @@ class Sequence:
         :param kwargs: Additional configuration attributes
         """
         self.status = Status.QUEUED
+        self.queue: list[Procedure] = []
         self._queue_procedures()
 
     @classmethod
     def configure_class(cls, config_dict: MutableMapping[str, Any]):
-        procedures: list = config_dict.pop('procedures', {})
+        procedures: list = config_dict.pop('procedures', [])
         cls.inputs_ignored = []
         cls.procedures = []
         cls.procedures_config = []
-        cls.queue = []
         for item in procedures:
-            if isinstance(item, MutableMapping):
+            if isinstance(item, Mapping):
                 for proc_name, proc_params in item.items():
                     cls.add_procedure(proc_name, proc_params)
 
