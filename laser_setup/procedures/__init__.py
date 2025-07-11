@@ -11,6 +11,7 @@ from .Tt import Tt
 from .ItWl import ItWl
 from .Wait import Wait
 from .LaserCalibration import LaserCalibration
+from .VVg import VVg
 from .Sequence import Sequence
 
 # Keep subclasses for backwards compatibility

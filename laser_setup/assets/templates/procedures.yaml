@@ -93,6 +93,11 @@ LaserCalibration:
     step_time:
       value: 2.
 
+VVg:
+  parameters:
+    procedure_version:
+      value: 1.0.0
+
 _types:
   Wait: ${class:laser_setup.procedures.Wait}
   It: ${class:laser_setup.procedures.It}
@@ -105,4 +110,5 @@ _types:
   ItVg: ${class:laser_setup.procedures.ItVg}
   Tt: ${class:laser_setup.procedures.Tt}
   LaserCalibration: ${class:laser_setup.procedures.LaserCalibration}
+  VVg: ${class:laser_setup.procedures.VVg}
   FakeProcedure: ${class:laser_setup.procedures.FakeProcedure.FakeProcedure}
