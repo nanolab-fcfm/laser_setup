@@ -6,13 +6,51 @@ from scipy.signal import find_peaks
 
 from ..instruments import (TENMA, InstrumentManager, Keithley2450,
                            PT100SerialSensor)
-from ..utils import voltage_sweep_ramp
+# from ..utils import voltage_sweep_ramp  ->  replaced by the one in this file
 from .ChipProcedure import ChipProcedure, LaserMixin
 from .utils import Instruments, Parameters
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
 
+
+def up_down_ramp(v1: float, v2: float, step: float) -> np.ndarray:
+    """
+    Generates a ramp from v1 to v2 with step size `step`, inclusive.
+    """
+    if v1 < v2:
+        return np.arange(v1, v2 + step, step)
+    else:
+        return np.arange(v1, v2 - step, -step)
+
+
+def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarray:
+    """
+    Generate a voltage sweep array:
+    from 0 to v_start, then to v_end, then back to 0.
+
+    Args:
+        v_start (float): First target voltage (from 0).
+        v_end (float): Second target voltage.
+        v_step (float): Step size (positive).
+
+    Returns:
+        np.ndarray: Array of voltage values for the sweep.
+    """
+    # Ramp from 0 to v_start
+    sgn_start = 1 if v_start >= 0 else -1
+    v_to_start = np.arange(0, v_start + sgn_start * v_step, sgn_start * v_step)
+
+    # Ramp from v_start to v_end
+    v_start_to_end = up_down_ramp(v_start, v_end, v_step)
+
+    # Ramp from v_end back to 0
+    sgn_end = 1 if v_end >= 0 else -1
+    v_back_to_zero = np.arange(v_end, 0 - sgn_end * v_step, -sgn_end * v_step)
+
+    # Concatenate all
+    V = np.concatenate((v_to_start, v_start_to_end[1:], v_back_to_zero[1:]))
+    return V
 
 class VVg(LaserMixin, ChipProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
