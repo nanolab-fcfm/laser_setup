@@ -6,7 +6,6 @@ from scipy.signal import find_peaks
 
 from ..instruments import (TENMA, InstrumentManager, Keithley2450,
                            PT100SerialSensor)
-# from ..utils import voltage_sweep_ramp  ->  replaced by the one in this file
 from .ChipProcedure import ChipProcedure, LaserMixin
 from .utils import Instruments, Parameters
 
@@ -51,6 +50,7 @@ def voltage_sweep_ramp(v_start: float, v_end: float, v_step: float) -> np.ndarra
     # Concatenate all
     V = np.concatenate((v_to_start, v_start_to_end[1:], v_back_to_zero[1:]))
     return V
+
 
 class VVg(LaserMixin, ChipProcedure):
     """Measures a gate sweep with a Keithley 2450. The gate voltage is
