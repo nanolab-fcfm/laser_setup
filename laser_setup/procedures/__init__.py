@@ -12,6 +12,7 @@ from .ItWl import ItWl
 from .Wait import Wait
 from .LaserCalibration import LaserCalibration
 from .VVg import VVg
+from .Stress import Stress
 from .Sequence import Sequence
 
 # Keep subclasses for backwards compatibility

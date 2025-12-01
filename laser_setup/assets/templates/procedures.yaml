@@ -98,6 +98,15 @@ VVg:
     procedure_version:
       value: 1.0.0
 
+Stress:
+  parameters:
+    procedure_version:
+      value: 1.0.0
+    t_on:
+      value: 600.
+    sampling_t:
+      value: 1.
+
 _types:
   Wait: ${class:laser_setup.procedures.Wait}
   It: ${class:laser_setup.procedures.It}
@@ -111,4 +120,5 @@ _types:
   Tt: ${class:laser_setup.procedures.Tt}
   LaserCalibration: ${class:laser_setup.procedures.LaserCalibration}
   VVg: ${class:laser_setup.procedures.VVg}
+  Stress: ${class:laser_setup.procedures.Stress}
   FakeProcedure: ${class:laser_setup.procedures.FakeProcedure.FakeProcedure}

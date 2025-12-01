@@ -175,6 +175,20 @@ Control:
     units: s
     group_by: show_more
 
+  t_on:
+    _target_: *FloatParameter
+    default: 60.
+    name: Time ON
+    description: Time the instruments are ON
+    units: s
+
+  t_off:
+    _target_: *FloatParameter
+    default: 60.
+    name: Time OFF
+    description: Time the instruments are OFF
+    units: s
+
   vds:
     _target_: *FloatParameter
     default: 0.075
