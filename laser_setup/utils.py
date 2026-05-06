@@ -1,5 +1,6 @@
 import datetime
 import logging
+import random
 from pathlib import Path
 from typing import Dict, Generator, List, Tuple
 
@@ -168,15 +169,31 @@ def send_telegram_alert(message: str):
     log.debug(f"Sent '{message}' to {CONFIG.Telegram.chat_ids}.")
 
 
-def get_status_message(timeout: float = .5) -> str:
-    """Gets a status message from somewhere :)"""
-    try:
-        res = requests.get("https://api.benbriel.me/nanolab", timeout=timeout)
-        message = res.json()['message']
-        return message
+def get_status_message() -> str:
+    """Gets a local status message."""
+    now = datetime.datetime.now()
+    if now.month == 1 and now.day < 15:
+        message = "Happy New Year! 🎉"
+    elif now.month == 10 and now.day == 31:
+        message = "Happy Halloween! 🎃"
+    elif now.month == 12 and 20 < now.day < 26:
+        message = "Merry Christmas! 🎄"
+    else:
+        message = "Ready"
 
-    except (requests.RequestException, KeyError):
-        return 'Ready'
+    rand = random.random()
+    if rand < 0.01:
+        message = "Look behind you..."
+    elif rand < 0.02:
+        message = "Do not trust AI."
+    elif rand < 0.03:
+        message = "Do you hear that?"
+    elif rand < 0.04:
+        message = "Better reload the window."
+    elif rand < 0.05:
+        message = "Not ready"
+
+    return message
 
 
 def read_file_parameters(file_path: str | Path) -> Dict[str, str]:

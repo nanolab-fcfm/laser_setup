@@ -135,6 +135,7 @@ def display_window(procedure: type[Procedure] | None = None, **kwargs):
 
     splash.finish(window)
     window.show()
+    app.processEvents()
     app.exec()
     remove_empty_data()
 
