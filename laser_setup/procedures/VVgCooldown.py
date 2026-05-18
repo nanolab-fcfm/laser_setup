@@ -10,7 +10,7 @@ log.addHandler(logging.NullHandler())
 
 
 class VVgCooldown(VVg):
-    """VVg procedure that shuts down instruments between sweeps."""
+    """This procedure runs multiple VVg sweeps with an "inter-sweep wait" between them, where the Keithley and Tenmas are shut down."""
 
     name = "V vs Vg (Cooldown)"
 
