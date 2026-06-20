@@ -15,6 +15,9 @@ site_description: >-
   Experimental setup for Laser, I-V and Transfer Curve measurements — a
   PyMeasure-based GUI with a YAML/Hydra configuration system.
 site_author: NanoLab FCFM
+copyright: >-
+  Copyright © 2024 NanoLab — FCFM ·
+  <a href="https://nanolab.cl/">nanolab.cl</a>
 # Published via GitHub Pages under the NanoLab custom domain (nanolab.cl).
 # Project pages of the nanolab-fcfm org are served at nanolab.cl/<repo>/.
 site_url: https://nanolab.cl/laser_setup/
@@ -131,6 +134,8 @@ extra_javascript:
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
+  # Back to the main NanoLab site (rendered as an external tab on the far left).
+  - ⬅ NanoLab: https://nanolab.cl/
   - Home: index.md
   - Getting Started:
       - getting-started/index.md
