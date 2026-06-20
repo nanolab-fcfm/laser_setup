@@ -1,5 +1,11 @@
 # Laser Setup
 
+📖 **Full documentation:** <https://nanolab.cl/laser_setup/> — start with the
+[Installation guide](https://nanolab.cl/laser_setup/getting-started/installation/)
+and the [hands-on Tutorials](https://nanolab.cl/laser_setup/tutorials/)
+(no hardware required). The documentation source lives in [`docs/`](docs/) and can be
+previewed locally with `uv run --group docs mkdocs serve`.
+
 Experimental setup for Laser, I-V, and Transfer Curve measurements. This project utilizes [PyMeasure](https://pypi.org/project/PyMeasure/) under the hood and extends it with a YAML-based configuration system (via OmegaConf and Hydra) for flexible instrument and procedure management. It is strongly recommended to read the [PyMeasure documentation](https://pymeasure.readthedocs.io/en/latest/) to understand the underlying structure and classes.
 
 This project allows for the communication between the computer and the instruments used in the experimental setup, as well as the control of the instruments. The following instruments are supported:
@@ -43,58 +49,31 @@ laser_setup <script_name>
 
 ## Installation
 
-Clone the repository:
+The recommended way is with [`uv`](https://docs.astral.sh/uv/), which installs
+everything into a project-local environment (nothing system-wide). The repository
+pins Python 3.12 via `.python-version`.
 
 ```bash
 git clone https://github.com/nanolab-fcfm/laser_setup.git
 cd laser_setup
+uv sync                 # create the environment and install dependencies
+uv run laser_setup      # launch the main window
 ```
 
-Create a virtual environment:
-
-```bash
-python -m venv <venv_name>
-source <venv_name>/bin/activate  # Linux/MacOS
-<venv_name>/Scripts/activate     # Windows
-pip install --upgrade pip
-```
-
-And install the dependencies:
-
-```bash
-pip install .
-```
-
-Or, for direct installation instead of cloning the repository:
-
-```bash
-pip install git+https://github.com/nanolab-fcfm/laser_setup.git
-```
-
-Optionally install using uv:
-
-```bash
-uv venv
-uv pip install https://github.com/nanolab-fcfm/laser_setup
-```
-
-If installed, the `laser_setup` entry point for the program will be created.
+See the **[full Installation guide](https://nanolab.cl/laser_setup/getting-started/installation/)**
+for the Docker option, instrument drivers (NI-VISA), and troubleshooting.
 
 ## Usage
 
-Once installed, run either of the following commands to start the main window:
-
 ```bash
-laser_setup
-```
-
-or
-
-```python
-python -m laser_setup
+uv run laser_setup                 # main window (GUI hub)
+uv run laser_setup FakeProcedure   # a demo experiment, no hardware needed
+uv run laser_setup -d It           # a real procedure with simulated instruments
+uv run laser_setup --help          # list every procedure and script
 ```
 
 This launches the window defined in [MainWindow](laser_setup/display/windows/main_window.py).
+New here? Follow the [hands-on Tutorials](https://nanolab.cl/laser_setup/tutorials/).
 
 ## Configuration
 
@@ -140,4 +119,7 @@ Use the SequenceWindow to group multiple procedures in series. This allows chain
 ## Contributing
 
 - Code contributions should follow typical pull-request workflow on GitHub.
-- Documentation is currently WIP.
+- Documentation lives in [`docs/`](docs/) (MkDocs Material) and is published to
+  [GitHub Pages](https://nanolab.cl/laser_setup/). See the
+  [Contributing guide](https://nanolab.cl/laser_setup/contributing/)
+  and [Building & deploying the docs](https://nanolab.cl/laser_setup/building-and-deploying-docs/).

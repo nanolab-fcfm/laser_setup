@@ -57,6 +57,15 @@ dev = [
     "sphinx>=7.4.7",
     "sphinx-rtd-theme>=3.0.2",
 ]
+# Documentation site (MkDocs Material). Kept in an isolated uv dependency group
+# so it never touches the runtime dependencies of the application. Build with:
+#   uv run --group docs mkdocs serve     # live preview at http://127.0.0.1:8000
+#   uv run --group docs mkdocs build     # static site into ./site
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
+    "pymdown-extensions>=10.7",
+]
 
 [tool.pyright]
 typeCheckingMode = "off"
