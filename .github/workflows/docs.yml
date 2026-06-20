@@ -1,0 +1,69 @@
+name: Deploy documentation
+
+# Builds the MkDocs site and publishes it to GitHub Pages.
+#
+# One-time setup: in the repository Settings → Pages, set "Source" to
+# "GitHub Actions". After that, every push to main that touches the docs (or a
+# manual run) republishes https://<org>.github.io/<repo>/.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".python-version"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+# Permissions required by the GitHub Pages deployment action.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment; don't cancel an in-progress run.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # mkdocs git-based features need full history
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build site (docs group only, no app install)
+        # --only-group installs just the `docs` dependency group — not the
+        # application or its heavy runtime deps (PyQt6, scipy…), which the docs
+        # build does not need. Keeps CI fast and robust.
+        run: uv run --only-group docs mkdocs build --strict
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

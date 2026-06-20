@@ -1,0 +1,17 @@
+# Live-preview the documentation with Docker (no uv/Python needed on the host).
+#
+#   docker compose -f docs/docker-compose.yml up
+#
+# then open http://localhost:8000. Edits under docs/ reload automatically.
+#
+# Volumes are relative to THIS file, so ".." is the repository root, where
+# mkdocs.yml lives (with docs_dir: docs).
+services:
+  docs:
+    image: squidfunk/mkdocs-material:9
+    working_dir: /docs
+    ports:
+      - "8000:8000"
+    volumes:
+      - ..:/docs
+    command: serve --dev-addr 0.0.0.0:8000

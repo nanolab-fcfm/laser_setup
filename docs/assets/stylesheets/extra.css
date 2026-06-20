@@ -1,0 +1,13 @@
+/* NanoLab branding tweaks for the Laser Setup docs. */
+
+/* Enlarge the header logo (Material's default is ~1.2rem tall). The NanoLab
+   mark is portrait-oriented, so we grow the height and let the width scale. */
+.md-header__button.md-logo {
+  padding: 0.2rem;
+}
+
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 2.8rem;
+  width: auto;
+}

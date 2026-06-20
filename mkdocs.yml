@@ -1,0 +1,178 @@
+# MkDocs configuration for the Laser Setup documentation site.
+#
+# The documentation source lives entirely in the ./docs subfolder. Build it
+# without installing anything system-wide:
+#
+#   uv run --group docs mkdocs serve     # live preview at http://127.0.0.1:8000
+#   uv run --group docs mkdocs build     # render the static site into ./site
+#
+# or with Docker (no Python/uv needed on the host):
+#
+#   docker compose -f docs/docker-compose.yml up
+#
+site_name: Laser Setup
+site_description: >-
+  Experimental setup for Laser, I-V and Transfer Curve measurements — a
+  PyMeasure-based GUI with a YAML/Hydra configuration system.
+site_author: NanoLab FCFM
+# Published via GitHub Pages under the NanoLab custom domain (nanolab.cl).
+# Project pages of the nanolab-fcfm org are served at nanolab.cl/<repo>/.
+site_url: https://nanolab.cl/laser_setup/
+
+repo_name: nanolab-fcfm/laser_setup
+repo_url: https://github.com/nanolab-fcfm/laser_setup
+edit_uri: edit/main/docs/
+
+# All documentation Markdown lives in this subfolder.
+docs_dir: docs
+
+# Catch broken internal links and anchors (treated as errors under --strict).
+validation:
+  links:
+    absolute_links: ignore
+    anchors: warn
+    unrecognized_links: warn
+
+# Helper files that live in docs/ but should not be published as pages.
+exclude_docs: |
+  docker-compose.yml
+
+theme:
+  name: material
+  language: en
+  # NanoLab brand assets (sourced from nanolab-fcfm/nanolab-fcfm.github.io).
+  logo: assets/logo/logo.png
+  favicon: assets/logo/favicon-32x32.png
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+  # Palette matches the NanoLab website (nanolab-fcfm.github.io).
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: deep orange
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: orange
+      accent: deep purple
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: material/web
+      link: https://nanolab.cl/
+      name: NanoLab website
+    - icon: fontawesome/brands/github
+      link: https://github.com/nanolab-fcfm/laser_setup
+      name: laser_setup on GitHub
+  generator: false
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+extra_css:
+  - assets/stylesheets/extra.css
+
+extra_javascript:
+  - assets/javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - getting-started/index.md
+      - Installation: getting-started/installation.md
+      - First Steps: getting-started/first-steps.md
+  - Tutorials:
+      - tutorials/index.md
+      - "1 · Your first experiment": tutorials/01-first-experiment.md
+      - "2 · The Experiment Window": tutorials/02-experiment-window.md
+      - "3 · Running a Sequence": tutorials/03-sequences.md
+      - "4 · Your own configuration": tutorials/04-your-config.md
+      - "5 · Connecting real instruments": tutorials/05-real-instruments.md
+  - User Guide:
+      - user-guide/index.md
+      - Architecture: user-guide/architecture.md
+      - The Graphical Interface: user-guide/gui.md
+      - Configuration System: user-guide/configuration.md
+      - Procedures: user-guide/procedures.md
+      - Instruments: user-guide/instruments.md
+      - Sequences: user-guide/sequences.md
+      - CLI & Scripts: user-guide/cli-and-scripts.md
+      - Data & Output Files: user-guide/data-and-output.md
+  - Developer Guide:
+      - developer-guide/index.md
+      - Creating a New Procedure: developer-guide/creating-a-procedure.md
+      - Defining Parameters: developer-guide/parameters.md
+      - Adding an Instrument: developer-guide/adding-an-instrument.md
+      - Registering in YAML: developer-guide/registering.md
+      - Internals: developer-guide/internals.md
+      - Testing: developer-guide/testing.md
+  - Reference:
+      - reference/index.md
+      - Configuration keys: reference/configuration.md
+      - Procedure catalog: reference/procedures.md
+      - Instrument catalog: reference/instruments.md
+      - CLI & scripts: reference/cli.md
+  - Lab Protocols:
+      - protocols/index.md
+      - LED measurement protocol: led_protocol.md
+      - LED power calibration: led_calibration.md
+      - Short protocol: Short protocol.md
+  - Project:
+      - Contributing: contributing.md
+      - Building & deploying these docs: building-and-deploying-docs.md
+      - Troubleshooting & FAQ: troubleshooting.md
