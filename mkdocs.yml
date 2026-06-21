@@ -134,8 +134,8 @@ extra_javascript:
   - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
 
 nav:
-  # Back to the main NanoLab site (rendered as an external tab on the far left).
-  - ⬅ NanoLab: https://nanolab.cl/
+  # Back to the NanoLab documentation hub (external tab on the far left).
+  - ⬅ NanoLab Docs: https://nanolab.cl/documentation/
   - Home: index.md
   - Getting Started:
       - getting-started/index.md
@@ -148,6 +148,7 @@ nav:
       - "3 · Running a Sequence": tutorials/03-sequences.md
       - "4 · Your own configuration": tutorials/04-your-config.md
       - "5 · Connecting real instruments": tutorials/05-real-instruments.md
+      - "6 · Write your own procedure": tutorials/06-write-your-own-procedure.md
   - User Guide:
       - user-guide/index.md
       - Architecture: user-guide/architecture.md

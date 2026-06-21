@@ -44,6 +44,12 @@ the whole workflow safely before touching real instruments.
 
     [:octicons-arrow-right-24: Continue](05-real-instruments.md)
 
+-   **6 · Write your own procedure**
+
+    Create, register and run a custom measurement — and see how it all fits.
+
+    [:octicons-arrow-right-24: Continue](06-write-your-own-procedure.md)
+
 </div>
 
 ## What you'll be able to do afterwards

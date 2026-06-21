@@ -138,7 +138,9 @@ for the scripts.
 
 ## Where to go next
 
-You now understand the whole user workflow. To **build your own measurement**,
-continue to the Developer Guide:
+You now understand the whole user workflow. Next, **build your own measurement**:
 
-[:octicons-arrow-right-24: Creating a New Procedure](../developer-guide/creating-a-procedure.md)
+[:octicons-arrow-right-24: Tutorial 6 · Write your own procedure](06-write-your-own-procedure.md)
+
+(For the full reference, that tutorial links into the
+[Developer Guide](../developer-guide/creating-a-procedure.md).)
