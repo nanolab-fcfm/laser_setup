@@ -4,6 +4,12 @@ This is the page you came for: how to add a **new experiment**. We'll build one
 from nothing, run it without hardware, then grow it into a real instrument-driven
 device measurement. Every snippet is complete and copy-pasteable.
 
+!!! tip "New to this? Start with the tutorial"
+    For a gentler, hands-on walkthrough that creates and runs a minimal
+    procedure step by step, do
+    [Tutorial 6 · Write your own procedure](../tutorials/06-write-your-own-procedure.md)
+    first, then come back here for the full reference.
+
 !!! abstract "The checklist"
     To create a procedure you:
 
